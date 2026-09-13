@@ -1,11 +1,15 @@
 package com.example.clashroyaleapi.client;
 
+import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.config.ClashRoyaleApiProperties;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import java.util.List;
 
 @Component
 public class ClashRoyaleApiClient {
@@ -31,6 +35,15 @@ public class ClashRoyaleApiClient {
                 .uri("/clans/{tag}", normalizeTag(tag))
                 .retrieve()
                 .body(ClanResponse.class);
+    }
+
+    // battlelogはAPI仕様上、直近の対戦(実質25件程度)を返すのみで件数指定やページネーションはできない。
+    public List<BattleLogEntry> getBattleLog(String tag) {
+        return restClient.get()
+                .uri("/players/{tag}/battlelog", normalizeTag(tag))
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<BattleLogEntry>>() {
+                });
     }
 
     // 先頭に "#" を補う。"#" のURLエンコード(%23)自体はRestClientのURIビルダーがパス変数展開時に自動で行う。

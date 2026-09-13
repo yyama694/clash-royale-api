@@ -11,3 +11,5 @@ clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1
     token: ""
+  name-index:
+    file: data/name-index.json
