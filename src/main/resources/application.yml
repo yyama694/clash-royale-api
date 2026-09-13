@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: clash-royale-api
+  profiles:
+    active: local
+
+server:
+  port: 8080
+
+clashroyale:
+  api:
+    base-url: https://api.clashroyale.com/v1
+    token: ""

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>プレイヤー情報</title>
+</head>
+<body>
+    <p><a th:href="@{/}">&laquo; 検索に戻る</a></p>
+
+    <div th:if="${error}">
+        <p th:text="${error}" style="color:red;"></p>
+    </div>
+
+    <div th:if="${player}">
+        <h1 th:text="${player.name()}"></h1>
+        <p>タグ: <span th:text="${player.tag()}"></span></p>
+        <ul>
+            <li>経験値レベル: <span th:text="${player.expLevel()}"></span></li>
+            <li>現在トロフィー: <span th:text="${player.trophies()}"></span></li>
+            <li>ベストトロフィー: <span th:text="${player.bestTrophies()}"></span></li>
+            <li>勝利数: <span th:text="${player.wins()}"></span></li>
+            <li>敗北数: <span th:text="${player.losses()}"></span></li>
+            <li>3クラウン勝利数: <span th:text="${player.threeCrownWins()}"></span></li>
+            <li th:if="${player.clan()}">所属クラン: <span th:text="${player.clan().name()}"></span></li>
+        </ul>
+    </div>
+</body>
+</html>

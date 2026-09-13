@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Clash Royale 検索</title>
+</head>
+<body>
+    <h1>Clash Royale 検索</h1>
+
+    <h2>プレイヤー検索</h2>
+    <form th:action="@{/player}" method="get">
+        <label>プレイヤータグ(#は省略可): <input type="text" name="tag" placeholder="例: 2ABC123"></label>
+        <button type="submit">検索</button>
+    </form>
+
+    <h2>クラン検索</h2>
+    <form th:action="@{/clan}" method="get">
+        <label>クランタグ(#は省略可): <input type="text" name="tag" placeholder="例: 2XYZ456"></label>
+        <button type="submit">検索</button>
+    </form>
+</body>
+</html>
