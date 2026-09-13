@@ -296,6 +296,7 @@ tbody tr:hover {
 }
 
 .deck-card img {
+    width: 56px;
     max-width: 100%;
     height: auto;
     display: block;
