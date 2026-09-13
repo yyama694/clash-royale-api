@@ -2,45 +2,51 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>クラン情報</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-    <p><a th:href="@{/}">&laquo; 検索に戻る</a></p>
+    <div th:replace="~{fragments/header :: header}"></div>
 
-    <div th:if="${error}">
-        <p th:text="${error}" style="color:red;"></p>
-    </div>
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; 検索に戻る</a>
 
-    <div th:if="${clan}">
-        <h1 th:text="${clan.name()}"></h1>
-        <p>タグ: <span th:text="${clan.tag()}"></span></p>
-        <p th:text="${clan.description()}"></p>
-        <ul>
-            <li>クランスコア: <span th:text="${clan.clanScore()}"></span></li>
-            <li>メンバー数: <span th:text="${clan.members()}"></span></li>
-        </ul>
+        <div th:if="${error}" class="error-box" th:text="${error}"></div>
 
-        <h2>メンバー一覧</h2>
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>名前</th>
-                    <th>役職</th>
-                    <th>レベル</th>
-                    <th>トロフィー</th>
-                    <th>寄付数</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="member : ${clan.memberList()}">
-                    <td th:text="${member.name()}"></td>
-                    <td th:text="${member.role()}"></td>
-                    <td th:text="${member.expLevel()}"></td>
-                    <td th:text="${member.trophies()}"></td>
-                    <td th:text="${member.donations()}"></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+        <div th:if="${clan}" class="card">
+            <h1 th:text="${clan.name()}"></h1>
+            <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
+            <p th:if="${clan.description()}" th:text="${clan.description()}"></p>
+            <ul class="stat-grid">
+                <li><span class="label">クランスコア</span><span class="value" th:text="${clan.clanScore()}"></span></li>
+                <li><span class="label">メンバー数</span><span class="value" th:text="${clan.members()}"></span></li>
+            </ul>
+        </div>
+
+        <div th:if="${clan}" class="card">
+            <h2>メンバー一覧</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>名前</th>
+                        <th>役職</th>
+                        <th>レベル</th>
+                        <th>トロフィー</th>
+                        <th>寄付数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="member : ${clan.memberList()}">
+                        <td th:text="${member.name()}"></td>
+                        <td th:text="${member.role()}"></td>
+                        <td th:text="${member.expLevel()}"></td>
+                        <td th:text="${member.trophies()}"></td>
+                        <td th:text="${member.donations()}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
 </body>
 </html>

@@ -2,28 +2,44 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Clash Royale 検索</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-    <h1>Clash Royale 検索</h1>
+    <div th:replace="~{fragments/header :: header}"></div>
 
-    <h2>プレイヤー検索</h2>
-    <form th:action="@{/player}" method="get">
-        <label>プレイヤータグ(#は省略可): <input type="text" name="tag" placeholder="例: 2ABC123"></label>
-        <button type="submit">検索</button>
-    </form>
+    <main class="container">
+        <div class="card">
+            <h2>プレイヤー検索</h2>
+            <form class="search-form" th:action="@{/player}" method="get">
+                <label>プレイヤータグ(#は省略可)
+                    <input type="text" name="tag" placeholder="例: 2ABC123">
+                </label>
+                <button type="submit">検索</button>
+            </form>
+        </div>
 
-    <h2>クラン検索</h2>
-    <form th:action="@{/clan}" method="get">
-        <label>クランタグ(#は省略可): <input type="text" name="tag" placeholder="例: 2XYZ456"></label>
-        <button type="submit">検索</button>
-    </form>
+        <div class="card">
+            <h2>クラン検索</h2>
+            <form class="search-form" th:action="@{/clan}" method="get">
+                <label>クランタグ(#は省略可)
+                    <input type="text" name="tag" placeholder="例: 2XYZ456">
+                </label>
+                <button type="submit">検索</button>
+            </form>
+        </div>
 
-    <h2>名前検索(タグ不明な場合)</h2>
-    <p>過去に検索されたことのある名前から部分一致で検索します。</p>
-    <form th:action="@{/search}" method="get">
-        <label>名前: <input type="text" name="name" placeholder="例: yyama"></label>
-        <button type="submit">検索</button>
-    </form>
+        <div class="card">
+            <h2>名前検索(タグ不明な場合)</h2>
+            <p class="notice">過去に検索されたことのある名前から部分一致で検索します。</p>
+            <form class="search-form" th:action="@{/search}" method="get">
+                <label>名前
+                    <input type="text" name="name" placeholder="例: yyama">
+                </label>
+                <button type="submit">検索</button>
+            </form>
+        </div>
+    </main>
 </body>
 </html>

@@ -144,6 +144,10 @@ Claude Codeはセッションをまたいだ記憶を持たないため、作業
   - デプロイ手順は既存方針どおり(`mvn clean package -DskipTests` → `scp`で`clash-royale-api.jar`を上書き → `sudo systemctl restart clash-royale-api`)。`sudo`はパスワードなしで実行可能(opcユーザーにNOPASSWD設定済みと判明)。
   - **注意点(2026-09-13発生)**: デプロイ作業中、VMがSSH(22)・HTTP(8080)・ping全てに無応答になる事象が発生。ユーザーがOCIコンソールからVMをリブートして復旧した。原因は未特定(VM自体のフリーズ等の可能性。[[project-oci-vm-spec]]の通りVM.Standard.E2.1.Microは低スペックのため要注意)。リブート後もsshdの起動やSpring Boot自体の起動(データ量にもよるが30〜75秒程度)に時間がかかるため、疎通確認は焦らず数分単位の間隔でリトライするとよい。
   - デプロイ後、外部(`http://132.226.7.203:8080/`)からトップページ・プレイヤー検索(対戦履歴表示含む)・名前検索(`/search`)の動作を確認済み。`data/name-index.json`もVM上に生成され、正しく蓄積されることを確認済み。
+- [x] 画面デザインを現代的なスタイルに刷新(2026-09-13実装・VMへデプロイ・外部からの動作確認済み)
+  - 共通スタイルシート`src/main/resources/static/css/style.css`(カード型レイアウト、CSS変数によるカラーテーマ、レスポンシブ対応)を追加し、全画面(`index`/`player`/`clan`/`search`)に適用。
+  - 共通ヘッダーは`templates/fragments/header.html`のThymeleafフラグメントとして切り出し、`th:replace`で各ページから読み込む方式に統一。
+  - 対戦履歴の勝敗表示をバッジ(緑/赤/グレー)に変更するなど、視認性を改善。
 
 ## 未確定・今後検討する事項
 
