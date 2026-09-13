@@ -46,7 +46,7 @@
                 <tbody>
                     <tr th:each="b : ${battleLog}">
                         <td th:text="${b.battleTime()}"></td>
-                        <td th:text="${b.gameMode() != null ? b.gameMode().name() : '-'}"></td>
+                        <td th:text="${T(com.example.clashroyaleapi.web.GameModeLabels).label(b.gameMode() != null ? b.gameMode().name() : null)}"></td>
                         <td>
                             <span th:if="${b.team()[0].crowns() > b.opponent()[0].crowns()}" class="badge badge-win">勝ち</span>
                             <span th:if="${b.team()[0].crowns() < b.opponent()[0].crowns()}" class="badge badge-lose">負け</span>
