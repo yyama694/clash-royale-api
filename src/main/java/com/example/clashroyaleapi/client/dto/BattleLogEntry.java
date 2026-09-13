@@ -13,7 +13,15 @@ public record BattleLogEntry(
         List<Participant> opponent
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Participant(String tag, String name, int crowns) {
+    public record Participant(String tag, String name, int crowns, List<Card> cards) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Card(String name, int level, IconUrls iconUrls) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record IconUrls(String medium) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
