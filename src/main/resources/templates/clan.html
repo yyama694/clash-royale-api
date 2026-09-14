@@ -54,7 +54,7 @@
                 </thead>
                 <tbody>
                     <tr th:each="member : ${clan.memberList()}">
-                        <td th:text="${member.name()}"></td>
+                        <td><a th:href="@{/player(tag=${member.tag()})}" th:text="${member.name()}"></a></td>
                         <td th:text="${member.role()}"></td>
                         <td th:text="${member.expLevel()}"></td>
                         <td th:text="${member.trophies()}"></td>
