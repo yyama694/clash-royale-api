@@ -13,6 +13,3 @@ application-prod.properties
 
 *.log
 .DS_Store
-
-# 実行時生成データ
-data/
