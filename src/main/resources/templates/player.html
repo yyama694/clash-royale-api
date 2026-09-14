@@ -18,14 +18,43 @@
             <h1 th:text="${player.name()}"></h1>
             <p><span class="tag-pill" th:text="${player.tag()}"></span></p>
             <ul class="stat-grid">
-                <li><span class="label">経験値レベル</span><span class="value" th:text="${player.expLevel()}"></span></li>
-                <li><span class="label">現在トロフィー</span><span class="value" th:text="${player.trophies()}"></span></li>
-                <li><span class="label">ベストトロフィー</span><span class="value" th:text="${player.bestTrophies()}"></span></li>
-                <li><span class="label">勝利数</span><span class="value" th:text="${player.wins()}"></span></li>
-                <li><span class="label">敗北数</span><span class="value" th:text="${player.losses()}"></span></li>
-                <li><span class="label">3クラウン勝利数</span><span class="value" th:text="${player.threeCrownWins()}"></span></li>
-                <li th:if="${player.clan()}"><span class="label">所属クラン</span><span class="value" th:text="${player.clan().name()}"></span></li>
+                <li><span class="label">⭐ 経験値レベル</span><span class="value" th:text="${player.expLevel()}"></span></li>
+                <li><span class="label">🏆 現在トロフィー</span><span class="value" th:text="${player.trophies()}"></span></li>
+                <li><span class="label">🥇 ベストトロフィー</span><span class="value" th:text="${player.bestTrophies()}"></span></li>
+                <li><span class="label">✅ 勝利数</span><span class="value" th:text="${player.wins()}"></span></li>
+                <li><span class="label">❌ 敗北数</span><span class="value" th:text="${player.losses()}"></span></li>
+                <li><span class="label">👑 3クラウン勝利数</span><span class="value" th:text="${player.threeCrownWins()}"></span></li>
+                <li th:if="${player.clan()}"><span class="label">🛡️ 所属クラン</span><span class="value" th:text="${player.clan().name()}"></span></li>
             </ul>
+        </div>
+
+        <div th:if="${battleStats}" class="card">
+            <h2>直近の戦績サマリー</h2>
+            <p class="notice">※直近の対戦履歴(最大25件程度)からの集計です。</p>
+            <p>
+                過去<span th:text="${battleStats.total()}"></span>戦で
+                <strong th:text="${battleStats.wins()}"></strong>勝
+                <strong th:text="${battleStats.losses()}"></strong>敗
+                <span th:if="${battleStats.draws() > 0}" th:text="'(引き分け' + ${battleStats.draws()} + ')'"></span>
+            </p>
+
+            <h3>得意カード(勝率が高いカード)</h3>
+            <div class="deck-grid">
+                <div class="deck-card" th:each="c : ${battleStats.favoriteCards()}">
+                    <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
+                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), useJapaneseCardNames)}"></div>
+                    <div class="card-level" th:text="${c.winRatePercent()} + '% (' + ${c.wins()} + '/' + ${c.uses()} + ')'"></div>
+                </div>
+            </div>
+
+            <h3>苦手カード(勝率が低いカード)</h3>
+            <div class="deck-grid">
+                <div class="deck-card" th:each="c : ${battleStats.weakCards()}">
+                    <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
+                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), useJapaneseCardNames)}"></div>
+                    <div class="card-level" th:text="${c.winRatePercent()} + '% (' + ${c.wins()} + '/' + ${c.uses()} + ')'"></div>
+                </div>
+            </div>
         </div>
 
         <div th:if="${player}" class="card">
@@ -33,7 +62,8 @@
             <p class="notice">※Clash Royale公式APIの仕様上、直近の対戦履歴は最大25件程度までしか取得できません(件数指定不可)。</p>
             <p th:if="${battleLogError}" class="error-box" th:text="${battleLogError}"></p>
             <p th:if="${battleLog != null and #lists.isEmpty(battleLog)}" class="empty-state">対戦履歴がありません。</p>
-            <table th:if="${battleLog != null and not #lists.isEmpty(battleLog)}">
+            <div th:if="${battleLog != null and not #lists.isEmpty(battleLog)}" class="table-scroll">
+            <table>
                 <thead>
                     <tr>
                         <th>日時</th>
@@ -57,6 +87,7 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </main>
 </body>

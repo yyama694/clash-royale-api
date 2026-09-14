@@ -19,13 +19,14 @@
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
             <p th:if="${clan.description()}" th:text="${clan.description()}"></p>
             <ul class="stat-grid">
-                <li><span class="label">クランスコア</span><span class="value" th:text="${clan.clanScore()}"></span></li>
-                <li><span class="label">メンバー数</span><span class="value" th:text="${clan.members()}"></span></li>
+                <li><span class="label">🏆 クランスコア</span><span class="value" th:text="${clan.clanScore()}"></span></li>
+                <li><span class="label">👥 メンバー数</span><span class="value" th:text="${clan.members()}"></span></li>
             </ul>
         </div>
 
         <div th:if="${clan}" class="card">
             <h2>メンバー一覧</h2>
+            <div class="table-scroll">
             <table>
                 <thead>
                     <tr>
@@ -46,6 +47,7 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </main>
 </body>

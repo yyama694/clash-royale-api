@@ -22,10 +22,11 @@ public class PlayerController {
     }
 
     @GetMapping("/player")
-    public String player(@RequestParam(required = false) String tag, Model model) {
+    public String player(@RequestParam(required = false) String tag, Model model, Locale locale) {
         if (tag == null || tag.isBlank()) {
             return "redirect:/";
         }
+        model.addAttribute("useJapaneseCardNames", "ja".equalsIgnoreCase(locale.getLanguage()));
         try {
             PlayerResponse player = clashRoyaleApiClient.getPlayer(tag);
             model.addAttribute("player", player);
@@ -34,7 +35,11 @@ public class PlayerController {
             return "player";
         }
         try {
-            model.addAttribute("battleLog", clashRoyaleApiClient.getBattleLog(tag));
+            List<BattleLogEntry> battleLog = clashRoyaleApiClient.getBattleLog(tag);
+            model.addAttribute("battleLog", battleLog);
+            if (!battleLog.isEmpty()) {
+                model.addAttribute("battleStats", PlayerBattleStats.from(battleLog));
+            }
         } catch (RestClientResponseException e) {
             model.addAttribute("battleLogError", "戦績の取得に失敗しました(" + e.getStatusCode() + ")");
         }

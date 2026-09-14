@@ -10,6 +10,8 @@
     <div th:replace="~{fragments/header :: header}"></div>
 
     <main class="container">
+        <p class="notice" style="margin-bottom: 1.25rem;">Clash Royale公式APIを使って、プレイヤーやクランのタグから実績・戦績・メンバー情報を調べられます。</p>
+
         <div class="card">
             <h2>プレイヤー検索</h2>
             <form class="search-form" th:action="@{/player}" method="get">
