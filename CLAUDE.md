@@ -59,10 +59,22 @@
 
 ## デプロイ手順の方針(手動、hello-worldを踏襲)
 
-1. ローカルで `mvn clean package` してjarをビルド
-2. `scp` 等でjarをOCI VMの所定ディレクトリに転送
-3. VM上でsystemdサービスを再起動してアプリを反映
-4. 動作確認は `http://<パブリックIP>:8080` へのアクセスで行う
+- VM上の実体: jar配置先 `/opt/clash-royale-api/clash-royale-api.jar`、systemdサービス名 `clash-royale-api.service`(`opc`ユーザーで実行、起動オプション`--spring.profiles.active=prod`)。
+- SSH鍵: ローカルの `C:\Users\Norio Fukuchi\.ssh\oci_clash_royale_api`。接続先ユーザーは`opc`(Oracle Linux標準)。
+- **2026-09-15にロールバック対応のため手順を変更**(`TODO.md`のデプロイ課題対応): 新jarで上書きする前に現行jarをリネームしてバックアップする運用にした。失敗時は`.bak`を戻せば切り戻せる。
+
+1. ローカルで `mvn clean package` してjarをビルド(`target/clash-royale-api-0.0.1-SNAPSHOT.jar`)
+2. `scp` でjarをVMの `/tmp/clash-royale-api.jar` に転送
+3. VM上で以下を実行してjarを差し替え、サービスを再起動する
+   ```bash
+   sudo mv /opt/clash-royale-api/clash-royale-api.jar /opt/clash-royale-api/clash-royale-api.jar.bak
+   sudo mv /tmp/clash-royale-api.jar /opt/clash-royale-api/clash-royale-api.jar
+   sudo chown opc:opc /opt/clash-royale-api/clash-royale-api.jar
+   sudo systemctl restart clash-royale-api
+   sudo systemctl is-active clash-royale-api
+   ```
+4. 動作確認は `http://132.226.7.203:8080/` へのアクセス(`curl`のHTTPステータス確認でも可)で行う
+5. 問題があれば `.bak` を元のファイル名に戻して`systemctl restart`することでロールバックする(`.bak`は次回デプロイ時に上書きされるため、長期保管はしない)
 
 ## コーディング方針(本プロジェクト固有)
 
