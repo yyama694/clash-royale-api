@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 直近の対戦履歴(battlelog)から、勝敗数とカードごとの使用実績を集計する。
+ * 直近の対戦履歴(battlelog)から、勝敗数と「対戦相手が使用したカードに対する自分の勝率」を集計する。
+ * 得意カード=相手がそのカードを使った対戦での勝率が高いカード、苦手カード=勝率が低いカード、という定義。
  * battlelogは常に"team[0]"が検索対象プレイヤー自身を表す(公式APIの仕様)という前提で計算する。
  */
 public record PlayerBattleStats(int total, int wins, int losses, int draws, List<CardPerformance> favoriteCards,
@@ -39,7 +40,7 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
             } else {
                 draws++;
             }
-            for (BattleLogEntry.Card card : self.cards()) {
+            for (BattleLogEntry.Card card : opponent.cards()) {
                 CardTally tally = tallies.computeIfAbsent(card.name(), k -> new CardTally(cardIconUrl(card)));
                 tally.uses++;
                 if (won) {

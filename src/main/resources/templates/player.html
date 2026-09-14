@@ -38,7 +38,7 @@
                 <span th:if="${battleStats.draws() > 0}" th:text="'(引き分け' + ${battleStats.draws()} + ')'"></span>
             </p>
 
-            <h3>得意カード(勝率が高いカード)</h3>
+            <h3>得意カード(相手が使用した時の勝率が高いカード)</h3>
             <div class="deck-grid">
                 <div class="deck-card" th:each="c : ${battleStats.favoriteCards()}">
                     <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
@@ -47,7 +47,7 @@
                 </div>
             </div>
 
-            <h3>苦手カード(勝率が低いカード)</h3>
+            <h3>苦手カード(相手が使用した時の勝率が低いカード)</h3>
             <div class="deck-grid">
                 <div class="deck-card" th:each="c : ${battleStats.weakCards()}">
                     <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
