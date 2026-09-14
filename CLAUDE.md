@@ -1,4 +1,4 @@
-# プロジェクト設定: Clash Royale API + Spring Boot + OCI デプロイ
+﻿# プロジェクト設定: Clash Royale API + Spring Boot + OCI デプロイ
 
 このファイルは本プロジェクト(Clash Royale公式APIを使ったWebアプリのOCIデプロイ)専用の作業方針です。
 共通の作業方針はグローバルのCLAUDE.mdを参照。個別ルールが競合する場合は本ファイルを優先する。
@@ -76,129 +76,14 @@
 - Clash Royale APIキー、OCIの認証情報(APIキー、SSH秘密鍵、config)は絶対にリポジトリにコミットしない。
 - VMのセキュリティリストは必要最小限のポートのみ開放する(SSH: 22、アプリ: 8080など)。
 
-## 進捗状況(セッションをまたぐための記録)
+## 進捗状況
 
-Claude Codeはセッションをまたいだ記憶を持たないため、作業のキリが良いタイミングでこのセクションを更新し、
-「どこまで完了したか」「次に何をするか」を常に最新の状態に保つ。別セッションで再開する際は、まずこのセクションを確認する。
+進捗ログ(何をいつ、なぜやったか、既知の制約・ハマりポイント)は`進捗ログ.md`(プロジェクトルート)を参照。
+別セッションで再開する際は、まずそちらを確認する。着手した項目・新たな制約が判明した際は、都度`進捗ログ.md`側を更新する。
 
-- [x] CLAUDE.md作成、方針決定(機能範囲・DB方針・インフラ方針・進め方など)
-- [x] Clash Royale公式APIへの登録・APIキー取得
-  - developer.clashroyale.comでSupercell IDログイン → APIキー発行済み
-  - Allowed IP Addressesにはローカル開発マシンのグローバルIPを登録済み。**OCI VM作成後、そのVMのグローバルIPも追加登録する必要あり(未実施)**
-  - キー本体は `src/main/resources/application-local.yml`(gitignore対象、コミットされない)に保存済み
-- [x] Spring Bootプロジェクトの雛形作成(pom.xml、起動クラス、Controller、Thymeleafテンプレート)
-  - groupId=`com.example`, artifactId=`clash-royale-api`, Java 21 / Spring Boot 3.3.4 / Web + Thymeleaf
-  - `ClashRoyaleApiClient`(RestClient使用、Bearer認証、タグの`#`はURIビルダーが自動エンコード)
-  - 設定は`application.yml`(コミット対象、tokenは空)+`application-local.yml`(gitignore対象、実トークン)の2層構成。profiles.active=localをデフォルトに設定
-- [x] プレイヤー検索機能の実装(`/player?tag=...`、`PlayerController`+`player.html`)
-- [x] クラン検索機能の実装(`/clan?tag=...`、`ClanController`+`clan.html`)
-- [x] ローカル動作確認
-  - `mvn clean package`でビルド成功、`java -jar`で起動確認
-  - 実際のAPIキーで動作確認: プレイヤー`#VRQUQ0QL`(yyama8888)、クラン`#PPCQ9R2R`(償い、メンバー49名)とも正常表示
-  - 存在しないタグでの404エラーハンドリングも確認済み(画面にエラーメッセージ表示)
-  - 既知の注意点: クランメンバーの`expLevel`は実際のAPIレスポンス自体が0を返す(アプリ側のバグではなく元データの仕様)
-- [x] git初期化 + GitHubリポジトリ作成・連携
-  - このリポジトリのみに`user.name`/`user.email`をローカル設定(グローバルgit設定は変更せず、hello-worldと同じ方式)
-  - `gh repo create clash-royale-api --public --source=. --remote=origin --push`でリポジトリ作成・push完了
-  - リポジトリURL: https://github.com/yyama694/clash-royale-api (Public)
-- [x] 旧hello-world用OCI VM(140.245.83.216)を削除(ユーザーがOCIコンソールから実施)
-- [x] 新規OCI VM作成
-  - リージョン: 東京(ap-tokyo-1)
-  - Shape: 当初Ampere A1.Flexを試みたが"Out of host capacity"のため**VM.Standard.E2.1.Micro**(x86_64)で作成(hello-worldと同じ経緯)
-  - OS: Oracle Linux Server 9.8
-  - SSH鍵: `C:\Users\Norio Fukuchi\.ssh\oci_clash_royale_api`(hello-world用鍵ファイルをリネームして流用)
-  - **パブリックIPアドレス: `132.226.7.203`**
-  - SSH接続確認済み(`ssh -i oci_clash_royale_api opc@132.226.7.203`)
-- [x] Clash Royale APIキーの許可IPリストに、このVMのパブリックIP(`132.226.7.203`)を追加登録
-  - **既知の注意点**: developer.clashroyale.comでは既存キーのAllowed IP Addressesは編集不可(追加不可)。IPを追加したい場合はキーを作り直す必要がある。
-  - 経緯: 誤って複数キーを作成してしまい混乱したため、最終的にキーを1本(`clash-royale-api-local`)に整理し、作成時にAllowed IP Addressesへ`60.113.8.212`(ローカル開発機)と`132.226.7.203`(OCI VM)の両方を登録した
-  - **既知の注意点**: キー作成/IP変更後、APIに反映されるまで最大で1分弱のタイムラグがあり、その間は`403 Forbidden`(`{"reason":"accessDenied","message":"Invalid authorization"}`)になる。時間を置いて再試行すれば解決する。
-  - `application-local.yml`のトークンを更新し、ローカルで動作確認済み(`#VRQUQ0QL`のプレイヤー情報取得に成功)
-- [x] VM上にJava 21実行環境をセットアップ
-  - Amazon Corretto 21のtar.gz(x64版)を`/opt/amazon-corretto-21.0.12.9.1-linux-x64`に展開(hello-worldと同じ、dnf経由は避ける方針)
-  - `/etc/profile.d/java21.sh`でJAVA_HOME/PATHを設定
-- [x] jarをVMに転送し、systemdサービスとして常駐化
-  - ローカルで`mvn clean package -DskipTests`でビルド → `scp`で`/opt/clash-royale-api/clash-royale-api.jar`に転送
-  - 本番用APIキー設定は`/opt/clash-royale-api/application-prod.yml`(chmod 600、Spring Bootの外部設定ファイル読み込みの仕組みでjarと同じディレクトリに置くだけで`--spring.profiles.active=prod`指定時に自動適用される)
-  - `/etc/systemd/system/clash-royale-api.service`を作成(`Type=simple`、`User=opc`、`ExecStart`はCorretto21の`java -jar ... --spring.profiles.active=prod`)
-  - **既知の注意点(ハマりポイント)**: `scp`で`/tmp`経由でサービスファイルを配置したところ、SELinux(Enforcing)のコンテキストが`user_tmp_t`のままになり`systemctl enable`が「Unit file does not exist」というわかりにくいエラーで失敗した。`sudo restorecon -v /etc/systemd/system/clash-royale-api.service`でコンテキストを`systemd_unit_file_t`に修復して解決。今後`/tmp`経由で設定ファイルを配置する際は同様の問題に注意する。
-  - `systemctl daemon-reload` → `enable --now`で起動、`active (running)`を確認
-  - VM内部の`curl http://localhost:8080/player?tag=...`で実際のClash Royale APIを使った動作確認済み(profile: prod)
-- [x] VM内部のfirewalldで8080番ポートを開放(`firewall-cmd --add-port=8080/tcp --permanent && --reload`)
-- [x] OCIコンソールでセキュリティリストにIngress Rule追加(ユーザーが実施)
-  - VCN `vcn-20260913-1841` の `Default Security List` に、Source CIDR `0.0.0.0/0` / TCP / ポート8080のIngress Ruleを追加
-- [x] 外部からのアクセス確認 → `curl http://132.226.7.203:8080/` でHTTP 200、プレイヤー検索(`/player?tag=%23VRQUQ0QL`)も正常動作を確認。**外部アクセス成功**
+## 開発方針
 
-## マイルストーン完了
-
-プレイヤー検索・クラン検索の最小機能を持つClash Royale APIのWebアプリが、OCI上へのデプロイまで完了した。
-ブラウザから `http://132.226.7.203:8080/` にアクセスすると、プレイヤータグ・クランタグで検索できる。
-
-- [x] プレイヤー名/クランメンバー名からタグを検索する機能を追加(2026-09-13実装・VMへデプロイ・外部からの動作確認済み)
-  - **技術的制約**: Clash Royale公式APIに名前検索エンドポイントがないため、これまでにプレイヤー検索・クラン検索で判明した「名前→タグ」の対応をテキストファイル(JSON)に蓄積し、その中から部分一致で検索する方式を採用(2026-09-13にユーザーと合意。利用者が少ないためDBではなくテキストファイルで十分と判断)。
-  - `NameIndexService`(`src/main/java/.../nameindex/`)が`/player`・`/clan`検索成功時に名前・タグを自動登録し、`data/name-index.json`(gitignore対象、実行時生成)に永続化。
-  - `/search?name=...`(`SearchController`)で部分一致検索、結果からプレイヤー/クランとして見るリンクへ遷移可能。トップページにも検索フォームを追加。
-  - **既知の制約**: まだ一度も検索されたことのない名前はヒットしない(蓄積型のため)。デプロイ後はVM上の`data/`ディレクトリ(jarと同じ作業ディレクトリ配下)にファイルが作られる想定。既存のVM上jarを更新する際、`data/name-index.json`を誤って消さないよう注意。
-- [x] プレイヤータグ検索に直近の対戦履歴表示を追加(2026-09-13実装・VMへデプロイ・外部からの動作確認済み)
-  - `GET /players/{tag}/battlelog`を`ClashRoyaleApiClient.getBattleLog()`で呼び出し、`/player`ページに対戦履歴テーブルを表示。
-  - **既知の制約**: ユーザーからは「直近50試合」の要望があったが、公式APIのbattlelogは件数指定・ページネーション非対応で、直近の対戦(実質25件程度)しか返せない仕様のため、その旨を画面にも注記した上でAPIが返す件数をそのまま表示している。
-
-次のマイルストーン(クイズ機能などの追加サービス、DB導入)は未着手。
-
-- [x] 上記2機能(名前検索・対戦履歴表示)をVMへデプロイ(2026-09-13)
-  - デプロイ手順は既存方針どおり(`mvn clean package -DskipTests` → `scp`で`clash-royale-api.jar`を上書き → `sudo systemctl restart clash-royale-api`)。`sudo`はパスワードなしで実行可能(opcユーザーにNOPASSWD設定済みと判明)。
-  - **注意点(2026-09-13発生)**: デプロイ作業中、VMがSSH(22)・HTTP(8080)・ping全てに無応答になる事象が発生。ユーザーがOCIコンソールからVMをリブートして復旧した。原因は未特定(VM自体のフリーズ等の可能性。[[project-oci-vm-spec]]の通りVM.Standard.E2.1.Microは低スペックのため要注意)。リブート後もsshdの起動やSpring Boot自体の起動(データ量にもよるが30〜75秒程度)に時間がかかるため、疎通確認は焦らず数分単位の間隔でリトライするとよい。
-  - デプロイ後、外部(`http://132.226.7.203:8080/`)からトップページ・プレイヤー検索(対戦履歴表示含む)・名前検索(`/search`)の動作を確認済み。`data/name-index.json`もVM上に生成され、正しく蓄積されることを確認済み。
-- [x] 画面デザインを現代的なスタイルに刷新(2026-09-13実装・VMへデプロイ・外部からの動作確認済み)
-  - 共通スタイルシート`src/main/resources/static/css/style.css`(カード型レイアウト、CSS変数によるカラーテーマ、レスポンシブ対応)を追加し、全画面(`index`/`player`/`clan`/`search`)に適用。
-  - 共通ヘッダーは`templates/fragments/header.html`のThymeleafフラグメントとして切り出し、`th:replace`で各ページから読み込む方式に統一。
-  - 対戦履歴の勝敗表示をバッジ(緑/赤/グレー)に変更するなど、視認性を改善。
-- [x] 対戦履歴の「モード」表示を「日本語ラベル (英語名)」形式に変更(2026-09-13実装・VMへデプロイ・外部からの動作確認済み)
-  - `GameModeLabels`(`src/main/java/.../web/`)に主要なgameMode名→日本語ラベルの対応表を用意し、`player.html`から`T()`式で呼び出し。例: `ランク戦 (Ladder)`。
-  - 日本語話者には意味がわかりやすく、外国語話者にも元の英語名が残るようにする狙い(2026-09-13にユーザーから「モードを日本語でわかりやすく、ただし外国人にもわかりやすいアプリにして」という要望があり対応)。
-  - **既知の制約**: マッピング表は主要なモードのみ網羅。未知のgameMode名はそのまま英語で表示されるフォールバック。
-- [x] 対戦履歴の「日時」をリンク化し、対戦詳細(自分・相手それぞれのデッキ8枚)を表示する機能を追加(2026-09-13実装・VMへデプロイ・外部からの動作確認済み)
-  - `GET /player/battle?tag=...&index=N`(`PlayerController.battleDetail()`)で対戦詳細(`battle-detail.html`)を表示。
-  - **設計上の注意**: 公式APIのbattlelogには対戦を一意に識別するIDが存在しないため、永続化はせず「タグ+一覧内のインデックス」をキーにして詳細アクセス時に`battlelog`を再取得する方式にした。そのため、詳細画面を開くまでの間に新しい対戦が発生しているとインデックスがずれる可能性がある(その場合は「指定された対戦が見つかりませんでした」とエラー表示)。
-  - `BattleLogEntry.Participant`に`cards`(使用カード一覧、名前・レベル・アイコンURL)を追加。カード画像は公式CDN(`api-assets.clashroyale.com`)の画像URLをそのまま`<img>`で表示。
-
-- [x] 名前検索機能を撤去(2026-09-14、ローカルの変更・コミットのみ)
-  - **経緯**: クラロワの実プレイヤー数は数千万〜1億人規模(2026年時点、調査元によりMAU推計は4,300万〜1億3,200万人程度と幅がある)と判明。この規模を無料枠のOCI VM(低スペック)+テキストファイル方式で網羅するのは非現実的と判断し、ユーザーが機能自体の撤去を決定。
-  - 削除したファイル: `NameIndexService.java`, `NameIndexEntry.java`, `NameIndexProperties.java`, `SearchController.java`, `search.html`(`nameindex`パッケージごと削除)
-  - 修正したファイル: `PlayerController.java`/`ClanController.java`(`NameIndexService`への依存・登録呼び出しを削除)、`index.html`(名前検索フォームを削除)、`application.yml`(`clashroyale.name-index`設定を削除)、`.gitignore`(不要になった`data/`除外を削除)
-  - **今後名前検索を再検討する場合の代替案**: クラン名検索は公式APIに`GET /clans?name=...`という本物の検索エンドポイントがあるため、プレイヤー名検索(公式APIに手段なし)とは切り離してクランのみ実装する案を検討候補として挙げた(未着手)。
-- [x] 名前検索機能撤去の反映(2026-09-14、ローカル削除+VMデプロイ+外部からの動作確認済み)
-  - ローカルの`data/`ディレクトリ(名前検索の実行時生成データ、Git管理外)を削除
-  - `mvn clean package -DskipTests` → `scp`で新jarをVMに転送 → VM上の`data/`(旧蓄積データ)も削除 → `sudo systemctl restart clash-royale-api`で反映
-  - 外部(`http://132.226.7.203:8080/`)からトップページのHTTP 200応答、および名前検索フォームが表示されなくなったことを確認済み
-- [x] 対戦詳細画面のカード名をアクセス言語に応じて日英切り替え(2026-09-14実装・VMへデプロイ・外部からの動作確認済み)
-  - **経緯**: カード名が常に英語表示だったため、「日本からのアクセスは日本語、それ以外は英語のまま。将来的にはアクセスした人の国の言語で表示したい」という要望があった。
-  - **判定方法の決定**: 「IPアドレスからGeoIPで国を判定」ではなく「ブラウザのAccept-Languageヘッダーで判定」を採用(ユーザーが選択)。理由: 追加の外部データ(GeoIPデータベース等)が不要でシンプルであり、将来の多言語対応も「ユーザーの言語設定に応じて表示」という形でそのまま拡張できるため。既知のズレとして、Accept-Language(ブラウザの言語設定)は必ずしも「アクセス国」と一致しない(例: 海外在住の日本語ユーザーは日本語表示になる)。
-  - `CardNameLabels`(`src/main/java/.../web/`)にカード名(英語)→日本語名の対応表を用意。`GameModeLabels`と同じ設計(未知のカード名は英語フォールバック)。
-  - `PlayerController.battleDetail()`に`Locale locale`引数を追加(Spring MVC標準の`Accept-Language`自動解決を利用)し、`ja`の場合のみ`useJapaneseCardNames=true`をモデルに設定。`battle-detail.html`側で`CardNameLabels.label(c.name(), useJapaneseCardNames)`を呼び出し。
-  - ローカルで`curl -H "Accept-Language: ja"`/`en-US`を切り替えて動作確認済み(日本語アクセス時のみ日本語名、それ以外は英語のまま)。
-  - **既知の制約**: 対応表は主要カードを一通り網羅しているが、翻訳の正確性は完全には保証していない(特に一部の建物系カード名)。
-- [x] カード日本語名の誤訳を修正(2026-09-14実装・VMへデプロイ・外部からの動作確認済み)
-  - **経緯**: 「ファーネス」「キャノンカート」など、初回実装時に単純なカタカナ音訳で当て推量した日本語名が、実際の公式ローカライズ名と異なっていた(公式は単純音訳ではなく、キャラクター名や意訳を用いるケースが多い)。ユーザーから「ちゃんと調べて直して」と指摘があり、複数の日本語攻略サイト(Smashlogクラロワ攻略の全カード一覧、famitsu、wikiwiki.jp、kabutom氏のnote記事等)を突き合わせて全カード名を再調査し、`CardNameLabels`の対応表を全面的に修正した。
-  - 主な修正例: Furnace(ファーネス→オーブン)、Cannon Cart(キャノンカート→60式ムート)、Bandit(バンディット→アサシン ユーノ)、Miner(マイナー→ディガー)、Mega Minion(メガミニオン→メガガーゴイル)、Executioner(エグゼキューショナー→執行人ファルチェ)、Witch(魔女→ネクロマンサー)、Electro Dragon(エレクトロドラゴン→ライトニングドラゴン)、Cannon(キャノン→大砲)、Tombstone(トゥームストーン→墓石)、Elixir Collector(エリクサーコレクター→エリクサーポンプ)、X-Bow(X-ボウ→巨大クロスボウ) など多数。
-  - 2025〜2026年に追加された新カード(Rune Giant=鍛冶屋ジャイアント、Minion Giant=ガーゴイルジャイアント、Berserker=バーサーカー、Vine=ヴァイン)、およびそれ以前に対応表から漏れていた The Log(ローリングウッド)も追加。
-  - ローカルで実際のバトルログ(`#VRQUQ0QL`)を使い、修正後の日本語名が正しく表示されることを確認済み。
-  - **既知の制約**: ウェブ検索による調査ベースのため、開発者自身がゲーム内表示と一つ一つ完全に照合したわけではない。将来カード名の誤りに気づいた場合は`CardNameLabels.java`を都度修正する運用とする。
-- [x] プレイヤー情報画面に得意カード・苦手カード、戦績サマリーを追加(2026-09-14実装・VMへデプロイ・外部からの動作確認済み)
-  - `PlayerBattleStats.java`(`src/main/java/.../web/`)を新規作成。直近の対戦履歴(battlelog)から「過去◯戦で◯勝◯敗」と、カードごとの使用回数・勝率を集計。使用回数2回未満のカードはノイズとして除外(全カードがそれ未満ならフォールバックで全カード対象)し、勝率上位/下位3枚を「得意カード」「苦手カード」として抽出。
-  - `PlayerController.player()`から呼び出し、`player.html`に新セクションとして表示(カード名は`CardNameLabels`で日本語化)。
-  - **既知の制約**: 集計対象は直近25〜35件程度の対戦のみで、母数が少なく統計的信頼性は高くない。使用デッキの種類が少ないプレイヤーでは得意/苦手カードが重複する場合がある。
-  - **修正(2026-09-14)**: 初回実装は「自分が使ったカードの勝率」で集計していたが、ユーザーから「得意カード=相手が使っていて自分の勝率が高いカード、苦手カード=相手が使っていて自分の勝率が低いカード」という定義の指摘があり、`PlayerBattleStats`の集計対象を`opponent.cards()`に修正した(相手カードへの対応力を表す指標に変更)。
-- [x] 画面デザインの小規模改善(2026-09-14実装・VMへデプロイ・外部からの動作確認済み)
-  - **経緯**: 別セッション経由でユーザーから「画面デザインについてアドバイスが欲しい、任せる」との依頼があり、改善範囲を確認した上で「安全・実用中心の小修正のみ」を選択(ダークモード対応やレイアウト全面刷新は見送り)。
-  - テーブル(クランメンバー一覧、対戦履歴)を`.table-scroll`(`overflow-x: auto`)でラップし、スマホ幅でもページ全体が横スクロールしないよう改善。
-  - プレイヤー情報・クラン情報の統計項目(`stat-grid`)にアイコン(🏆⭐✅など)を追加し視認性を向上。
-  - トップページに、アプリの用途を説明する一文を追加。
-
-- **開発方針**: 大きく作り込まず、機能を1つずつ小さく追加していく方針(2026-09-13にユーザーが表明)。1機能ずつ実装→動作確認→デプロイのサイクルを回す。
-- クイズ機能など追加サービスの詳細仕様
-- DB導入のタイミングと方式(名前検索機能は2026-09-14に撤去。再検討時はクラン名検索[公式APIの`/clans?name=`]のみに絞る案が候補)
-- CI/CD自動化
+- 大きく作り込まず、機能を1つずつ小さく追加していく方針(2026-09-13にユーザーが表明)。1機能ずつ実装→動作確認→デプロイのサイクルを回す。
 
 ## ページビュー向上に関するTODO(2026-09-14、別セッション経由でユーザーから記録依頼)
 
