@@ -11,7 +11,7 @@ public final class RoleLabels {
 
     private static final Map<String, String> JAPANESE_LABELS = Map.of(
             "leader", "リーダー",
-            "coLeader", "バイスリーダー",
+            "coLeader", "サブリーダー",
             "elder", "長老",
             "member", "メンバー"
     );
