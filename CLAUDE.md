@@ -53,9 +53,9 @@
 
 ## インフラ構成(OCI)
 
-- hello-worldプロジェクトで作成したOCI VM(VM.Standard.E2.1.Micro、`140.245.83.216`)は2026-09-13時点でユーザーの意向により削除し、本プロジェクト用に新規VMを作り直す方針(ローカルの`C:\dev\hello-world`フォルダ・GitHubリポジトリ自体は学習記録としてそのまま残す)。
-- 新規VMのスペック・リージョン等はhello-worldでの実績(Always Free枠、東京リージョン、"Out of host capacity"でARM(Ampere)が作れずx86_64のVM.Standard.E2.1.Microで作成、という経緯)を踏まえて構築時に決定する。詳細は構築が進み次第このセクションに追記する。
-- ネットワーク公開・ポート開放・ファイアウォール設定はhello-worldでの手順(firewalld + OCIセキュリティリスト双方の開放が必要)を踏襲する。
+- hello-worldプロジェクトで作成したOCI VM(VM.Standard.E2.1.Micro、`140.245.83.216`)は2026-09-13時点でユーザーの意向により削除し、本プロジェクト用に新規VMを作成済み(ローカルの`C:\dev\hello-world`フォルダ・GitHubリポジトリ自体は学習記録としてそのまま残す)。
+- 新規VMは2026-09-13に構築完了。パブリックIP: `132.226.7.203`。リージョン: 東京(ap-tokyo-1)。Ampere A1.Flex(ARM, Always Free)は"Out of host capacity"で作成できず、hello-worldと同じ経緯でx86_64の**VM.Standard.E2.1.Micro**(Always Free枠)で作成。OS: Oracle Linux Server 9.8。SSH鍵: `oci_clash_royale_api`(hello-world用を流用)。
+- ネットワーク公開・ポート開放・ファイアウォール設定はhello-worldでの手順(firewalld + OCIセキュリティリスト双方の開放が必要)を踏襲し、8080番ポートの開放済み。
 
 ## デプロイ手順の方針(手動、hello-worldを踏襲)
 
