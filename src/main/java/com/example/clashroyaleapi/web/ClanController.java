@@ -45,12 +45,14 @@ public class ClanController {
             }
         }
 
-        if (tag.length() < 3) {
-            model.addAttribute("error", "クラン名で検索する場合は3文字以上を入力してください(公式APIの制約です)。");
-            return "clan";
+        // 公式APIはname 3文字未満だと400エラーになるため、部分一致検索の性質を利用して
+        // 末尾に全角スペースを補い3文字以上にする(ユーザーが「償い」等の2文字クラン名で検索できるようにするため)。
+        String searchName = tag;
+        while (searchName.length() < 3) {
+            searchName += "　";
         }
         try {
-            List<ClanSearchResponse.ClanSummary> results = clashRoyaleApiClient.searchClansByName(tag);
+            List<ClanSearchResponse.ClanSummary> results = clashRoyaleApiClient.searchClansByName(searchName);
             if (results.isEmpty()) {
                 model.addAttribute("error", "クランが見つかりませんでした(タグ・クラン名のどちらとしても一致しませんでした)。");
             } else {
