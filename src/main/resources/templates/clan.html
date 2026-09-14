@@ -14,6 +14,21 @@
 
         <div th:if="${error}" class="error-box" th:text="${error}"></div>
 
+        <div th:if="${searchResults}" class="card">
+            <h2>クラン名検索結果</h2>
+            <p class="notice" th:if="${searchResultTotal > searchResults.size()}"
+               th:text="'一致した' + ${searchResultTotal} + '件のうち、クランスコア上位' + ${searchResults.size()} + '件を表示しています。'"></p>
+            <ul class="result-list">
+                <li th:each="c : ${searchResults}">
+                    <span class="name" th:text="${c.name()}"></span>
+                    <span class="tag-pill" th:text="${c.tag()}"></span>
+                    <span>クランスコア <span th:text="${c.clanScore()}"></span></span>
+                    <span>メンバー <span th:text="${c.members()}"></span>人</span>
+                    <a class="btn btn-secondary" th:href="@{/clan(tag=${c.tag()})}">見る</a>
+                </li>
+            </ul>
+        </div>
+
         <div th:if="${clan}" class="card">
             <h1 th:text="${clan.name()}"></h1>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>

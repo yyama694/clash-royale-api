@@ -2,14 +2,22 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
+import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.util.Comparator;
+import java.util.List;
+
 @Controller
 public class ClanController {
+
+    // 名前検索結果は多いと100件近く返るため、見やすさのためクランスコア順で上位のみ表示する。
+    private static final int SEARCH_RESULT_LIMIT = 20;
 
     private final ClashRoyaleApiClient clashRoyaleApiClient;
 
@@ -17,6 +25,8 @@ public class ClanController {
         this.clashRoyaleApiClient = clashRoyaleApiClient;
     }
 
+    // "tag"パラメータ名は維持しつつ、クランタグ・クラン名のどちらでも検索できるようにする。
+    // まずタグとして完全一致検索を試み、見つからなければ(404)クラン名の部分一致検索にフォールバックする。
     @GetMapping("/clan")
     public String clan(@RequestParam(required = false) String tag, Model model) {
         if (tag == null || tag.isBlank()) {
@@ -25,6 +35,32 @@ public class ClanController {
         try {
             ClanResponse clan = clashRoyaleApiClient.getClan(tag);
             model.addAttribute("clan", clan);
+            return "clan";
+        } catch (RestClientResponseException e) {
+            // クラン名などタグとして不正な形式の場合、公式APIは404ではなく400を返すため、
+            // 400・404のどちらも「タグとしては見つからなかった」とみなし、クラン名検索にフォールバックする。
+            if (e.getStatusCode() != HttpStatus.NOT_FOUND && e.getStatusCode() != HttpStatus.BAD_REQUEST) {
+                model.addAttribute("error", "クランが見つからないか、APIエラーが発生しました(" + e.getStatusCode() + ")");
+                return "clan";
+            }
+        }
+
+        if (tag.length() < 3) {
+            model.addAttribute("error", "クラン名で検索する場合は3文字以上を入力してください(公式APIの制約です)。");
+            return "clan";
+        }
+        try {
+            List<ClanSearchResponse.ClanSummary> results = clashRoyaleApiClient.searchClansByName(tag);
+            if (results.isEmpty()) {
+                model.addAttribute("error", "クランが見つかりませんでした(タグ・クラン名のどちらとしても一致しませんでした)。");
+            } else {
+                List<ClanSearchResponse.ClanSummary> top = results.stream()
+                        .sorted(Comparator.comparingInt(ClanSearchResponse.ClanSummary::clanScore).reversed())
+                        .limit(SEARCH_RESULT_LIMIT)
+                        .toList();
+                model.addAttribute("searchResults", top);
+                model.addAttribute("searchResultTotal", results.size());
+            }
         } catch (RestClientResponseException e) {
             model.addAttribute("error", "クランが見つからないか、APIエラーが発生しました(" + e.getStatusCode() + ")");
         }
