@@ -3,7 +3,6 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
-import com.example.clashroyaleapi.nameindex.NameIndexService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,11 +15,9 @@ import java.util.List;
 public class PlayerController {
 
     private final ClashRoyaleApiClient clashRoyaleApiClient;
-    private final NameIndexService nameIndexService;
 
-    public PlayerController(ClashRoyaleApiClient clashRoyaleApiClient, NameIndexService nameIndexService) {
+    public PlayerController(ClashRoyaleApiClient clashRoyaleApiClient) {
         this.clashRoyaleApiClient = clashRoyaleApiClient;
-        this.nameIndexService = nameIndexService;
     }
 
     @GetMapping("/player")
@@ -31,7 +28,6 @@ public class PlayerController {
         try {
             PlayerResponse player = clashRoyaleApiClient.getPlayer(tag);
             model.addAttribute("player", player);
-            nameIndexService.register(player.tag(), player.name());
         } catch (RestClientResponseException e) {
             model.addAttribute("error", "プレイヤーが見つからないか、APIエラーが発生しました(" + e.getStatusCode() + ")");
             return "player";

@@ -29,17 +29,6 @@
                 <button type="submit">検索</button>
             </form>
         </div>
-
-        <div class="card">
-            <h2>名前検索(タグ不明な場合)</h2>
-            <p class="notice">過去に検索されたことのある名前から部分一致で検索します。</p>
-            <form class="search-form" th:action="@{/search}" method="get">
-                <label>名前
-                    <input type="text" name="name" placeholder="例: yyama">
-                </label>
-                <button type="submit">検索</button>
-            </form>
-        </div>
     </main>
 </body>
 </html>

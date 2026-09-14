@@ -14,5 +14,5 @@ application-prod.properties
 *.log
 .DS_Store
 
-# 名前検索インデックス(実行時に自動生成される蓄積データ)
+# 実行時生成データ
 data/
