@@ -12,7 +12,6 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
 @Controller
 public class ClanController {
@@ -29,11 +28,10 @@ public class ClanController {
     // "tag"パラメータ名は維持しつつ、クランタグ・クラン名のどちらでも検索できるようにする。
     // まずタグとして完全一致検索を試み、見つからなければ(404)クラン名の部分一致検索にフォールバックする。
     @GetMapping("/clan")
-    public String clan(@RequestParam(required = false) String tag, Model model, Locale locale) {
+    public String clan(@RequestParam(required = false) String tag, Model model) {
         if (tag == null || tag.isBlank()) {
             return "redirect:/";
         }
-        model.addAttribute("useJapaneseRoleNames", "ja".equalsIgnoreCase(locale.getLanguage()));
         try {
             ClanResponse clan = clashRoyaleApiClient.getClan(tag);
             model.addAttribute("clan", clan);
