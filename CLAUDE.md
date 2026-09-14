@@ -161,8 +161,11 @@ Claude Codeはセッションをまたいだ記憶を持たないため、作業
   - **経緯**: クラロワの実プレイヤー数は数千万〜1億人規模(2026年時点、調査元によりMAU推計は4,300万〜1億3,200万人程度と幅がある)と判明。この規模を無料枠のOCI VM(低スペック)+テキストファイル方式で網羅するのは非現実的と判断し、ユーザーが機能自体の撤去を決定。
   - 削除したファイル: `NameIndexService.java`, `NameIndexEntry.java`, `NameIndexProperties.java`, `SearchController.java`, `search.html`(`nameindex`パッケージごと削除)
   - 修正したファイル: `PlayerController.java`/`ClanController.java`(`NameIndexService`への依存・登録呼び出しを削除)、`index.html`(名前検索フォームを削除)、`application.yml`(`clashroyale.name-index`設定を削除)、`.gitignore`(不要になった`data/`除外を削除)
-  - ローカルの`data/name-index.json`(実行時生成データ)自体は未削除だが、アプリからは参照されなくなった。VM上の同ファイルも同様に未参照となる(VMへの反映は別途デプロイ時に実施)。
   - **今後名前検索を再検討する場合の代替案**: クラン名検索は公式APIに`GET /clans?name=...`という本物の検索エンドポイントがあるため、プレイヤー名検索(公式APIに手段なし)とは切り離してクランのみ実装する案を検討候補として挙げた(未着手)。
+- [x] 名前検索機能撤去の反映(2026-09-14、ローカル削除+VMデプロイ+外部からの動作確認済み)
+  - ローカルの`data/`ディレクトリ(名前検索の実行時生成データ、Git管理外)を削除
+  - `mvn clean package -DskipTests` → `scp`で新jarをVMに転送 → VM上の`data/`(旧蓄積データ)も削除 → `sudo systemctl restart clash-royale-api`で反映
+  - 外部(`http://132.226.7.203:8080/`)からトップページのHTTP 200応答、および名前検索フォームが表示されなくなったことを確認済み
 
 - **開発方針**: 大きく作り込まず、機能を1つずつ小さく追加していく方針(2026-09-13にユーザーが表明)。1機能ずつ実装→動作確認→デプロイのサイクルを回す。
 - クイズ機能など追加サービスの詳細仕様
