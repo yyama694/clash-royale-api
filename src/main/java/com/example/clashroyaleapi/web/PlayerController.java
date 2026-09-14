@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
+import java.util.Locale;
 
 @Controller
 public class PlayerController {
@@ -41,8 +42,9 @@ public class PlayerController {
     }
 
     @GetMapping("/player/battle")
-    public String battleDetail(@RequestParam String tag, @RequestParam int index, Model model) {
+    public String battleDetail(@RequestParam String tag, @RequestParam int index, Model model, Locale locale) {
         model.addAttribute("tag", tag);
+        model.addAttribute("useJapaneseCardNames", "ja".equalsIgnoreCase(locale.getLanguage()));
         List<BattleLogEntry> battleLog;
         try {
             battleLog = clashRoyaleApiClient.getBattleLog(tag);
