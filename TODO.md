@@ -5,7 +5,7 @@
 セキュリティ・Spring Boot設計/コード品質・運用/デプロイ・フロントエンド/UXの4観点でサブエージェントによるレビューを実施した結果。
 
 **重大度: 高**
-1. デプロイがscp+systemd再起動のみでロールバック手段なし。失敗時に切り戻せない → 現行jarをバックアップしてから上書きする運用に変更
+1. ~~デプロイがscp+systemd再起動のみでロールバック手段なし。失敗時に切り戻せない → 現行jarをバックアップしてから上書きする運用に変更~~ **[対応済み 2026-09-15]** デプロイ手順を「新jar配置前に現行jarを`clash-royale-api.jar.bak`にリネームして退避 → 新jarを配置 → 再起動」に変更。失敗時は`.bak`を戻せば切り戻せる。今後のデプロイもこの手順を標準とする。
 2. 可観測性がほぼゼロ(Actuator未導入、ヘルスチェック・死活監視なし)。低スペックVM(Always Free枠)は過去にフリーズ実績あり([[project-oci-vm-spec]]参照) → `spring-boot-starter-actuator`導入+外部監視(UptimeRobot等)を優先的に追加
 3. `ClashRoyaleApiClient`でタイムアウト系例外(`ResourceAccessException`)が未catchで500エラー画面に落ちる → Client層で共通のエラーハンドリングを追加
 4. テストコードが皆無。特に`PlayerBattleStats.from`(勝敗判定・カード集計ロジック)はAPI不要で単体テスト可能 → ここから着手
