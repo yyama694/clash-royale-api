@@ -55,7 +55,7 @@
                 <tbody>
                     <tr th:each="member : ${clan.memberList()}">
                         <td><a th:href="@{/player(tag=${member.tag()})}" th:text="${member.name()}"></a></td>
-                        <td th:text="${member.role()}"></td>
+                        <td th:text="${T(com.example.clashroyaleapi.web.RoleLabels).label(member.role(), useJapaneseRoleNames)}"></td>
                         <td th:text="${member.expLevel()}"></td>
                         <td th:text="${member.trophies()}"></td>
                         <td th:text="${member.donations()}"></td>
