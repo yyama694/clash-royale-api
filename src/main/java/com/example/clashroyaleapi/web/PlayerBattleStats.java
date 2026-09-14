@@ -16,7 +16,7 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
         List<CardPerformance> weakCards) {
 
     // カードごとの得意/苦手を判定する際、使用回数がこれ未満のカードはノイズとして除外する。
-    private static final int MIN_USES_FOR_RANKING = 2;
+    private static final int MIN_USES_FOR_RANKING = 5;
     private static final int RANKING_SIZE = 3;
 
     public record CardPerformance(String cardName, String iconUrl, int uses, int wins, int winRatePercent) {
