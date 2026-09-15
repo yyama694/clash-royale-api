@@ -16,10 +16,14 @@
                th:text="#{clanSearch.notice(${total}, ${candidates.size()})}"></p>
             <ul class="result-list">
                 <li th:each="c : ${candidates}">
-                    <span class="name" th:text="${c.name()}"></span>
-                    <span class="tag-pill" th:text="${c.tag()}"></span>
-                    <span><span th:text="#{clanSearch.score}"></span> <span th:text="${c.clanScore()}"></span></span>
-                    <span th:text="#{clanSearch.members(${c.members()})}"></span>
+                    <div class="result-main">
+                        <span class="name" th:text="${c.name()}"></span>
+                        <span class="tag-pill" th:text="${c.tag()}"></span>
+                    </div>
+                    <div class="result-meta">
+                        <span><span th:text="#{clanSearch.score}"></span> <span th:text="${c.clanScore()}"></span></span>
+                        <span th:text="#{clanSearch.members(${c.members()})}"></span>
+                    </div>
                     <a class="btn btn-secondary" th:href="@{/clan/{tag}(tag=${c.pathTag()})}" th:text="#{action.view}"></a>
                 </li>
             </ul>

@@ -70,11 +70,11 @@
                     </thead>
                     <tbody>
                         <tr th:each="b : ${battles}">
-                            <td><a th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${b.battleTime()})}" th:text="${b.battleTime()}"></a></td>
-                            <td th:text="${b.gameMode()}"></td>
-                            <td><span th:replace="~{fragments/layout :: resultBadge(${b.result()})}"></span></td>
-                            <td th:text="${b.selfCrowns()} + ' / ' + ${b.opponentCrowns()}"></td>
-                            <td><a th:href="@{/player/{tag}(tag=${b.opponentPathTag()})}" th:text="${b.opponentName()}"></a></td>
+                            <td th:attr="data-label=#{battlelog.col.time}"><a th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${b.battleTime()})}" th:text="${b.battleTime()}"></a></td>
+                            <td th:attr="data-label=#{battlelog.col.mode}" th:text="${b.gameMode()}"></td>
+                            <td th:attr="data-label=#{battlelog.col.result}"><span th:replace="~{fragments/layout :: resultBadge(${b.result()})}"></span></td>
+                            <td th:attr="data-label=#{battlelog.col.crowns}" th:text="${b.selfCrowns()} + ' / ' + ${b.opponentCrowns()}"></td>
+                            <td th:attr="data-label=#{battlelog.col.opponent}"><a th:href="@{/player/{tag}(tag=${b.opponentPathTag()})}" th:text="${b.opponentName()}"></a></td>
                         </tr>
                     </tbody>
                 </table>

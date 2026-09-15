@@ -4,7 +4,7 @@
 <body>
     <header th:replace="~{fragments/layout :: header}"></header>
 
-    <main class="container">
+    <main class="container container-wide">
         <a class="back-link" th:href="@{/player/{tag}(tag=${playerPathTag})}">&laquo; <span th:text="#{action.backToPlayer}"></span></a>
 
         <div class="card">
@@ -18,20 +18,27 @@
             </div>
         </div>
 
-        <div class="card" th:each="p : ${battle.team()}">
-            <h2 th:text="#{battle.deck.team} + '(' + ${p.name()} + ')'"></h2>
-            <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
-            <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
-                <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
-            </th:block>
-        </div>
+        <!-- 自分側と相手側を左右に並べ、デッキを見比べられるようにする。2v2では各側が縦に2枚並ぶ。 -->
+        <div class="decks">
+            <div class="decks-side">
+                <div class="card deck-panel" th:each="p : ${battle.team()}">
+                    <h2 th:text="#{battle.deck.team} + '(' + ${p.name()} + ')'"></h2>
+                    <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
+                    <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
+                        <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
+                    </th:block>
+                </div>
+            </div>
 
-        <div class="card" th:each="p : ${battle.opponents()}">
-            <h2 th:text="#{battle.deck.opponent} + '(' + ${p.name()} + ')'"></h2>
-            <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
-            <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
-                <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
-            </th:block>
+            <div class="decks-side">
+                <div class="card deck-panel" th:each="p : ${battle.opponents()}">
+                    <h2 th:text="#{battle.deck.opponent} + '(' + ${p.name()} + ')'"></h2>
+                    <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
+                    <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
+                        <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
+                    </th:block>
+                </div>
+            </div>
         </div>
     </main>
 </body>

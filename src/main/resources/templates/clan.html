@@ -22,7 +22,7 @@
             <p class="notice" th:text="'※' + #{clan.donationNotice}"></p>
             <p class="notice" th:text="'※' + #{clan.lastSeenNotice}"></p>
             <div class="table-scroll">
-                <table>
+                <table class="table-sortable">
                     <thead>
                         <tr>
                             <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.name}, 'name', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
@@ -34,11 +34,11 @@
                     </thead>
                     <tbody>
                         <tr th:each="member : ${members}">
-                            <td><a th:href="@{/player/{tag}(tag=${member.pathTag()})}" th:text="${member.name()}"></a></td>
-                            <td th:text="${member.role()}"></td>
-                            <td th:text="${member.trophies()}"></td>
-                            <td th:text="${member.donations()}"></td>
-                            <td th:switch="${member.inactiveDays()}">
+                            <td th:attr="data-label=#{clan.col.name}"><a th:href="@{/player/{tag}(tag=${member.pathTag()})}" th:text="${member.name()}"></a></td>
+                            <td th:attr="data-label=#{clan.col.role}" th:text="${member.role()}"></td>
+                            <td th:attr="data-label=#{clan.col.trophies}" th:text="${member.trophies()}"></td>
+                            <td th:attr="data-label=#{clan.col.donations}" th:text="${member.donations()}"></td>
+                            <td th:attr="data-label=#{clan.col.lastSeen}" th:switch="${member.inactiveDays()}">
                                 <span th:case="null" th:text="#{clan.lastSeen.unknown}"></span>
                                 <span th:case="0" th:text="#{clan.lastSeen.today}"></span>
                                 <span th:case="1" th:text="#{clan.lastSeen.day}"></span>
