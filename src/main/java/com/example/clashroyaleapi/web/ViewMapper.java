@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
@@ -17,8 +18,10 @@ import com.example.clashroyaleapi.web.view.ParticipantView;
 
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalLong;
 
 /**
  * APIのDTOを、表示用に解決済みのViewModelへ変換する。
@@ -56,10 +59,18 @@ public class ViewMapper {
     }
 
     public List<ClanMemberView> toMembers(List<ClanResponse.Member> members, Locale locale) {
+        // 一覧内で基準時刻がずれないよう、1回だけ現在時刻を取る。
+        Instant now = Instant.now();
         return members.stream()
                 .map(member -> new ClanMemberView(Tags.toPathSegment(member.tag()), member.name(),
-                        labels.role(member.role(), locale), member.trophies(), member.donations()))
+                        labels.role(member.role(), locale), member.trophies(), member.donations(),
+                        inactiveDaysOf(member, now)))
                 .toList();
+    }
+
+    private static Long inactiveDaysOf(ClanResponse.Member member, Instant now) {
+        OptionalLong days = MemberActivity.inactiveDays(member.lastSeen(), now);
+        return days.isPresent() ? days.getAsLong() : null;
     }
 
     public List<ClanSummaryView> toClanSummaries(List<ClanSearchResponse.ClanSummary> clans) {

@@ -13,7 +13,8 @@ public record ClanResponse(
         int members,
         List<Member> memberList
 ) {
+    // lastSeen は "20260915T092124.000Z" 形式(UTC)。非アクティブ日数の算出に使う。
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Member(String tag, String name, String role, int trophies, int donations) {
+    public record Member(String tag, String name, String role, int trophies, int donations, String lastSeen) {
     }
 }

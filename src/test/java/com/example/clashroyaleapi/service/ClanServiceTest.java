@@ -16,6 +16,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -141,6 +142,50 @@ class ClanServiceTest {
         assertEquals(List.of("A", "B"), sorted.stream().map(ClanResponse.Member::name).toList());
     }
 
+    @Test
+    void 最終アクセスの昇順では直近にアクセスしたメンバーが先頭に来る() {
+        List<ClanResponse.Member> members = List.of(
+                member("old", "member", 100, "20260101T000000.000Z"),
+                member("today", "member", 100, "20260915T000000.000Z"),
+                member("recent", "member", 100, "20260910T000000.000Z"));
+
+        List<ClanResponse.Member> sorted =
+                clanService.sortMembers(members, MemberSortKey.LAST_SEEN, SortDirection.ASC);
+
+        assertEquals(List.of("today", "recent", "old"), sorted.stream().map(ClanResponse.Member::name).toList());
+    }
+
+    @Test
+    void 最終アクセスの降順では非アクティブなメンバーが先頭に来る() {
+        List<ClanResponse.Member> members = List.of(
+                member("today", "member", 100, "20260915T000000.000Z"),
+                member("old", "member", 100, "20260101T000000.000Z"));
+
+        List<ClanResponse.Member> sorted =
+                clanService.sortMembers(members, MemberSortKey.LAST_SEEN, SortDirection.DESC);
+
+        assertEquals(List.of("old", "today"), sorted.stream().map(ClanResponse.Member::name).toList());
+    }
+
+    @Test
+    void 最終アクセスが取得できないメンバーは昇順で末尾に置く() {
+        List<ClanResponse.Member> members = List.of(
+                member("unknown", "member", 100, null),
+                member("today", "member", 100, "20260915T000000.000Z"));
+
+        List<ClanResponse.Member> sorted =
+                clanService.sortMembers(members, MemberSortKey.LAST_SEEN, SortDirection.ASC);
+
+        assertEquals(List.of("today", "unknown"), sorted.stream().map(ClanResponse.Member::name).toList());
+    }
+
+    @Test
+    void ソートキーはURL表記で解決できる() {
+        assertEquals(MemberSortKey.LAST_SEEN, MemberSortKey.from("lastSeen").orElseThrow());
+        assertEquals(MemberSortKey.TROPHIES, MemberSortKey.from("trophies").orElseThrow());
+        assertTrue(MemberSortKey.from("bogus").isEmpty());
+    }
+
     private static ClanResponse clan(String tag, String name) {
         return new ClanResponse(tag, name, "", 100, 1, List.of());
     }
@@ -150,6 +195,10 @@ class ClanServiceTest {
     }
 
     private static ClanResponse.Member member(String name, String role, int trophies) {
-        return new ClanResponse.Member("#" + name, name, role, trophies, 0);
+        return member(name, role, trophies, "20260915T000000.000Z");
+    }
+
+    private static ClanResponse.Member member(String name, String role, int trophies, String lastSeen) {
+        return new ClanResponse.Member("#" + name, name, role, trophies, 0, lastSeen);
     }
 }
