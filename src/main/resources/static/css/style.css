@@ -391,6 +391,45 @@ tbody tr:hover {
     color: var(--color-text-muted);
 }
 
+.support-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.support-row .support-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.support-card {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--color-bg);
+    border-radius: 8px;
+    padding: 0.3rem 0.6rem;
+}
+
+.support-card img {
+    width: 28px;
+    height: auto;
+    display: block;
+}
+
+.support-card .card-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.support-card .card-level {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+}
+
 .matchup {
     display: grid;
     grid-template-columns: 1fr auto 1fr;

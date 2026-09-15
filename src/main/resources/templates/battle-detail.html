@@ -21,19 +21,17 @@
         <div class="card" th:each="p : ${battle.team()}">
             <h2 th:text="#{battle.deck.team} + '(' + ${p.name()} + ')'"></h2>
             <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
-            <div th:if="${not #lists.isEmpty(p.supportCards())}">
-                <h3 th:text="#{battle.supportCards}"></h3>
-                <div th:replace="~{fragments/layout :: deckGrid(${p.supportCards()})}"></div>
-            </div>
+            <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
+                <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
+            </th:block>
         </div>
 
         <div class="card" th:each="p : ${battle.opponents()}">
             <h2 th:text="#{battle.deck.opponent} + '(' + ${p.name()} + ')'"></h2>
             <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
-            <div th:if="${not #lists.isEmpty(p.supportCards())}">
-                <h3 th:text="#{battle.supportCards}"></h3>
-                <div th:replace="~{fragments/layout :: deckGrid(${p.supportCards()})}"></div>
-            </div>
+            <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
+                <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
+            </th:block>
         </div>
     </main>
 </body>

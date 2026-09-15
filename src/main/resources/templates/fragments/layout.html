@@ -35,6 +35,16 @@
     </div>
 </div>
 
+<!-- タワーユニットは通常1枚のみのため、deckGridだと1枚が横幅いっぱいに伸びてしまう。ラベルと横並びの小さい行で表示する。 -->
+<div th:fragment="supportCardRow(label, cards)" class="support-row">
+    <span class="support-label" th:text="${label}"></span>
+    <div class="support-card" th:each="c : ${cards}">
+        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.name()}" loading="lazy">
+        <span class="card-name" th:text="${c.name()}"></span>
+        <span class="card-level" th:text="#{battle.level(${c.level()})}"></span>
+    </div>
+</div>
+
 <!-- 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。 -->
 <div th:fragment="matchupSide(side)" class="side">
     <div class="side-name" th:each="p : ${side}">
