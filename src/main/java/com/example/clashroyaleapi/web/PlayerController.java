@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
-import java.util.Locale;
 
 @Controller
 public class PlayerController {
@@ -22,11 +21,10 @@ public class PlayerController {
     }
 
     @GetMapping("/player")
-    public String player(@RequestParam(required = false) String tag, Model model, Locale locale) {
+    public String player(@RequestParam(required = false) String tag, Model model) {
         if (tag == null || tag.isBlank()) {
             return "redirect:/";
         }
-        model.addAttribute("useJapaneseCardNames", "ja".equalsIgnoreCase(locale.getLanguage()));
         try {
             PlayerResponse player = clashRoyaleApiClient.getPlayer(tag);
             model.addAttribute("player", player);
@@ -47,9 +45,8 @@ public class PlayerController {
     }
 
     @GetMapping("/player/battle")
-    public String battleDetail(@RequestParam String tag, @RequestParam int index, Model model, Locale locale) {
+    public String battleDetail(@RequestParam String tag, @RequestParam int index, Model model) {
         model.addAttribute("tag", tag);
-        model.addAttribute("useJapaneseCardNames", "ja".equalsIgnoreCase(locale.getLanguage()));
         List<BattleLogEntry> battleLog;
         try {
             battleLog = clashRoyaleApiClient.getBattleLog(tag);

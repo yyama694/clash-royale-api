@@ -42,7 +42,7 @@
             <div class="deck-grid">
                 <div class="deck-card" th:each="c : ${battleStats.favoriteCards()}">
                     <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
-                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), useJapaneseCardNames)}"></div>
+                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), #locale)}"></div>
                     <div class="card-level" th:text="${c.winRatePercent()} + '% (' + ${c.wins()} + '/' + ${c.uses()} + ')'"></div>
                 </div>
             </div>
@@ -51,7 +51,7 @@
             <div class="deck-grid">
                 <div class="deck-card" th:each="c : ${battleStats.weakCards()}">
                     <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
-                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), useJapaneseCardNames)}"></div>
+                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), #locale)}"></div>
                     <div class="card-level" th:text="${c.winRatePercent()} + '% (' + ${c.wins()} + '/' + ${c.uses()} + ')'"></div>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -138,10 +139,11 @@ public final class CardNameLabels {
     private CardNameLabels() {
     }
 
-    public static String label(String rawName, boolean useJapanese) {
+    public static String label(String rawName, Locale locale) {
         if (rawName == null || rawName.isBlank()) {
             return "-";
         }
+        boolean useJapanese = locale != null && "ja".equalsIgnoreCase(locale.getLanguage());
         if (!useJapanese) {
             return rawName;
         }
