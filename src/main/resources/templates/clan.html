@@ -48,7 +48,6 @@
                     <tr>
                         <th>名前</th>
                         <th>役職</th>
-                        <th>レベル</th>
                         <th>トロフィー</th>
                         <th>寄付数</th>
                     </tr>
@@ -57,7 +56,6 @@
                     <tr th:each="member : ${clan.memberList()}">
                         <td><a th:href="@{/player(tag=${member.tag()})}" th:text="${member.name()}"></a></td>
                         <td th:text="${T(com.example.clashroyaleapi.web.RoleLabels).label(member.role(), #locale)}"></td>
-                        <td th:text="${member.expLevel()}"></td>
                         <td th:text="${member.trophies()}"></td>
                         <td th:text="${member.donations()}"></td>
                     </tr>

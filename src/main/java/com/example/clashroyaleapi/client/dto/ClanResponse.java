@@ -14,6 +14,6 @@ public record ClanResponse(
         List<Member> memberList
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Member(String tag, String name, String role, int expLevel, int trophies, int donations) {
+    public record Member(String tag, String name, String role, int trophies, int donations) {
     }
 }
