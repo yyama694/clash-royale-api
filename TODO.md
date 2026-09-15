@@ -8,7 +8,8 @@
 1. ~~デプロイがscp+systemd再起動のみでロールバック手段なし。失敗時に切り戻せない → 現行jarをバックアップしてから上書きする運用に変更~~ **[対応済み 2026-09-15]** デプロイ手順を「新jar配置前に現行jarを`clash-royale-api.jar.bak`にリネームして退避 → 新jarを配置 → 再起動」に変更。失敗時は`.bak`を戻せば切り戻せる。今後のデプロイもこの手順を標準とする。
 2. 可観測性がほぼゼロ(Actuator未導入、ヘルスチェック・死活監視なし)。低スペックVM(Always Free枠)は過去にフリーズ実績あり([[project-oci-vm-spec]]参照) → `spring-boot-starter-actuator`導入+外部監視(UptimeRobot等)を優先的に追加
 3. `ClashRoyaleApiClient`でタイムアウト系例外(`ResourceAccessException`)が未catchで500エラー画面に落ちる → Client層で共通のエラーハンドリングを追加
-4. テストコードが皆無。特に`PlayerBattleStats.from`(勝敗判定・カード集計ロジック)はAPI不要で単体テスト可能 → ここから着手
+4. ~~テストコードが皆無。特に`PlayerBattleStats.from`(勝敗判定・カード集計ロジック)はAPI不要で単体テスト可能 → ここから着手~~ **[一部対応済み 2026-09-15]** `PlayerBattleStats`・`CardNameLabels`・`GameModeLabels`・`RoleLabels`(外部依存のない純粋ロジック)の単体テストを追加(計19件、`src/test/java`配下)。
+   - **方針(2026-09-15にユーザーが決定)**: `PlayerController`/`ClanController`(`MockMvc`が必要)・`ClashRoyaleApiClient`(`MockRestServiceServer`が必要)など、Spring Context/モックが絡む「やりにくいテスト」は当面不要。指示があるまで着手しない。
 
 **重大度: 中**
 5. `PlayerController`/`ClanController`がHTTPステータスをそのままユーザーに露出。404(存在しないタグ)と403(IP許可リスト起因など)を区別せず同じ文言 → 原因別にメッセージを分ける
