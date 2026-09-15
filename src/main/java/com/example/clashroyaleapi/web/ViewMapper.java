@@ -1,0 +1,143 @@
+package com.example.clashroyaleapi.web;
+
+import com.example.clashroyaleapi.client.Tags;
+import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.ClanResponse;
+import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
+import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.PlayerBattleStats;
+import com.example.clashroyaleapi.web.view.BattleDetailView;
+import com.example.clashroyaleapi.web.view.BattleStatsView;
+import com.example.clashroyaleapi.web.view.BattleSummaryView;
+import com.example.clashroyaleapi.web.view.CardPerformanceView;
+import com.example.clashroyaleapi.web.view.CardView;
+import com.example.clashroyaleapi.web.view.ClanMemberView;
+import com.example.clashroyaleapi.web.view.ClanSummaryView;
+import com.example.clashroyaleapi.web.view.ParticipantView;
+
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * APIのDTOを、表示用に解決済みのViewModelへ変換する。
+ * テンプレート側からロジック(勝敗判定・ラベル解決)を追い出すのが目的。
+ */
+@Component
+public class ViewMapper {
+
+    private final LabelResolver labels;
+
+    public ViewMapper(LabelResolver labels) {
+        this.labels = labels;
+    }
+
+    public List<BattleSummaryView> toBattleSummaries(List<BattleLogEntry> battleLog, Locale locale) {
+        return battleLog.stream()
+                .filter(ViewMapper::hasBothSides)
+                .map(battle -> toBattleSummary(battle, locale))
+                .toList();
+    }
+
+    public BattleDetailView toBattleDetail(BattleLogEntry battle, Locale locale) {
+        BattleResult teamResult = resultOf(battle);
+        return new BattleDetailView(
+                battle.battleTime(),
+                gameModeOf(battle, locale),
+                toParticipants(battle.team(), teamResult, locale),
+                toParticipants(battle.opponent(), invert(teamResult), locale));
+    }
+
+    public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
+        return new BattleStatsView(stats.total(), stats.wins(), stats.losses(), stats.draws(),
+                toPerformances(stats.favoriteCards(), locale),
+                toPerformances(stats.weakCards(), locale));
+    }
+
+    public List<ClanMemberView> toMembers(List<ClanResponse.Member> members, Locale locale) {
+        return members.stream()
+                .map(member -> new ClanMemberView(Tags.toPathSegment(member.tag()), member.name(),
+                        labels.role(member.role(), locale), member.trophies(), member.donations()))
+                .toList();
+    }
+
+    public List<ClanSummaryView> toClanSummaries(List<ClanSearchResponse.ClanSummary> clans) {
+        return clans.stream()
+                .map(clan -> new ClanSummaryView(Tags.toPathSegment(clan.tag()), clan.tag(), clan.name(),
+                        clan.clanScore(), clan.members()))
+                .toList();
+    }
+
+    private BattleSummaryView toBattleSummary(BattleLogEntry battle, Locale locale) {
+        BattleLogEntry.Participant opponent = battle.opponent().get(0);
+        return new BattleSummaryView(
+                battle.battleTime(),
+                gameModeOf(battle, locale),
+                resultOf(battle),
+                crownsOf(battle.team()),
+                crownsOf(battle.opponent()),
+                opponent.name(),
+                Tags.toPathSegment(opponent.tag()));
+    }
+
+    private List<ParticipantView> toParticipants(List<BattleLogEntry.Participant> side, BattleResult result,
+            Locale locale) {
+        return side.stream()
+                .map(participant -> new ParticipantView(
+                        participant.tag(),
+                        Tags.toPathSegment(participant.tag()),
+                        participant.name(),
+                        participant.crowns(),
+                        result,
+                        toCards(participant.cards(), locale),
+                        toCards(participant.supportCards(), locale)))
+                .toList();
+    }
+
+    private List<CardView> toCards(List<BattleLogEntry.Card> cards, Locale locale) {
+        if (cards == null) {
+            return List.of();
+        }
+        return cards.stream()
+                .map(card -> new CardView(labels.cardName(card.name(), locale), iconUrlOf(card), card.level()))
+                .toList();
+    }
+
+    private List<CardPerformanceView> toPerformances(List<PlayerBattleStats.CardPerformance> performances,
+            Locale locale) {
+        return performances.stream()
+                .map(card -> new CardPerformanceView(labels.cardName(card.cardName(), locale), card.iconUrl(),
+                        card.uses(), card.wins(), card.winRatePercent()))
+                .toList();
+    }
+
+    private String gameModeOf(BattleLogEntry battle, Locale locale) {
+        return labels.gameMode(battle.gameMode() != null ? battle.gameMode().name() : null, locale);
+    }
+
+    private BattleResult resultOf(BattleLogEntry battle) {
+        return BattleResult.of(crownsOf(battle.team()), crownsOf(battle.opponent()));
+    }
+
+    private static BattleResult invert(BattleResult result) {
+        return switch (result) {
+            case WIN -> BattleResult.LOSE;
+            case LOSE -> BattleResult.WIN;
+            case DRAW -> BattleResult.DRAW;
+        };
+    }
+
+    private static boolean hasBothSides(BattleLogEntry battle) {
+        return battle.team() != null && !battle.team().isEmpty()
+                && battle.opponent() != null && !battle.opponent().isEmpty();
+    }
+
+    private static int crownsOf(List<BattleLogEntry.Participant> side) {
+        return side.stream().mapToInt(BattleLogEntry.Participant::crowns).max().orElse(0);
+    }
+
+    private static String iconUrlOf(BattleLogEntry.Card card) {
+        return card.iconUrls() != null ? card.iconUrls().medium() : null;
+    }
+}

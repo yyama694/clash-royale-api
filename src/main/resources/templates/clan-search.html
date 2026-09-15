@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{clanSearch.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
+
+        <div th:if="${candidates == null}" class="error-box" th:text="#{clanSearch.empty}"></div>
+
+        <div th:if="${candidates != null}" class="card">
+            <h1 th:text="#{clanSearch.heading}"></h1>
+            <p><span class="tag-pill" th:text="${query}"></span></p>
+            <p class="notice" th:if="${total > candidates.size()}"
+               th:text="#{clanSearch.notice(${total}, ${candidates.size()})}"></p>
+            <ul class="result-list">
+                <li th:each="c : ${candidates}">
+                    <span class="name" th:text="${c.name()}"></span>
+                    <span class="tag-pill" th:text="${c.tag()}"></span>
+                    <span><span th:text="#{clanSearch.score}"></span> <span th:text="${c.clanScore()}"></span></span>
+                    <span th:text="#{clanSearch.members(${c.members()})}"></span>
+                    <a class="btn btn-secondary" th:href="@{/clan/{tag}(tag=${c.pathTag()})}" th:text="#{action.view}"></a>
+                </li>
+            </ul>
+        </div>
+    </main>
+</body>
+</html>

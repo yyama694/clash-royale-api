@@ -1,64 +1,72 @@
 package com.example.clashroyaleapi.web;
 
-import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
+import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
+import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.service.PlayerService;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.util.UriUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 
 @Controller
+@RequestMapping("/player")
 public class PlayerController {
 
-    private final ClashRoyaleApiClient clashRoyaleApiClient;
+    private final PlayerService playerService;
+    private final ViewMapper viewMapper;
 
-    public PlayerController(ClashRoyaleApiClient clashRoyaleApiClient) {
-        this.clashRoyaleApiClient = clashRoyaleApiClient;
+    public PlayerController(PlayerService playerService, ViewMapper viewMapper) {
+        this.playerService = playerService;
+        this.viewMapper = viewMapper;
     }
 
-    @GetMapping("/player")
-    public String player(@RequestParam(required = false) String tag, Model model) {
-        if (tag == null || tag.isBlank()) {
+    /** 検索フォームの受け口。正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
+    @GetMapping("/search")
+    public String search(@RequestParam(required = false) String q) {
+        if (q == null || q.isBlank()) {
             return "redirect:/";
         }
-        try {
-            PlayerResponse player = clashRoyaleApiClient.getPlayer(tag);
-            model.addAttribute("player", player);
-        } catch (RestClientResponseException e) {
-            model.addAttribute("error", "プレイヤーが見つからないか、APIエラーが発生しました(" + e.getStatusCode() + ")");
-            return "player";
+        return "redirect:/player/" + UriUtils.encodePathSegment(Tags.toPathSegment(q), StandardCharsets.UTF_8);
+    }
+
+    @GetMapping("/{tag}")
+    public String player(@PathVariable String tag, Model model, Locale locale) {
+        PlayerResponse player = playerService.findPlayer(tag);
+        model.addAttribute("player", player);
+        model.addAttribute("playerPathTag", Tags.toPathSegment(player.tag()));
+        if (player.clan() != null) {
+            model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
         }
+
+        // 戦績の取得に失敗してもプレイヤー情報自体は表示したいので、ここだけは個別に握る。
         try {
-            List<BattleLogEntry> battleLog = clashRoyaleApiClient.getBattleLog(tag);
-            model.addAttribute("battleLog", battleLog);
+            List<BattleLogEntry> battleLog = playerService.findBattleLog(tag);
+            model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, locale));
             if (!battleLog.isEmpty()) {
-                model.addAttribute("battleStats", PlayerBattleStats.from(battleLog));
+                model.addAttribute("battleStats", viewMapper.toStats(playerService.statsOf(battleLog), locale));
             }
-        } catch (RestClientResponseException e) {
-            model.addAttribute("battleLogError", "戦績の取得に失敗しました(" + e.getStatusCode() + ")");
+        } catch (ClashRoyaleApiException e) {
+            model.addAttribute("battleLogErrorKey", e.messageKey());
         }
         return "player";
     }
 
-    @GetMapping("/player/battle")
-    public String battleDetail(@RequestParam String tag, @RequestParam int index, Model model) {
-        model.addAttribute("tag", tag);
-        List<BattleLogEntry> battleLog;
-        try {
-            battleLog = clashRoyaleApiClient.getBattleLog(tag);
-        } catch (RestClientResponseException e) {
-            model.addAttribute("error", "戦績の取得に失敗しました(" + e.getStatusCode() + ")");
-            return "battle-detail";
-        }
-        if (index < 0 || index >= battleLog.size()) {
-            model.addAttribute("error", "指定された対戦が見つかりませんでした(対戦履歴が更新された可能性があります)。");
-            return "battle-detail";
-        }
-        model.addAttribute("battle", battleLog.get(index));
+    @GetMapping("/{tag}/battles/{battleTime}")
+    public String battleDetail(@PathVariable String tag, @PathVariable String battleTime, Model model,
+            Locale locale) {
+        BattleLogEntry battle = playerService.findBattle(tag, battleTime);
+        model.addAttribute("playerPathTag", Tags.toPathSegment(tag));
+        model.addAttribute("battle", viewMapper.toBattleDetail(battle, locale));
         return "battle-detail";
     }
 }

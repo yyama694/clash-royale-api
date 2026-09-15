@@ -1,8 +1,19 @@
 spring:
   application:
     name: clash-royale-api
-  profiles:
-    active: local
+  messages:
+    basename: messages
+    encoding: UTF-8
+    # OSの既定ロケールがja_JPのため、falseにしないと英語表示の要求まで日本語にフォールバックしてしまう。
+    fallback-to-system-locale: false
+  cache:
+    cache-names: players,clans,battleLogs,clanSearches
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=2m
+  http:
+    client:
+      connect-timeout: 3s
+      read-timeout: 8s
 
 server:
   port: 8080
@@ -10,4 +21,7 @@ server:
 clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1
-    token: ""
+    # token はリポジトリにもjarにも置かない。
+    #   ローカル: ./config/application-local.yml (gitignore対象、jarには含まれない)
+    #   本番   : 環境変数 CLASHROYALE_API_TOKEN (systemdのEnvironmentFile経由)
+    # 未設定のまま起動すると ClashRoyaleApiProperties の @NotBlank で即座に失敗する。

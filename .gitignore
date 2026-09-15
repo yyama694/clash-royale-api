@@ -6,10 +6,10 @@ target/
 *.iws
 .vscode/
 
-application-local.yml
-application-local.properties
-application-prod.yml
-application-prod.properties
+# 秘密情報を含む設定。jarに焼き込まれないよう src/main/resources の外(./config)に置く。
+config/
+application-*.yml
+application-*.properties
 
 *.log
 .DS_Store

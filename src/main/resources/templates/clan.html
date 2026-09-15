@@ -1,78 +1,44 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>クラン情報</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-</head>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${clan.name()})}"></head>
 <body>
-    <div th:replace="~{fragments/header :: header}"></div>
+    <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/}">&laquo; 検索に戻る</a>
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
 
-        <div th:if="${error}" class="error-box" th:text="${error}"></div>
-
-        <div th:if="${searchResults}" class="card">
-            <h2>クラン名検索結果</h2>
-            <p class="notice" th:if="${searchResultTotal > searchResults.size()}"
-               th:text="'一致した' + ${searchResultTotal} + '件のうち、クランスコア上位' + ${searchResults.size()} + '件を表示しています。'"></p>
-            <ul class="result-list">
-                <li th:each="c : ${searchResults}">
-                    <span class="name" th:text="${c.name()}"></span>
-                    <span class="tag-pill" th:text="${c.tag()}"></span>
-                    <span>クランスコア <span th:text="${c.clanScore()}"></span></span>
-                    <span>メンバー <span th:text="${c.members()}"></span>人</span>
-                    <a class="btn btn-secondary" th:href="@{/clan(tag=${c.tag()})}">見る</a>
-                </li>
-            </ul>
-        </div>
-
-        <div th:if="${clan}" class="card">
+        <div class="card">
             <h1 th:text="${clan.name()}"></h1>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
             <p th:if="${clan.description()}" th:text="${clan.description()}"></p>
             <ul class="stat-grid">
-                <li><span class="label">🏆 クランスコア</span><span class="value" th:text="${clan.clanScore()}"></span></li>
-                <li><span class="label">👥 メンバー数</span><span class="value" th:text="${clan.members()}"></span></li>
+                <li><span class="label">🏆 <span th:text="#{clan.score}"></span></span><span class="value" th:text="${clan.clanScore()}"></span></li>
+                <li><span class="label">👥 <span th:text="#{clan.memberCount}"></span></span><span class="value" th:text="${clan.members()}"></span></li>
             </ul>
         </div>
 
-        <div th:if="${clan}" class="card">
-            <h2>メンバー一覧</h2>
-            <p class="notice">※寄付数は今週分(毎週日曜0時(GMT)にリセット)の数値です。</p>
+        <div class="card">
+            <h2 th:text="#{clan.memberList.heading}"></h2>
+            <p class="notice" th:text="'※' + #{clan.donationNotice}"></p>
             <div class="table-scroll">
-            <table>
-                <thead>
-                    <tr>
-                        <th>
-                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='name', sortDir=(${sortBy == 'name' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
-                               th:text="'名前' + (${sortBy == 'name'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
-                        </th>
-                        <th>
-                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='role', sortDir=(${sortBy == 'role' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
-                               th:text="'役職' + (${sortBy == 'role'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
-                        </th>
-                        <th>
-                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='trophies', sortDir=(${sortBy == 'trophies' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
-                               th:text="'トロフィー' + (${sortBy == 'trophies'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
-                        </th>
-                        <th>
-                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='donations', sortDir=(${sortBy == 'donations' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
-                               th:text="'寄付数' + (${sortBy == 'donations'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="member : ${sortedMembers}">
-                        <td><a th:href="@{/player(tag=${member.tag()})}" th:text="${member.name()}"></a></td>
-                        <td th:text="${T(com.example.clashroyaleapi.web.RoleLabels).label(member.role(), #locale)}"></td>
-                        <td th:text="${member.trophies()}"></td>
-                        <td th:text="${member.donations()}"></td>
-                    </tr>
-                </tbody>
-            </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.name}, 'name', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
+                            <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.role}, 'role', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
+                            <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.trophies}, 'trophies', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
+                            <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.donations}, 'donations', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="member : ${members}">
+                            <td><a th:href="@{/player/{tag}(tag=${member.pathTag()})}" th:text="${member.name()}"></a></td>
+                            <td th:text="${member.role()}"></td>
+                            <td th:text="${member.trophies()}"></td>
+                            <td th:text="${member.donations()}"></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>

@@ -1,0 +1,9 @@
+# ローカル開発用の設定サンプル。
+# このファイルを ./config/application-local.yml にコピーし、token に自分のAPIキーを設定する。
+# ./config/ は .gitignore 対象かつ src/main/resources の外にあるため、
+# コミットされることも jar に焼き込まれることもない。
+#
+# 起動:  mvn spring-boot:run   (pom.xml で local プロファイルを指定済み)
+clashroyale:
+  api:
+    token: "ここにdeveloper.clashroyale.comで発行したAPIキーを貼る"

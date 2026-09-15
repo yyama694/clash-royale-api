@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{error.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
+
+        <!-- errorKey は GlobalExceptionHandler が原因別に設定する。
+             Spring Boot 標準のエラー(404など)でここに来た場合は汎用の文言にフォールバックする。 -->
+        <div class="error-box" th:text="${errorKey != null} ? #{${errorKey}} : #{error.notFound}"></div>
+    </main>
+</body>
+</html>

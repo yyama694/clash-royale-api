@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- 全画面で同一だった <head> をまとめる。titleは各画面から渡す。 -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | ' + #{app.name}"></title>
+    <meta name="description" th:content="#{app.description}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+
+<header class="site-header" th:fragment="header">
+    <a class="brand" th:href="@{/}" th:text="#{app.name}"></a>
+    <nav class="lang-switch" th:aria-label="#{nav.language}">
+        <a th:href="@{${currentUri}(lang='ja')}" th:text="#{lang.ja}"
+           th:classappend="${#locale.language == 'ja'} ? 'is-active'"></a>
+        <a th:href="@{${currentUri}(lang='en')}" th:text="#{lang.en}"
+           th:classappend="${#locale.language != 'ja'} ? 'is-active'"></a>
+    </nav>
+</header>
+
+<!-- 勝敗バッジ。判定はViewModel側で済ませてあるので、ここは表示のみ。 -->
+<span th:fragment="resultBadge(result)" class="badge"
+      th:classappend="'badge-' + ${result.code()}"
+      th:text="#{'battle.result.' + ${result.code()}}"></span>
+
+<!-- カードのグリッド。デッキ表示と得意/苦手カード表示で共用する。 -->
+<div th:fragment="deckGrid(cards)" class="deck-grid">
+    <div class="deck-card" th:each="c : ${cards}">
+        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.name()}" loading="lazy">
+        <div class="card-name" th:text="${c.name()}"></div>
+        <div class="card-level" th:text="#{battle.level(${c.level()})}"></div>
+    </div>
+</div>
+
+<!-- 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。 -->
+<div th:fragment="matchupSide(side)" class="side">
+    <div class="side-name" th:each="p : ${side}">
+        <a th:href="@{/player/{tag}(tag=${p.pathTag()})}" th:text="${p.name()}"></a>
+    </div>
+    <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
+    <div th:text="#{battle.crowns(${side[0].crowns()})}"></div>
+</div>
+
+<!-- クランメンバー一覧のソート用ヘッダ。同じ列をクリックすると昇順/降順が反転する。 -->
+<th th:fragment="sortHeader(label, key, tag, sortBy, sortDir)">
+    <a th:href="@{/clan/{tag}(tag=${tag}, sortBy=${key}, sortDir=(${sortBy == key and sortDir == 'asc'} ? 'desc' : 'asc'))}"
+       th:text="${label} + (${sortBy == key} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
+</th>
+
+</body>
+</html>

@@ -1,92 +1,83 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>プレイヤー情報</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-</head>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${player.name()})}"></head>
 <body>
-    <div th:replace="~{fragments/header :: header}"></div>
+    <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/}">&laquo; 検索に戻る</a>
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
 
-        <div th:if="${error}" class="error-box" th:text="${error}"></div>
-
-        <div th:if="${player}" class="card">
+        <div class="card">
             <h1 th:text="${player.name()}"></h1>
             <p><span class="tag-pill" th:text="${player.tag()}"></span></p>
             <ul class="stat-grid">
-                <li><span class="label">⭐ 経験値レベル</span><span class="value" th:text="${player.expLevel()}"></span></li>
-                <li><span class="label">🏆 現在トロフィー</span><span class="value" th:text="${player.trophies()}"></span></li>
-                <li><span class="label">🥇 ベストトロフィー</span><span class="value" th:text="${player.bestTrophies()}"></span></li>
-                <li><span class="label">✅ 勝利数</span><span class="value" th:text="${player.wins()}"></span></li>
-                <li><span class="label">❌ 敗北数</span><span class="value" th:text="${player.losses()}"></span></li>
-                <li><span class="label">👑 3クラウン勝利数</span><span class="value" th:text="${player.threeCrownWins()}"></span></li>
-                <li th:if="${player.clan()}"><span class="label">🛡️ 所属クラン</span><span class="value"><a th:href="@{/clan(tag=${player.clan().tag()})}" th:text="${player.clan().name()}"></a></span></li>
+                <li><span class="label">⭐ <span th:text="#{player.expLevel}"></span></span><span class="value" th:text="${player.expLevel()}"></span></li>
+                <li><span class="label">🏆 <span th:text="#{player.trophies}"></span></span><span class="value" th:text="${player.trophies()}"></span></li>
+                <li><span class="label">🥇 <span th:text="#{player.bestTrophies}"></span></span><span class="value" th:text="${player.bestTrophies()}"></span></li>
+                <li><span class="label">✅ <span th:text="#{player.wins}"></span></span><span class="value" th:text="${player.wins()}"></span></li>
+                <li><span class="label">❌ <span th:text="#{player.losses}"></span></span><span class="value" th:text="${player.losses()}"></span></li>
+                <li><span class="label">👑 <span th:text="#{player.threeCrownWins}"></span></span><span class="value" th:text="${player.threeCrownWins()}"></span></li>
+                <li th:if="${player.clan()}"><span class="label">🛡️ <span th:text="#{player.clan}"></span></span><span class="value"><a th:href="@{/clan/{tag}(tag=${clanPathTag})}" th:text="${player.clan().name()}"></a></span></li>
             </ul>
         </div>
 
         <div th:if="${battleStats}" class="card">
-            <h2>直近の戦績サマリー</h2>
-            <p class="notice">※直近の対戦履歴(取得できる件数は変動します)からの集計です。</p>
+            <h2 th:text="#{stats.heading}"></h2>
+            <p class="notice" th:text="'※' + #{stats.notice}"></p>
             <p>
-                過去<span th:text="${battleStats.total()}"></span>戦で
-                <strong th:text="${battleStats.wins()}"></strong>勝
-                <strong th:text="${battleStats.losses()}"></strong>敗
-                <span th:if="${battleStats.draws() > 0}" th:text="'(引き分け' + ${battleStats.draws()} + ')'"></span>
+                <span th:text="#{stats.summary(${battleStats.total()}, ${battleStats.wins()}, ${battleStats.losses()})}"></span>
+                <span th:if="${battleStats.draws() > 0}" th:text="#{stats.draws(${battleStats.draws()})}"></span>
             </p>
 
-            <h3>得意カード(相手が使用した時の勝率が高いカード)</h3>
-            <div class="deck-grid">
-                <div class="deck-card" th:each="c : ${battleStats.favoriteCards()}">
-                    <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
-                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), #locale)}"></div>
-                    <div class="card-level" th:text="${c.winRatePercent()} + '% (' + ${c.wins()} + '/' + ${c.uses()} + ')'"></div>
-                </div>
-            </div>
+            <div th:if="${battleStats.hasCardRanking()}">
+                <p class="notice" th:text="'※' + #{stats.method}"></p>
 
-            <h3>苦手カード(相手が使用した時の勝率が低いカード)</h3>
-            <div class="deck-grid">
-                <div class="deck-card" th:each="c : ${battleStats.weakCards()}">
-                    <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.cardName()}">
-                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.cardName(), #locale)}"></div>
-                    <div class="card-level" th:text="${c.winRatePercent()} + '% (' + ${c.wins()} + '/' + ${c.uses()} + ')'"></div>
+                <h3 th:text="#{stats.favorite.heading}"></h3>
+                <div class="deck-grid">
+                    <div class="deck-card" th:each="c : ${battleStats.favoriteCards()}">
+                        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.name()}" loading="lazy">
+                        <div class="card-name" th:text="${c.name()}"></div>
+                        <div class="card-level" th:text="#{stats.record(${c.winRatePercent()}, ${c.wins()}, ${c.uses()})}"></div>
+                    </div>
+                </div>
+
+                <h3 th:text="#{stats.weak.heading}"></h3>
+                <div class="deck-grid">
+                    <div class="deck-card" th:each="c : ${battleStats.weakCards()}">
+                        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.name()}" loading="lazy">
+                        <div class="card-name" th:text="${c.name()}"></div>
+                        <div class="card-level" th:text="#{stats.record(${c.winRatePercent()}, ${c.wins()}, ${c.uses()})}"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div th:if="${player}" class="card">
-            <h2>直近の対戦履歴</h2>
-            <p class="notice">※Clash Royale公式APIの仕様上、直近の対戦履歴は件数指定不可で、取得できる件数は変動します。</p>
-            <p th:if="${battleLogError}" class="error-box" th:text="${battleLogError}"></p>
-            <p th:if="${battleLog != null and #lists.isEmpty(battleLog)}" class="empty-state">対戦履歴がありません。</p>
-            <div th:if="${battleLog != null and not #lists.isEmpty(battleLog)}" class="table-scroll">
-            <table>
-                <thead>
-                    <tr>
-                        <th>日時</th>
-                        <th>モード</th>
-                        <th>結果</th>
-                        <th>クラウン(自分/相手)</th>
-                        <th>対戦相手</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="b, iter : ${battleLog}">
-                        <td><a th:href="@{/player/battle(tag=${player.tag()},index=${iter.index})}" th:text="${b.battleTime()}"></a></td>
-                        <td th:text="${T(com.example.clashroyaleapi.web.GameModeLabels).label(b.gameMode() != null ? b.gameMode().name() : null)}"></td>
-                        <td>
-                            <span th:if="${b.team()[0].crowns() > b.opponent()[0].crowns()}" class="badge badge-win">勝ち</span>
-                            <span th:if="${b.team()[0].crowns() < b.opponent()[0].crowns()}" class="badge badge-lose">負け</span>
-                            <span th:if="${b.team()[0].crowns() == b.opponent()[0].crowns()}" class="badge badge-draw">引き分け</span>
-                        </td>
-                        <td th:text="${b.team()[0].crowns()} + ' / ' + ${b.opponent()[0].crowns()}"></td>
-                        <td><a th:href="@{/player(tag=${b.opponent()[0].tag()})}" th:text="${b.opponent()[0].name()}"></a></td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="card">
+            <h2 th:text="#{battlelog.heading}"></h2>
+            <p class="notice" th:text="'※' + #{battlelog.notice}"></p>
+            <p th:if="${battleLogErrorKey}" class="error-box" th:text="#{${battleLogErrorKey}}"></p>
+            <p th:if="${battles != null and #lists.isEmpty(battles)}" class="empty-state" th:text="#{battlelog.empty}"></p>
+            <div th:if="${battles != null and not #lists.isEmpty(battles)}" class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th th:text="#{battlelog.col.time}"></th>
+                            <th th:text="#{battlelog.col.mode}"></th>
+                            <th th:text="#{battlelog.col.result}"></th>
+                            <th th:text="#{battlelog.col.crowns}"></th>
+                            <th th:text="#{battlelog.col.opponent}"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="b : ${battles}">
+                            <td><a th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${b.battleTime()})}" th:text="${b.battleTime()}"></a></td>
+                            <td th:text="${b.gameMode()}"></td>
+                            <td><span th:replace="~{fragments/layout :: resultBadge(${b.result()})}"></span></td>
+                            <td th:text="${b.selfCrowns()} + ' / ' + ${b.opponentCrowns()}"></td>
+                            <td><a th:href="@{/player/{tag}(tag=${b.opponentPathTag()})}" th:text="${b.opponentName()}"></a></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>

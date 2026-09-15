@@ -1,34 +1,31 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Clash Royale 検索(by yyama)</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-</head>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{home.pageTitle})}"></head>
 <body>
-    <div th:replace="~{fragments/header :: header}"></div>
+    <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <p class="notice" style="margin-bottom: 1.25rem;">Clash Royale公式APIを使って、プレイヤーやクランのタグから実績・戦績・メンバー情報を調べられます。</p>
+        <p class="notice lead" th:text="#{app.description}"></p>
 
         <div class="card">
-            <h2>プレイヤー検索</h2>
-            <form class="search-form" th:action="@{/player}" method="get">
-                <label>プレイヤータグ(#は省略可)
-                    <input type="text" name="tag" placeholder="例: 2ABC123">
+            <h2 th:text="#{home.player.heading}"></h2>
+            <form class="search-form" th:action="@{/player/search}" method="get">
+                <label>
+                    <span th:text="#{home.player.label}"></span>
+                    <input type="text" name="q" required th:placeholder="#{home.player.placeholder}">
                 </label>
-                <button type="submit">検索</button>
+                <button type="submit" th:text="#{action.search}"></button>
             </form>
         </div>
 
         <div class="card">
-            <h2>クラン検索</h2>
-            <form class="search-form" th:action="@{/clan}" method="get">
-                <label>クランタグ(#は省略可) または クラン名
-                    <input type="text" name="tag" placeholder="例: 2XYZ456 または 償い">
+            <h2 th:text="#{home.clan.heading}"></h2>
+            <form class="search-form" th:action="@{/clan/search}" method="get">
+                <label>
+                    <span th:text="#{home.clan.label}"></span>
+                    <input type="text" name="q" required th:placeholder="#{home.clan.placeholder}">
                 </label>
-                <button type="submit">検索</button>
+                <button type="submit" th:text="#{action.search}"></button>
             </form>
         </div>
     </main>
