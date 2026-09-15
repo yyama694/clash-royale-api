@@ -20,7 +20,7 @@
 
             <div class="matchup">
                 <div class="side">
-                    <div class="side-name" th:text="${battle.team()[0].name()}"></div>
+                    <div class="side-name"><a th:href="@{/player(tag=${battle.team()[0].tag()})}" th:text="${battle.team()[0].name()}"></a></div>
                     <span th:if="${battle.team()[0].crowns() > battle.opponent()[0].crowns()}" class="badge badge-win">勝ち</span>
                     <span th:if="${battle.team()[0].crowns() < battle.opponent()[0].crowns()}" class="badge badge-lose">負け</span>
                     <span th:if="${battle.team()[0].crowns() == battle.opponent()[0].crowns()}" class="badge badge-draw">引き分け</span>
