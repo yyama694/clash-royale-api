@@ -46,12 +46,28 @@
                     <div class="card-level" th:text="'Lv.' + ${c.level()}"></div>
                 </div>
             </div>
+            <h3 th:if="${!#lists.isEmpty(battle.team()[0].supportCards())}">プリンセスタワーカード</h3>
+            <div class="deck-grid" th:if="${!#lists.isEmpty(battle.team()[0].supportCards())}">
+                <div class="deck-card" th:each="c : ${battle.team()[0].supportCards()}">
+                    <img th:if="${c.iconUrls() != null}" th:src="${c.iconUrls().medium()}" th:alt="${c.name()}">
+                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.name(), useJapaneseCardNames)}"></div>
+                    <div class="card-level" th:text="'Lv.' + ${c.level()}"></div>
+                </div>
+            </div>
         </div>
 
         <div th:if="${battle}" class="card">
             <h2 th:text="'相手のデッキ(' + ${battle.opponent()[0].name()} + ')'"></h2>
             <div class="deck-grid">
                 <div class="deck-card" th:each="c : ${battle.opponent()[0].cards()}">
+                    <img th:if="${c.iconUrls() != null}" th:src="${c.iconUrls().medium()}" th:alt="${c.name()}">
+                    <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.name(), useJapaneseCardNames)}"></div>
+                    <div class="card-level" th:text="'Lv.' + ${c.level()}"></div>
+                </div>
+            </div>
+            <h3 th:if="${!#lists.isEmpty(battle.opponent()[0].supportCards())}">プリンセスタワーカード</h3>
+            <div class="deck-grid" th:if="${!#lists.isEmpty(battle.opponent()[0].supportCards())}">
+                <div class="deck-card" th:each="c : ${battle.opponent()[0].supportCards()}">
                     <img th:if="${c.iconUrls() != null}" th:src="${c.iconUrls().medium()}" th:alt="${c.name()}">
                     <div class="card-name" th:text="${T(com.example.clashroyaleapi.web.CardNameLabels).label(c.name(), useJapaneseCardNames)}"></div>
                     <div class="card-level" th:text="'Lv.' + ${c.level()}"></div>

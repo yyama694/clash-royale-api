@@ -127,7 +127,12 @@ public final class CardNameLabels {
             Map.entry("Elixir Collector", "エリクサーポンプ"),
             Map.entry("X-Bow", "巨大クロスボウ"),
             Map.entry("Goblin Cage", "ゴブリンの檻"),
-            Map.entry("Goblin Drill", "ゴブリンドリル")
+            Map.entry("Goblin Drill", "ゴブリンドリル"),
+            // タワーユニット(プリンセスタワーに配置するカード)。ゲーム内表記に合わせる。
+            Map.entry("Tower Princess", "タワープリンセス"),
+            Map.entry("Cannoneer", "ブラスター"),
+            Map.entry("Dagger Duchess", "ダガーガール"),
+            Map.entry("Royal Chef", "ロイヤルシェフ")
     );
 
     private CardNameLabels() {
