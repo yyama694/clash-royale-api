@@ -36,9 +36,13 @@
 
 ## 技術スタック
 
-- 言語/フレームワーク: Java 21 (LTS) + Spring Boot
+- 言語/フレームワーク: Java 21 (LTS) + Spring Boot 4.1.x
+  - 2026-09-15にSpring Boot 3.3.4から4.1.1へ更新。3.3系・3.5系ともOSSサポートが終了しておりセキュリティパッチが届かないため。
+  - **Boot 4での注意点**: `RestClient.Builder`の自動設定は`spring-boot-starter-restclient`に分離されている。この依存が無いとDIに失敗する。
 - ビルドツール: Maven
 - 画面: Thymeleaf(サーバーサイドレンダリング。hello-worldと同じ方針)
+  - 表示用ラベルはすべて`messages.properties`(英語) / `messages_ja.properties`(日本語)に集約。テンプレートからの`T(...)`によるstaticメソッド呼び出しは使わない。
+  - 表示言語は`?lang=ja` / `?lang=en`で切替(Cookie保持)。未指定時はAccept-Language、それも無ければ日本語。
 - DB: **当面なし**。まずはClash Royale APIの呼び出し結果をそのまま画面に表示する構成で開始し、キャッシュやクイズデータの保存が必要になった段階でPostgreSQL導入を検討する(2026-09-13時点でユーザーが決定)。
 - Webサーバー: Spring Boot組み込みTomcatを直接公開(hello-worldと同様、当面リバースプロキシなし)。
 
@@ -49,7 +53,10 @@
   - 本番(OCI VM: `132.226.7.203`)用と、ローカル開発用とでIPアドレスが異なる点に注意。両方とも許可リストに登録済み。
   - ローカル開発機のグローバルIPは固定でない可能性があるため、開発中にAPIが403エラーになった場合はIPアドレスが変わっていないか、developer.clashroyale.com側のキー設定を確認する。
   - Allowed IP Addressesは作成後の編集(追加)が不可のため、IPを追加したい場合はキーの作り直しが必要(詳細は`進捗ログ.md`参照)。
-- APIキー(トークン)は絶対にリポジトリにコミットしない。環境変数、またはgitignore対象の設定ファイル(`application-local.yml`等)で管理する。
+- APIキー(トークン)は絶対にリポジトリにコミットしない。**jarにも焼き込まない**(2026-09-15に対応)。
+  - ローカル: `./config/application-local.yml`(`src/main/resources`の外、`.gitignore`対象)。サンプルは`config.example.yml`。`mvn spring-boot:run`で自動的にlocalプロファイルが有効になる。
+  - 本番: 環境変数`CLASHROYALE_API_TOKEN`。VM上の`/etc/clash-royale-api/env`(root:root 600)をsystemdの`EnvironmentFile`で読み込む。
+  - トークン未設定のまま起動すると`ClashRoyaleApiProperties`の`@NotBlank`で起動時に失敗する(403を出し続けるより原因が分かりやすいため)。
 - Clash Royale APIには呼び出し回数制限がある可能性があるため、実装時に公式ドキュメントでレート制限を確認する。
 
 ## インフラ構成(OCI)
@@ -61,6 +68,8 @@
 ## デプロイ手順の方針(手動、hello-worldを踏襲)
 
 - VM上の実体: jar配置先 `/opt/clash-royale-api/clash-royale-api.jar`、systemdサービス名 `clash-royale-api.service`(`opc`ユーザーで実行、起動オプション`--spring.profiles.active=prod`)。
+- **APIキーの供給(2026-09-15に変更)**: `/etc/clash-royale-api/env`(root:root 600、`CLASHROYALE_API_TOKEN=...`)をsystemdの`EnvironmentFile`で読み込む。以前あった`/opt/clash-royale-api/application-prod.yml`は`.removed`にリネームして退避済み。jar側にも秘密情報は入っていない。
+- **VMがフリーズしやすい点に注意**: Always Free枠の低スペック機のため、デプロイ・再起動の前後でSSH/HTTPともに無応答になることがある(2026-09-15に2回発生)。数分待って復帰しなければOCIコンソールからの再起動をユーザーに依頼する。再起動後のアプリ起動は40秒前後かかるため、`curl`は数回リトライする前提で確認する。
 - SSH鍵: ローカルの `C:\Users\Norio Fukuchi\.ssh\oci_clash_royale_api`。接続先ユーザーは`opc`(Oracle Linux標準)。
 - **2026-09-15にロールバック対応のため手順を変更**(`TODO.md`のデプロイ課題対応): 新jarで上書きする前に現行jarをリネームしてバックアップする運用にした。失敗時は`.bak`を戻せば切り戻せる。
 
@@ -74,15 +83,22 @@
    sudo systemctl restart clash-royale-api
    sudo systemctl is-active clash-royale-api
    ```
-4. 動作確認は `http://132.226.7.203:8080/` へのアクセス(`curl`のHTTPステータス確認でも可)で行う
+4. 動作確認は `http://132.226.7.203:8080/` へのアクセス(`curl`のHTTPステータス確認でも可)で行う。起動に40秒前後かかるためリトライループで待つこと
 5. 問題があれば `.bak` を元のファイル名に戻して`systemctl restart`することでロールバックする(`.bak`は次回デプロイ時に上書きされるため、長期保管はしない)
 
 ## コーディング方針(本プロジェクト固有)
 
 - パッケージ構成やController/Service層の分割など、Spring Bootの一般的な作法に従う。過度な抽象化はしない(グローバル方針と同様)。
-- Clash Royale APIとの通信は専用のServiceクラス(例: `ClashRoyaleApiClient`)に閉じ込め、Controllerから直接HTTP呼び出しを行わない。
+- **レイヤ構成(2026-09-15のコードレビュー対応で整備)**:
+  - `client` … 公式APIとのHTTP通信とDTO。失敗は`client.exception`配下の独自例外に変換して投げる(web層に`RestClientResponseException`や`HttpStatus`を漏らさない)。
+  - `domain` … 勝敗判定・集計・役職の序列など、HTTPにもThymeleafにも依存しない計算。
+  - `service` … タグ/クラン名の振り分け、ソート、絞り込みなどのアプリケーションロジック。Controllerには置かない。
+  - `web` … Controllerは「パラメータを受けてServiceを呼びModelに詰める」だけ。表示用の整形は`ViewMapper`と`web/view`のViewModelで行い、テンプレートにロジックを書かない。
+- Clash Royale APIとの通信は専用のクラス(`ClashRoyaleApiClient`)に閉じ込め、Controllerから直接HTTP呼び出しを行わない。
+- エラー画面は`GlobalExceptionHandler`(`@ControllerAdvice`)に集約する。Controller内で`model.addAttribute("error", ...)`を書かない。
+- APIレスポンスはCaffeineで2分キャッシュする(レート制限対策と低スペックVMの負荷軽減)。
 - application.properties/yml にAPIキーなどの秘密情報を平文でコミットしない。ローカル用設定と本番用設定は分離する。
-- .gitignore には target/, .idea/, *.iml, application-local.yml(または同等の秘匿設定ファイル)を含める。
+- .gitignore には target/, .idea/, *.iml, `config/`, `application-*.yml` を含める(ファイル名の個別列挙ではなくパターンで弾く)。
 
 ## セキュリティ上の注意
 

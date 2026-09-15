@@ -1,35 +1,32 @@
 # TODO
 
-## コードレビュー(サブエージェント4観点)で見つかった課題(2026-09-15)
+## 全体コードレビュー(2026-09-15、2回目)の対応結果
 
-セキュリティ・Spring Boot設計/コード品質・運用/デプロイ・フロントエンド/UXの4観点でサブエージェントによるレビューを実施した結果。
+差分ではなくコードベース全体を対象にレビューを実施し、指摘事項をすべて対応済み(コミット `79a67ed` ほか)。
+対応内容の詳細は`進捗ログ.md`および当該コミットメッセージを参照。
 
-**重大度: 高**
-1. ~~デプロイがscp+systemd再起動のみでロールバック手段なし。失敗時に切り戻せない → 現行jarをバックアップしてから上書きする運用に変更~~ **[対応済み 2026-09-15]** デプロイ手順を「新jar配置前に現行jarを`clash-royale-api.jar.bak`にリネームして退避 → 新jarを配置 → 再起動」に変更。失敗時は`.bak`を戻せば切り戻せる。今後のデプロイもこの手順を標準とする。
-2. 可観測性がほぼゼロ(Actuator未導入、ヘルスチェック・死活監視なし)。低スペックVM(Always Free枠)は過去にフリーズ実績あり([[project-oci-vm-spec]]参照) → `spring-boot-starter-actuator`導入+外部監視(UptimeRobot等)を優先的に追加
-3. `ClashRoyaleApiClient`でタイムアウト系例外(`ResourceAccessException`)が未catchで500エラー画面に落ちる → Client層で共通のエラーハンドリングを追加
-4. ~~テストコードが皆無。特に`PlayerBattleStats.from`(勝敗判定・カード集計ロジック)はAPI不要で単体テスト可能 → ここから着手~~ **[一部対応済み 2026-09-15]** `PlayerBattleStats`・`CardNameLabels`・`GameModeLabels`・`RoleLabels`(外部依存のない純粋ロジック)の単体テストを追加(計19件、`src/test/java`配下)。
-   - **方針(2026-09-15にユーザーが決定)**: `PlayerController`/`ClanController`(`MockMvc`が必要)・`ClashRoyaleApiClient`(`MockRestServiceServer`が必要)など、Spring Context/モックが絡む「やりにくいテスト」は当面不要。指示があるまで着手しない。
+**対応済み**
+- Service層(`PlayerService`/`ClanService`)と`domain`パッケージを新設し、Controllerから業務ロジックを分離
+- ViewModel(`web/view`)+`ViewMapper`導入により、テンプレートから`T(...)`によるstaticメソッド呼び出し(7箇所)と勝敗判定を排除
+- ラベル3クラス(`CardNameLabels`/`GameModeLabels`/`RoleLabels`)を廃止し`messages*.properties`に集約。固定文言含め全面多言語化(`?lang=ja`/`?lang=en`)
+- URLをパス形式(`/player/{tag}`、`/clan/{tag}`)へ変更。検索は`/player/search?q=`、`/clan/search?q=`に分離
+- 対戦詳細をindex参照からbattleTime参照に変更(黙って別の対戦が表示される問題を解消)
+- 得意カード/苦手カードの重複表示を修正。Wilson score intervalで試行回数を加味した順位付けに変更
+- 2v2で相手2人目のデッキが集計から漏れていた問題を修正
+- client層で独自例外に変換し、`@ControllerAdvice`でエラー画面を集約(旧TODO 3・5・6が同時に解決)
+- Spring Boot 3.3.4 → 4.1.1(3.3系・3.5系ともOSSサポート終了のため)
+- APIキーをjarから排除(ローカルは`./config/`、本番は環境変数`CLASHROYALE_API_TOKEN`)
+- `@NotBlank`によるfail-fast、デフォルトprofileから`local`を除去
+- `RestClient.Builder`のDIとタイムアウト設定(connect 3s / read 8s)
+- Caffeineによる2分TTLキャッシュ(レート制限・低スペックVM対策。実測で11倍高速化)
+- テンプレートのフラグメント化、`lang`属性、フォームの`required`、ダークモード対応、`deck-grid`のauto-fit化
+- テストを純粋ロジック+Mockitoの範囲で再構成(36件。MockMvc/MockRestServiceServerは引き続き不使用)
 
-**重大度: 中**
-5. `PlayerController`/`ClanController`がHTTPステータスをそのままユーザーに露出。404(存在しないタグ)と403(IP許可リスト起因など)を区別せず同じ文言 → 原因別にメッセージを分ける
-6. エラーメッセージ組み立てロジックが3箇所で重複 → 小さなヘルパーメソッドに切り出し
-7. DTOのnull安全性不足(`battle.team().get(0)`等が空リストで例外化しうる)
-8. `RestClient`にconnect/readタイムアウトが未設定
-9. 検索フォームに`required`属性がなく、空欄検索時にユーザーへの反応が何もない
-10. 全テンプレートで`<html>`に`lang="ja"`属性がない(アクセシビリティ)
-11. HTTPS未対応(下記「ページビュー向上に関するTODO」の1番と重複するため、そちらで対応)
-
-**重大度: 低**
-12. `application.yml`のデフォルトprofileが`local`。本番で`SPRING_PROFILES_ACTIVE=prod`が明示指定されているか要確認
-13. ログのローテーション設定が未整備
-14. CSSの`.deck-grid`ブレークポイントが粗く、481〜600px幅でカードが窮屈
-15. カード画像のalt属性が日本語名表示時も英語名のまま
-
-**問題なしと確認できた点(参考)**
-- APIキーはgit履歴に一度もコミットされていない
-- Thymeleafは`th:utext`未使用でXSS対策は良好
-- タグ入力はURLビルダー経由でSpringが自動エンコードするためインジェクション・SSRFリスクは低い
+**今回対応しなかったもの(継続TODO)**
+- 可観測性(Actuator未導入、ヘルスチェック・死活監視なし)。2026-09-15にVM無応答が2回発生しており優先度は高い
+- ログのローテーション設定
+- JVMのメモリ上限指定(`-Xmx`等)。VMフリーズ対策として検討の余地あり(今回はOOMの痕跡が無かったため見送り)
+- HTTPS未対応(下記「ページビュー向上に関するTODO」の1番で対応)
 
 ## ページビュー向上に関するTODO(2026-09-14、別セッション経由でユーザーから記録依頼)
 
