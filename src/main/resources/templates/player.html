@@ -30,7 +30,7 @@
 
         <div th:if="${battleStats}" class="card">
             <h2>直近の戦績サマリー</h2>
-            <p class="notice">※直近の対戦履歴(最大25件程度)からの集計です。</p>
+            <p class="notice">※直近の対戦履歴(取得できる件数は変動します)からの集計です。</p>
             <p>
                 過去<span th:text="${battleStats.total()}"></span>戦で
                 <strong th:text="${battleStats.wins()}"></strong>勝
@@ -59,7 +59,7 @@
 
         <div th:if="${player}" class="card">
             <h2>直近の対戦履歴</h2>
-            <p class="notice">※Clash Royale公式APIの仕様上、直近の対戦履歴は最大25件程度までしか取得できません(件数指定不可)。</p>
+            <p class="notice">※Clash Royale公式APIの仕様上、直近の対戦履歴は件数指定不可で、取得できる件数は変動します。</p>
             <p th:if="${battleLogError}" class="error-box" th:text="${battleLogError}"></p>
             <p th:if="${battleLog != null and #lists.isEmpty(battleLog)}" class="empty-state">対戦履歴がありません。</p>
             <div th:if="${battleLog != null and not #lists.isEmpty(battleLog)}" class="table-scroll">

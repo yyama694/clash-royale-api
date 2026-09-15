@@ -47,7 +47,7 @@ public class ClashRoyaleApiClient {
         return response != null ? response.items() : List.of();
     }
 
-    // battlelogはAPI仕様上、直近の対戦(実質25件程度)を返すのみで件数指定やページネーションはできない。
+    // battlelogはAPI仕様上、直近の対戦を返すのみで件数指定やページネーションはできない。返却件数は変動する(上限は保証されない)。
     public List<BattleLogEntry> getBattleLog(String tag) {
         return restClient.get()
                 .uri("/players/{tag}/battlelog", normalizeTag(tag))
