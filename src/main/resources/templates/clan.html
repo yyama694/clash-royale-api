@@ -46,14 +46,26 @@
             <table>
                 <thead>
                     <tr>
-                        <th>名前</th>
-                        <th>役職</th>
-                        <th>トロフィー</th>
-                        <th>寄付数</th>
+                        <th>
+                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='name', sortDir=(${sortBy == 'name' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
+                               th:text="'名前' + (${sortBy == 'name'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
+                        </th>
+                        <th>
+                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='role', sortDir=(${sortBy == 'role' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
+                               th:text="'役職' + (${sortBy == 'role'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
+                        </th>
+                        <th>
+                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='trophies', sortDir=(${sortBy == 'trophies' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
+                               th:text="'トロフィー' + (${sortBy == 'trophies'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
+                        </th>
+                        <th>
+                            <a th:href="@{/clan(tag=${clan.tag()}, sortBy='donations', sortDir=(${sortBy == 'donations' and sortDir == 'asc'} ? 'desc' : 'asc'))}"
+                               th:text="'寄付数' + (${sortBy == 'donations'} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr th:each="member : ${clan.memberList()}">
+                    <tr th:each="member : ${sortedMembers}">
                         <td><a th:href="@{/player(tag=${member.tag()})}" th:text="${member.name()}"></a></td>
                         <td th:text="${T(com.example.clashroyaleapi.web.RoleLabels).label(member.role(), #locale)}"></td>
                         <td th:text="${member.trophies()}"></td>
