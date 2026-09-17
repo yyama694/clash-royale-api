@@ -14,6 +14,18 @@ spring:
     client:
       connect-timeout: 3s
       read-timeout: 8s
+  web:
+    resources:
+      # CSS/JSのURLに中身のハッシュを付ける(例: /css/style-1a2b3c.css)。Thymeleafの @{...} 経由のリンクに自動で反映される。
+      # 既定ではCache-ControlもETagも返さないため、ブラウザが古いCSSを使い続け、デプロイしても表示が変わらないことがあった。
+      chain:
+        strategy:
+          content:
+            enabled: true
+      # URLが中身ごとに変わるので、同じURLのファイルは長期間キャッシュしてよい。
+      cache:
+        cachecontrol:
+          max-age: 365d
 
 server:
   port: 8080

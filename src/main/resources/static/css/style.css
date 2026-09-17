@@ -1,21 +1,34 @@
+/*
+  色の役割を分けている。
+  --color-primary は「白文字を載せる背景」(ボタン・ヘッダー)専用で、ダークモードでも暗めの青を保つ。
+  --color-link は「背景の上に載せる文字色」(リンク・見出し)で、ダークモードでは明るくする。
+  以前は1つの変数を両方に使っており、ダークモードで白文字のボタンやヘッダーのコントラスト比が2:1前後まで落ちていた。
+*/
 :root {
     color-scheme: light;
     --color-bg: #eef1f8;
     --color-surface: #ffffff;
     --color-primary: #2b4bd1;
-    --color-primary-dark: #1c3399;
+    --color-primary-hover: #223a9e;
+    --color-header-from: #2b4bd1;
+    --color-header-to: #1c3399;
+    --color-link: #2b4bd1;
+    --color-heading: #1c3399;
     --color-accent: #f2b705;
     --color-text: #1f2430;
-    --color-text-muted: #6b7280;
+    --color-text-muted: #5b6270;
     --color-border: #e2e5ee;
+    --color-focus: #2b4bd1;
     --color-error: #c0392b;
     --color-error-bg: #fdecea;
-    --color-win: #1e8e5a;
+    --color-win: #17794d;
     --color-win-bg: #e5f6ee;
     --color-lose: #c0392b;
     --color-lose-bg: #fdecea;
-    --color-draw: #6b7280;
+    --color-draw: #5b6270;
     --color-draw-bg: #eef0f4;
+    --color-warn: #9a5b00;
+    --color-warn-bg: #fff4e0;
     --radius: 12px;
     --shadow: 0 2px 10px rgba(31, 36, 48, 0.06);
 }
@@ -25,12 +38,17 @@
         color-scheme: dark;
         --color-bg: #161a23;
         --color-surface: #1f2430;
-        --color-primary: #7b95ff;
-        --color-primary-dark: #a8bcff;
+        --color-primary: #3451c7;
+        --color-primary-hover: #2a44b0;
+        --color-header-from: #223a9e;
+        --color-header-to: #1c2f82;
+        --color-link: #9db0ff;
+        --color-heading: #b3c2ff;
         --color-accent: #f2b705;
         --color-text: #e7eaf2;
         --color-text-muted: #9aa3b5;
         --color-border: #2c3240;
+        --color-focus: #9db0ff;
         --color-error: #ff9a8f;
         --color-error-bg: #3a2320;
         --color-win: #5fd8a0;
@@ -39,6 +57,8 @@
         --color-lose-bg: #3a2320;
         --color-draw: #9aa3b5;
         --color-draw-bg: #262b36;
+        --color-warn: #ffc36b;
+        --color-warn-bg: #3a2e1a;
         --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     }
 }
@@ -55,41 +75,41 @@ body {
     line-height: 1.6;
 }
 
+a {
+    color: var(--color-link);
+}
+
+/* ブラウザ既定のフォーカスリングは要素ごとに見た目が揃わず、青いヘッダー上ではほぼ見えないため共通化する。 */
+:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .site-header {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    background: linear-gradient(135deg, var(--color-header-from), var(--color-header-to));
     color: #fff;
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     box-shadow: var(--shadow);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.5rem 1.25rem;
 }
 
-.lang-switch {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-}
-
-.lang-switch a {
-    color: #fff;
-    text-decoration: none;
-    opacity: 0.7;
-    padding: 0.1rem 0.5rem;
-    border-radius: 999px;
-}
-
-.lang-switch a.is-active {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.2);
-    font-weight: 700;
-}
-
-.lang-switch a:hover {
-    opacity: 1;
-    text-decoration: underline;
+.site-header :focus-visible {
+    outline-color: #fff;
 }
 
 .site-header .brand {
@@ -100,10 +120,43 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    margin-right: auto;
 }
 
+/* 装飾なので読み上げ対象から外す(content の "/" 以降が代替テキスト)。 */
 .site-header .brand::before {
-    content: "\1F451";
+    content: "\1F451" / "";
+}
+
+.site-nav,
+.lang-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.site-nav a,
+.lang-switch a {
+    color: #fff;
+    text-decoration: none;
+    border-radius: 999px;
+    /* スマホで押しやすいよう、見た目の文字より広い範囲を押せるようにする。 */
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.site-nav a:hover,
+.lang-switch a:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.lang-switch a {
+    font-size: 0.85rem;
+}
+
+.lang-switch a.is-active {
+    background: rgba(255, 255, 255, 0.22);
+    font-weight: 700;
 }
 
 .container {
@@ -112,7 +165,10 @@ body {
     padding: 1.5rem 1rem 3rem;
 }
 
-/* デッキを左右に並べる対戦詳細画面用。860pxだとカード1枚あたりが窮屈になる。 */
+/*
+  デッキを左右に並べる対戦詳細画面用。860pxだとカード1枚あたりが窮屈になる。
+  全画面を同じ幅に揃える案も試したが、1000pxでも「ゴブリンドリル」などのカード名が折り返したため、この画面だけ広げている。
+*/
 .container-wide {
     max-width: 1100px;
 }
@@ -120,7 +176,7 @@ body {
 .back-link {
     display: inline-block;
     margin-bottom: 1rem;
-    color: var(--color-primary);
+    color: var(--color-link);
     text-decoration: none;
     font-weight: 600;
 }
@@ -140,20 +196,30 @@ body {
 .card h1 {
     margin-top: 0;
     font-size: 1.6rem;
+    overflow-wrap: anywhere;
 }
 
 .card h2 {
     font-size: 1.15rem;
     margin-top: 0;
-    color: var(--color-primary-dark);
+    color: var(--color-heading);
     border-left: 4px solid var(--color-accent);
     padding-left: 0.6rem;
+    overflow-wrap: anywhere;
 }
 
 .card h3 {
     font-size: 0.95rem;
     margin-top: 1.25rem;
     color: var(--color-text-muted);
+}
+
+.card-action {
+    margin-top: 1rem;
+}
+
+.clan-description {
+    overflow-wrap: anywhere;
 }
 
 .tag-pill {
@@ -190,11 +256,6 @@ body {
     font-size: 1rem;
 }
 
-.search-form input[type="text"]:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 1px;
-}
-
 button, .btn {
     background: var(--color-primary);
     color: #fff;
@@ -209,17 +270,23 @@ button, .btn {
 }
 
 button:hover, .btn:hover {
-    background: var(--color-primary-dark);
+    background: var(--color-primary-hover);
 }
 
 .btn-secondary {
     background: var(--color-surface);
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
+    color: var(--color-link);
+    border: 1px solid var(--color-link);
 }
 
 .btn-secondary:hover {
     background: var(--color-bg);
+}
+
+.btn-small {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
 }
 
 .stat-grid {
@@ -246,6 +313,21 @@ button:hover, .btn:hover {
 .stat-grid .value {
     font-size: 1.15rem;
     font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.stat-grid .value a {
+    color: var(--color-link);
+    text-decoration: none;
+}
+
+.stat-grid .value a:hover {
+    text-decoration: underline;
+}
+
+.stats-summary {
+    font-size: 1.05rem;
+    font-weight: 600;
 }
 
 .table-scroll {
@@ -267,6 +349,13 @@ thead th {
     padding: 0.6rem 0.7rem;
 }
 
+/* 桁の違いを見比べやすいよう、数値の列は右揃え・等幅数字にする。 */
+th.num,
+td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 thead th a {
     color: inherit;
     text-decoration: none;
@@ -274,8 +363,22 @@ thead th a {
 }
 
 thead th a:hover {
-    color: var(--color-primary);
+    color: var(--color-link);
     text-decoration: underline;
+}
+
+/* 未ソートの列にも印を出し、見出しをクリックすれば並べ替えられることが分かるようにする。 */
+thead th a.sort-none::after {
+    content: " \21C5" / "";
+    opacity: 0.45;
+}
+
+thead th a.sort-asc::after {
+    content: " \25B2" / "";
+}
+
+thead th a.sort-desc::after {
+    content: " \25BC" / "";
 }
 
 tbody td {
@@ -284,7 +387,7 @@ tbody td {
 }
 
 tbody td a {
-    color: var(--color-primary);
+    color: var(--color-link);
     text-decoration: none;
     font-weight: 600;
 }
@@ -293,8 +396,32 @@ tbody td a:hover {
     text-decoration: underline;
 }
 
+tbody td a.btn {
+    font-weight: 600;
+}
+
+tbody td a.btn:hover {
+    text-decoration: none;
+}
+
 tbody tr:hover {
     background: var(--color-bg);
+}
+
+td.cell-action {
+    text-align: right;
+}
+
+.name-list a + a::before {
+    content: " / ";
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+.teammates {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
 }
 
 .badge {
@@ -320,6 +447,15 @@ tbody tr:hover {
     background: var(--color-draw-bg);
 }
 
+.inactive-badge {
+    display: inline-block;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    color: var(--color-warn);
+    background: var(--color-warn-bg);
+    font-weight: 600;
+}
+
 .notice {
     font-size: 0.85rem;
     color: var(--color-text-muted);
@@ -329,6 +465,17 @@ tbody tr:hover {
     background: var(--color-error-bg);
     color: var(--color-error);
     border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+/* 「見つからない」など、システム障害ではない案内。エラーの赤ではなく中立的な色にする。 */
+.notice-box {
+    background: var(--color-surface);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
     padding: 1rem 1.25rem;
     margin-bottom: 1.5rem;
     font-weight: 600;
@@ -362,6 +509,7 @@ tbody tr:hover {
 
 .result-list .name {
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 /* liと同じ地色だとタグが沈むため、検索結果の中だけ背景を変える。 */
@@ -383,7 +531,11 @@ tbody tr:hover {
 }
 
 .empty-state {
+    background: var(--color-bg);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
     color: var(--color-text-muted);
+    text-align: center;
 }
 
 .deck-grid {
@@ -415,9 +567,28 @@ tbody tr:hover {
     line-height: 1.3;
 }
 
-.deck-card .card-level {
+.deck-card .card-sub {
     font-size: 0.72rem;
     color: var(--color-text-muted);
+}
+
+/* 得意(good)は勝ち色、苦手(bad)は負け色。見出しを読まなくても強弱が伝わるようにする。 */
+.deck-card.perf-good {
+    box-shadow: inset 0 -3px 0 var(--color-win);
+}
+
+.deck-card.perf-bad {
+    box-shadow: inset 0 -3px 0 var(--color-lose);
+}
+
+.deck-card.perf-good .perf-rate {
+    color: var(--color-win);
+    font-weight: 700;
+}
+
+.deck-card.perf-bad .perf-rate {
+    color: var(--color-lose);
+    font-weight: 700;
 }
 
 .support-row {
@@ -454,7 +625,7 @@ tbody tr:hover {
     font-weight: 600;
 }
 
-.support-card .card-level {
+.support-card .card-sub {
     font-size: 0.72rem;
     color: var(--color-text-muted);
 }
@@ -472,8 +643,15 @@ tbody tr:hover {
 }
 
 .matchup .side .side-name {
-    font-weight: 700;
-    font-size: 1.05rem;
+    font-weight: 600;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+}
+
+/* 2v2で、見ているプレイヤー本人がどちらかを分かるようにする。 */
+.matchup .side .side-name.is-viewer {
+    font-weight: 800;
+    font-size: 1.1rem;
 }
 
 .matchup .side .side-name a {
@@ -482,7 +660,7 @@ tbody tr:hover {
 }
 
 .matchup .side .side-name a:hover {
-    color: var(--color-primary);
+    color: var(--color-link);
     text-decoration: underline;
 }
 
@@ -495,18 +673,25 @@ tbody tr:hover {
     margin-bottom: 1.25rem;
 }
 
-/* 自分側と相手側を左右に並べて見比べられるようにする。2v2では各側が縦に2枚並ぶ。 */
+/*
+  自分側を左列、相手側を右列に置く。--row はテンプレートで指定する行番号で、2v2の2人目どうしを同じ行に揃える
+  (同じ行のパネルは高さも揃う)。左右を別々に縦積みすると、カード名の折り返し行数の違いで2段目の位置がずれていた。
+*/
 .decks {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
-    align-items: start;
+    align-items: stretch;
 }
 
-.decks-side {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+.decks .deck-panel-team {
+    grid-column: 1;
+    grid-row: var(--row);
+}
+
+.decks .deck-panel-opponent {
+    grid-column: 2;
+    grid-row: var(--row);
 }
 
 .decks .card {
@@ -529,13 +714,17 @@ tbody tr:hover {
     gap: 0.5rem;
 }
 
-/* タブレット〜小型ノート。左右2カラムでは1枚あたりの幅が足りなくなるため縦積みに戻す。 */
-
 .tabs {
     display: flex;
     gap: 0.4rem;
     margin-bottom: 1rem;
-    border-bottom: 1px solid var(--color-border);
+    /*
+      国名が長いとタブが押しつぶされて「グローバル」が2行に折り返したため、折り返さずに横スクロールさせる。
+      下線を border にして各タブを -1px はみ出させると、スクロール領域から溢れて縦スクロールバーが出るため、内側の影で描く。
+    */
+    box-shadow: inset 0 -1px 0 var(--color-border);
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .tabs .tab {
@@ -544,29 +733,31 @@ tbody tr:hover {
     border: none;
     border-bottom: 3px solid transparent;
     padding: 0.5rem 1rem;
-    margin-bottom: -1px;
     color: var(--color-text-muted);
     font-size: 0.95rem;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .tabs .tab:hover {
-    color: var(--color-primary);
+    color: var(--color-link);
+    background: none;
 }
 
 .tabs .tab.is-active {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
+    color: var(--color-link);
+    border-bottom-color: var(--color-link);
 }
 
 .rank {
     display: inline-block;
     min-width: 1.8rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
-
 
 .country-form {
     display: flex;
@@ -599,9 +790,17 @@ tbody tr:hover {
     padding: 0.45rem 1.1rem;
 }
 
+/* タブレット〜小型ノート。左右2カラムでは1枚あたりの幅が足りなくなるため縦積みに戻す。 */
 @media (max-width: 760px) {
     .decks {
         grid-template-columns: 1fr;
+    }
+
+    /* 1列ではDOMの順(自分→味方→相手)に並べる。 */
+    .decks .deck-panel-team,
+    .decks .deck-panel-opponent {
+        grid-column: auto;
+        grid-row: auto;
     }
 
     .card, .decks .card {
@@ -611,6 +810,15 @@ tbody tr:hover {
 
 /* スマートフォン。横スクロールしていた表を1行=1カードの積み上げに切り替える。 */
 @media (max-width: 600px) {
+    .site-header {
+        padding: 0.6rem 1rem;
+    }
+
+    /* PC幅と同じ160pxだと375px前後で2列に収まらず、7項目が縦1列に並んでいた。 */
+    .stat-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
     .table-scroll {
         overflow-x: visible;
     }
@@ -641,10 +849,17 @@ tbody tr:hover {
         gap: 0.35rem;
     }
 
+    /* チップ全体を押せるよう、余白は th ではなくリンク側に持たせる。 */
     .table-sortable thead th {
-        padding: 0.25rem 0.7rem;
+        padding: 0;
         border-radius: 999px;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
+        text-align: left;
+    }
+
+    .table-sortable thead th a {
+        display: block;
+        padding: 0.45rem 0.85rem;
     }
 
     tbody tr {
@@ -667,10 +882,80 @@ tbody tr:hover {
         border-top: none;
     }
 
+    td.num {
+        text-align: left;
+    }
+
     tbody td::before {
         content: attr(data-label);
         color: var(--color-text-muted);
         font-size: 0.8rem;
+    }
+
+    td.cell-action {
+        display: block;
+        text-align: left;
+        padding-top: 0.4rem;
+    }
+
+    td.cell-action::before {
+        content: none;
+    }
+
+    td.is-empty {
+        display: none;
+    }
+
+    /*
+      ランキングは「順位」を見出し付きの1行にすると冗長なので、順位と名前を1行目にまとめて大きく出す。
+      残りの項目は2行目以降に項目名付きで並べる。
+    */
+    .table-ranking tbody tr {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 0.75rem;
+        align-items: baseline;
+    }
+
+    .table-ranking td {
+        grid-column: 1 / -1;
+    }
+
+    .table-ranking td.cell-rank,
+    .table-ranking td.cell-name {
+        display: block;
+        grid-column: auto;
+    }
+
+    .table-ranking td.cell-rank::before,
+    .table-ranking td.cell-name::before {
+        content: none;
+    }
+
+    .table-ranking td.cell-rank .rank {
+        font-size: 1.15rem;
+        min-width: 0;
+    }
+
+    .table-ranking td.cell-rank .rank::before {
+        content: "#";
+        color: var(--color-text-muted);
+        font-weight: 400;
+    }
+
+    .table-ranking td.cell-name {
+        font-size: 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    /* 4列固定で1枚が60px前後になるため、カード名を小さくして折り返し行数を減らす。 */
+    .deck-panel .deck-card {
+        padding: 0.4rem 0.2rem;
+    }
+
+    .deck-panel .deck-card .card-name {
+        font-size: 0.68rem;
+        letter-spacing: -0.02em;
     }
 }
 

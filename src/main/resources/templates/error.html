@@ -5,13 +5,22 @@
     <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
-        <!-- errorKey は GlobalExceptionHandler が原因別に設定する。
-             存在しないURLや想定外の例外など、Spring Boot 標準のエラー処理でここに来た場合は errorKey が無いため、
-             Spring Boot が渡す status で「ページが無い」と「それ以外」を出し分ける。 -->
-        <div class="error-box"
-             th:text="${errorKey != null} ? #{${errorKey}} : (${status == 404} ? #{error.pageNotFound} : #{error.generic})"></div>
+        <!--/*
+          errorKey は GlobalExceptionHandler が原因別に設定する。
+          存在しないURLや想定外の例外など、Spring Boot 標準のエラー処理でここに来た場合は errorKey が無いため、
+          Spring Boot が渡す status で「ページが無い」と「それ以外」を出し分ける。
+          「見つからない」は入力の問題でシステム障害ではないので、赤いエラー表示にせず、その場で検索し直せるようにする。
+        */-->
+        <th:block th:with="isNotFound=${notFound == true or status == 404},
+                           message=${errorKey != null} ? #{${errorKey}} : (${status == 404} ? #{error.pageNotFound} : #{error.generic})">
+            <div th:class="${isNotFound} ? 'notice-box' : 'error-box'" th:text="${message}"></div>
+            <th:block th:if="${isNotFound}">
+                <div th:replace="~{fragments/layout :: playerSearchForm(null)}"></div>
+                <div th:replace="~{fragments/layout :: clanSearchForm(null)}"></div>
+            </th:block>
+        </th:block>
     </main>
 </body>
 </html>

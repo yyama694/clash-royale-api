@@ -5,13 +5,16 @@
     <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
-        <div th:if="${candidates == null}" class="error-box" th:text="#{clanSearch.empty}"></div>
+        <!--/* 該当なしは入力の問題でシステムエラーではないので、赤いエラー表示にせず、入力値を残した検索フォームを添える */-->
+        <th:block th:if="${candidates == null}">
+            <div class="notice-box" th:text="#{clanSearch.empty}"></div>
+            <div th:replace="~{fragments/layout :: clanSearchForm(${query})}"></div>
+        </th:block>
 
         <div th:if="${candidates != null}" class="card">
-            <h1 th:text="#{clanSearch.heading}"></h1>
-            <p><span class="tag-pill" th:text="${query}"></span></p>
+            <h1 th:text="#{clanSearch.heading(${query})}"></h1>
             <p class="notice" th:if="${total > candidates.size()}"
                th:text="#{clanSearch.notice(${total}, ${candidates.size()})}"></p>
             <ul class="result-list">

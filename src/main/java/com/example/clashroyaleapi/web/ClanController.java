@@ -62,6 +62,7 @@ public class ClanController {
         SortDirection direction = SortDirection.from(sortDir);
 
         model.addAttribute("clan", clan);
+        model.addAttribute("clanName", DisplayNames.of(clan.name()));
         model.addAttribute("clanPathTag", Tags.toPathSegment(clan.tag()));
         model.addAttribute("members",
                 viewMapper.toMembers(clanService.sortMembers(clan.memberList(), sortKey, direction), locale));

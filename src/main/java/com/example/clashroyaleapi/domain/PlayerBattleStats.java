@@ -90,18 +90,16 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
         }
     }
 
+    /**
+     * 最低使用回数に届くカードが無ければ、得意/苦手は出さない(画面は「分析できません」と表示する)。
+     * 以前は全カードにフォールバックしていたが、対戦1件だと相手の8枚がすべて同じ勝敗になり、
+     * 勝率100%のカードが「苦手」に並ぶ矛盾した表示になった。
+     */
     private static List<CardPerformance> rank(Map<String, CardTally> tallies) {
-        List<CardPerformance> ranked = tallies.entrySet().stream()
+        return tallies.entrySet().stream()
                 .filter(entry -> entry.getValue().uses >= MIN_USES_FOR_RANKING)
                 .map(entry -> toPerformance(entry.getKey(), entry.getValue()))
                 .toList();
-        // 対戦数が少なく最低ラインを超えるカードが1枚も無い場合は、全カードを対象にフォールバックする。
-        if (ranked.isEmpty()) {
-            return tallies.entrySet().stream()
-                    .map(entry -> toPerformance(entry.getKey(), entry.getValue()))
-                    .toList();
-        }
-        return ranked;
     }
 
     private static boolean isIncomplete(BattleLogEntry battle) {

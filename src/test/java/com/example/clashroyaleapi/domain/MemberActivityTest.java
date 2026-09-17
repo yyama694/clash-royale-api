@@ -7,6 +7,7 @@ import java.util.OptionalLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MemberActivityTest {
 
@@ -36,6 +37,13 @@ class MemberActivityTest {
     void 未来の日時でも負の日数にはしない() {
         // APIとサーバーの時刻がわずかにずれた場合の保険。
         assertEquals(OptionalLong.of(0), MemberActivity.inactiveDays("20260916T092124.000Z", NOW));
+    }
+
+    @Test
+    void 七日以上アクセスが無いメンバーを長期離脱とみなす() {
+        assertFalse(MemberActivity.isLongInactive(OptionalLong.of(6)));
+        assertTrue(MemberActivity.isLongInactive(OptionalLong.of(7)));
+        assertFalse(MemberActivity.isLongInactive(OptionalLong.empty()));
     }
 
     @Test

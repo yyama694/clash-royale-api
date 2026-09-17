@@ -34,6 +34,8 @@ public class GlobalExceptionHandler {
         }
         response.setStatus(status.value());
         model.addAttribute("errorKey", e.messageKey());
+        // 「見つからない」は利用者の入力の問題でシステム障害ではないため、画面では赤いエラー表示にせず再検索を促す。
+        model.addAttribute("notFound", status == HttpStatus.NOT_FOUND);
         return "error";
     }
 

@@ -43,15 +43,17 @@ public class PlayerController {
     public String player(@PathVariable String tag, Model model, Locale locale) {
         PlayerResponse player = playerService.findPlayer(tag);
         model.addAttribute("player", player);
+        model.addAttribute("playerName", DisplayNames.of(player.name()));
         model.addAttribute("playerPathTag", Tags.toPathSegment(player.tag()));
         if (player.clan() != null) {
+            model.addAttribute("clanName", DisplayNames.of(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
         }
 
         // 戦績の取得に失敗してもプレイヤー情報自体は表示したいので、ここだけは個別に握る。
         try {
             List<BattleLogEntry> battleLog = playerService.findBattleLog(tag);
-            model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, locale));
+            model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, player.tag(), locale));
             if (!battleLog.isEmpty()) {
                 model.addAttribute("battleStats", viewMapper.toStats(playerService.statsOf(battleLog), locale));
             }
@@ -66,7 +68,7 @@ public class PlayerController {
             Locale locale) {
         BattleLogEntry battle = playerService.findBattle(tag, battleTime);
         model.addAttribute("playerPathTag", Tags.toPathSegment(tag));
-        model.addAttribute("battle", viewMapper.toBattleDetail(battle, locale));
+        model.addAttribute("battle", viewMapper.toBattleDetail(battle, tag, locale));
         return "battle-detail";
     }
 }

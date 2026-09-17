@@ -20,12 +20,14 @@ import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
+import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 
 import org.springframework.stereotype.Component;
 
 import java.text.Collator;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.OptionalLong;
@@ -43,20 +45,22 @@ public class ViewMapper {
         this.labels = labels;
     }
 
-    public List<BattleSummaryView> toBattleSummaries(List<BattleLogEntry> battleLog, Locale locale) {
+    /** viewerTag は対戦履歴を見ているプレイヤーのタグ。2v2で味方と区別するために使う。 */
+    public List<BattleSummaryView> toBattleSummaries(List<BattleLogEntry> battleLog, String viewerTag,
+            Locale locale) {
         return battleLog.stream()
                 .filter(ViewMapper::hasBothSides)
-                .map(battle -> toBattleSummary(battle, locale))
+                .map(battle -> toBattleSummary(battle, viewerTag, locale))
                 .toList();
     }
 
-    public BattleDetailView toBattleDetail(BattleLogEntry battle, Locale locale) {
+    public BattleDetailView toBattleDetail(BattleLogEntry battle, String viewerTag, Locale locale) {
         BattleResult teamResult = resultOf(battle);
         return new BattleDetailView(
                 battle.battleTime(),
                 gameModeOf(battle, locale),
-                toParticipants(battle.team(), teamResult, locale),
-                toParticipants(battle.opponent(), invert(teamResult), locale));
+                toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, viewerTag, locale),
+                toParticipants(battle.opponent(), invert(teamResult), viewerTag, locale));
     }
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
@@ -69,21 +73,20 @@ public class ViewMapper {
         // 一覧内で基準時刻がずれないよう、1回だけ現在時刻を取る。
         Instant now = Instant.now();
         return members.stream()
-                .map(member -> new ClanMemberView(Tags.toPathSegment(member.tag()), member.name(),
-                        labels.role(member.role(), locale), member.trophies(), member.donations(),
-                        inactiveDaysOf(member, now)))
+                .map(member -> {
+                    OptionalLong days = MemberActivity.inactiveDays(member.lastSeen(), now);
+                    return new ClanMemberView(Tags.toPathSegment(member.tag()), DisplayNames.of(member.name()),
+                            labels.role(member.role(), locale), member.trophies(), member.donations(),
+                            days.isPresent() ? days.getAsLong() : null, MemberActivity.isLongInactive(days));
+                })
                 .toList();
-    }
-
-    private static Long inactiveDaysOf(ClanResponse.Member member, Instant now) {
-        OptionalLong days = MemberActivity.inactiveDays(member.lastSeen(), now);
-        return days.isPresent() ? days.getAsLong() : null;
     }
 
     public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans, Locale locale) {
         return clans.stream()
                 .map(clan -> new ClanRankingRowView(clan.rank(), Tags.toPathSegment(clan.tag()), clan.tag(),
-                        clan.name(), clan.clanScore(), clan.members(), locationName(clan.location(), locale)))
+                        DisplayNames.of(clan.name()), clan.clanScore(), clan.members(),
+                        locationName(clan.location(), locale)))
                 .toList();
     }
 
@@ -109,8 +112,8 @@ public class ViewMapper {
     public List<PlayerRankingRowView> toPlayerRankingRows(List<PlayerRankingResponse.RankedPlayer> players) {
         return players.stream()
                 .map(player -> new PlayerRankingRowView(player.rank(), Tags.toPathSegment(player.tag()), player.tag(),
-                        player.name(), player.expLevel(), player.eloRating(),
-                        player.clan() == null ? null : player.clan().name(),
+                        DisplayNames.of(player.name()), player.expLevel(), player.eloRating(),
+                        player.clan() == null ? null : DisplayNames.of(player.clan().name()),
                         player.clan() == null ? null : Tags.toPathSegment(player.clan().tag())))
                 .toList();
     }
@@ -137,34 +140,52 @@ public class ViewMapper {
 
     public List<ClanSummaryView> toClanSummaries(List<ClanSearchResponse.ClanSummary> clans) {
         return clans.stream()
-                .map(clan -> new ClanSummaryView(Tags.toPathSegment(clan.tag()), clan.tag(), clan.name(),
-                        clan.clanScore(), clan.members()))
+                .map(clan -> new ClanSummaryView(Tags.toPathSegment(clan.tag()), clan.tag(),
+                        DisplayNames.of(clan.name()), clan.clanScore(), clan.members()))
                 .toList();
     }
 
-    private BattleSummaryView toBattleSummary(BattleLogEntry battle, Locale locale) {
-        BattleLogEntry.Participant opponent = battle.opponent().get(0);
+    private BattleSummaryView toBattleSummary(BattleLogEntry battle, String viewerTag, Locale locale) {
         return new BattleSummaryView(
                 battle.battleTime(),
                 gameModeOf(battle, locale),
                 resultOf(battle),
                 crownsOf(battle.team()),
                 crownsOf(battle.opponent()),
-                opponent.name(),
-                Tags.toPathSegment(opponent.tag()));
+                toLinks(battle.opponent()),
+                toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()));
+    }
+
+    private static List<PlayerLinkView> toLinks(List<BattleLogEntry.Participant> participants) {
+        return participants.stream()
+                .map(p -> new PlayerLinkView(DisplayNames.of(p.name()), Tags.toPathSegment(p.tag())))
+                .toList();
+    }
+
+    /** 公式APIのteamは、見ているプレイヤーが先頭とは限らない(2v2で味方が先に来ることがある)。 */
+    static List<BattleLogEntry.Participant> viewerFirst(List<BattleLogEntry.Participant> team, String viewerTag) {
+        return team.stream()
+                .sorted(Comparator.comparing(p -> !isViewer(p, viewerTag)))
+                .toList();
+    }
+
+    private static boolean isViewer(BattleLogEntry.Participant participant, String viewerTag) {
+        return viewerTag != null && participant.tag() != null
+                && Tags.normalize(participant.tag()).equals(Tags.normalize(viewerTag));
     }
 
     private List<ParticipantView> toParticipants(List<BattleLogEntry.Participant> side, BattleResult result,
-            Locale locale) {
+            String viewerTag, Locale locale) {
         return side.stream()
                 .map(participant -> new ParticipantView(
                         participant.tag(),
                         Tags.toPathSegment(participant.tag()),
-                        participant.name(),
+                        DisplayNames.of(participant.name()),
                         participant.crowns(),
                         result,
                         toCards(participant.cards(), locale),
-                        toCards(participant.supportCards(), locale)))
+                        toCards(participant.supportCards(), locale),
+                        isViewer(participant, viewerTag)))
                 .toList();
     }
 

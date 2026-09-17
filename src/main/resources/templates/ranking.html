@@ -5,7 +5,7 @@
     <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <div class="card">
             <h1 th:text="#{ranking.heading}"></h1>
@@ -14,7 +14,7 @@
                      ~{fragments/layout :: rankingTable(${localRanking}, false)},
                      '/ranking')}"></div>
             <p class="notice" th:text="'※' + #{ranking.notice}"></p>
-            <a class="btn btn-secondary" th:href="@{/ranking/players}" th:text="#{playerRanking.link}"></a>
+            <a class="btn btn-secondary" th:href="@{/ranking/players}" th:text="#{playerRanking.viewAll}"></a>
         </div>
     </main>
 </body>

@@ -32,7 +32,11 @@ class PlayerBattleStatsTest {
     void カード集計は自分ではなく対戦相手が使用したカードを対象にする() {
         // battle()ヘルパーは自分側にカードを一切持たせていないため、
         // 集計結果に現れるカードは必ず「相手が使ったカード」であることの確認になる。
-        List<BattleLogEntry> log = List.of(battle(3, 0, "Knight"), battle(0, 3, "Golem"));
+        List<BattleLogEntry> log = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            log.add(battle(3, 0, "Knight"));
+            log.add(battle(0, 3, "Golem"));
+        }
 
         PlayerBattleStats stats = PlayerBattleStats.from(log);
 
@@ -147,13 +151,33 @@ class PlayerBattleStatsTest {
         BattleLogEntry.Participant opponent2 = participant("#OPP2", "Opponent2", 0, List.of(card("Golem")));
         BattleLogEntry duel = new BattleLogEntry("PvP", "20260101T000000.000Z",
                 new BattleLogEntry.GameMode("CasualDuel2v2"), List.of(self, mate), List.of(opponent1, opponent2));
+        // 最低使用回数(5回)に届かせるため、同じ対戦を5回分並べる。
+        List<BattleLogEntry> log = List.of(duel, duel, duel, duel, duel);
 
-        PlayerBattleStats stats = PlayerBattleStats.from(List.of(duel));
+        PlayerBattleStats stats = PlayerBattleStats.from(log);
 
-        assertEquals(1, stats.wins());
+        assertEquals(5, stats.wins());
         // 相手2人分のカードが両方とも集計に載っていれば、得意/苦手が1枚ずつ選ばれる。
         assertEquals(1, stats.favoriteCards().size());
         assertEquals(1, stats.weakCards().size());
+    }
+
+    @Test
+    void 使用回数が5回に届くカードが無ければ得意苦手を出さない() {
+        // 以前は全カードにフォールバックしており、対戦1件だと相手の8枚がすべて同じ勝敗になるため、
+        // 勝率100%のカードが「苦手」にも並んでいた。
+        BattleLogEntry.Participant self = participant("#SELF", "Self", 3, List.of());
+        BattleLogEntry.Participant opponent = participant("#OPP", "Opponent", 0, List.of(
+                card("Knight"), card("Golem"), card("Bats"), card("Zap"),
+                card("Arrows"), card("Giant"), card("Miner"), card("Log")));
+        BattleLogEntry single = new BattleLogEntry("PvP", "20260101T000000.000Z",
+                new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of(opponent));
+
+        PlayerBattleStats stats = PlayerBattleStats.from(List.of(single));
+
+        assertEquals(1, stats.total());
+        assertTrue(stats.favoriteCards().isEmpty());
+        assertTrue(stats.weakCards().isEmpty());
     }
 
     @Test

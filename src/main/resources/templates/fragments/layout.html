@@ -11,8 +11,14 @@
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 
+<!-- ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 -->
 <header class="site-header" th:fragment="header">
     <a class="brand" th:href="@{/}" th:text="#{app.name}"></a>
+    <nav class="site-nav" th:aria-label="#{nav.main}">
+        <a th:href="@{/}" th:text="#{nav.search}"></a>
+        <a th:href="@{/ranking/players}" th:text="#{nav.playerRanking}"></a>
+        <a th:href="@{/ranking}" th:text="#{nav.clanRanking}"></a>
+    </nav>
     <nav class="lang-switch" th:aria-label="#{nav.language}">
         <a th:href="@{${currentUri}(lang='ja')}" th:text="#{lang.ja}"
            th:classappend="${#locale.language == 'ja'} ? 'is-active'"></a>
@@ -21,17 +27,52 @@
     </nav>
 </header>
 
+<!-- トップページと、見つからなかったときの画面で共用する検索フォーム。value は再検索時に入力値を残すために使う。 -->
+<div th:fragment="playerSearchForm(value)" class="card">
+    <h2 th:text="#{home.player.heading}"></h2>
+    <form class="search-form" th:action="@{/player/search}" method="get">
+        <label>
+            <span th:text="#{home.player.label}"></span>
+            <input type="text" name="q" required th:value="${value}" th:placeholder="#{home.player.placeholder}">
+        </label>
+        <button type="submit" th:text="#{action.search}"></button>
+    </form>
+</div>
+
+<div th:fragment="clanSearchForm(value)" class="card">
+    <h2 th:text="#{home.clan.heading}"></h2>
+    <form class="search-form" th:action="@{/clan/search}" method="get">
+        <label>
+            <span th:text="#{home.clan.label}"></span>
+            <input type="text" name="q" required th:value="${value}" th:placeholder="#{home.clan.placeholder}">
+        </label>
+        <button type="submit" th:text="#{action.search}"></button>
+    </form>
+</div>
+
 <!-- 勝敗バッジ。判定はViewModel側で済ませてあるので、ここは表示のみ。 -->
 <span th:fragment="resultBadge(result)" class="badge"
       th:classappend="'badge-' + ${result.code()}"
       th:text="#{'battle.result.' + ${result.code()}}"></span>
 
-<!-- カードのグリッド。デッキ表示と得意/苦手カード表示で共用する。 -->
+<!--
+  カード画像は width/height を指定し、読み込み前から枠の大きさを確保する(遅延読み込みの間に配置がガタつくため)。
+  公式APIのカード画像は 285x420 で統一されている。
+-->
 <div th:fragment="deckGrid(cards)" class="deck-grid">
     <div class="deck-card" th:each="c : ${cards}">
-        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.name()}" loading="lazy">
+        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" alt="" width="285" height="420" loading="lazy">
         <div class="card-name" th:text="${c.name()}"></div>
-        <div class="card-level" th:text="#{battle.level(${c.level()})}"></div>
+        <div class="card-sub" th:text="#{battle.level(${c.level()})}"></div>
+    </div>
+</div>
+
+<!-- 得意/苦手カード。kind(good/bad)で枠と勝率の色を変え、見出しを読まなくても強弱が伝わるようにする。 -->
+<div th:fragment="performanceGrid(cards, kind)" class="deck-grid">
+    <div class="deck-card" th:each="c : ${cards}" th:classappend="'perf-' + ${kind}">
+        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" alt="" width="285" height="420" loading="lazy">
+        <div class="card-name" th:text="${c.name()}"></div>
+        <div class="card-sub perf-rate" th:text="#{stats.record(${c.winRatePercent()}, ${c.wins()}, ${c.uses()})}"></div>
     </div>
 </div>
 
@@ -39,50 +80,56 @@
 <div th:fragment="supportCardRow(label, cards)" class="support-row">
     <span class="support-label" th:text="${label}"></span>
     <div class="support-card" th:each="c : ${cards}">
-        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" th:alt="${c.name()}" loading="lazy">
+        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" alt="" width="285" height="420" loading="lazy">
         <span class="card-name" th:text="${c.name()}"></span>
-        <span class="card-level" th:text="#{battle.level(${c.level()})}"></span>
+        <span class="card-sub" th:text="#{battle.level(${c.level()})}"></span>
     </div>
 </div>
 
-<!-- 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。 -->
+<!-- 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。 -->
 <div th:fragment="matchupSide(side)" class="side">
-    <div class="side-name" th:each="p : ${side}">
+    <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">
         <a th:href="@{/player/{tag}(tag=${p.pathTag()})}" th:text="${p.name()}"></a>
     </div>
     <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
     <div th:text="#{battle.crowns(${side[0].crowns()})}"></div>
 </div>
 
-<!-- クランメンバー一覧のソート用ヘッダ。同じ列をクリックすると昇順/降順が反転する。 -->
-<th th:fragment="sortHeader(label, key, tag, sortBy, sortDir)">
-    <a th:href="@{/clan/{tag}(tag=${tag}, sortBy=${key}, sortDir=(${sortBy == key and sortDir == 'asc'} ? 'desc' : 'asc'))}"
-       th:text="${label} + (${sortBy == key} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
+<!--
+  クランメンバー一覧のソート用ヘッダ。同じ列をクリックすると昇順/降順が反転する。
+  リンク先に #members を付けるのは、ページ遷移後に先頭へ戻ると(特にスマホで)一覧が画面外に出てしまうため。
+-->
+<th th:fragment="sortHeader(label, key, tag, sortBy, sortDir)" class="sortable"
+    th:classappend="${key == 'trophies' or key == 'donations'} ? 'num'"
+    th:attr="aria-sort=${sortBy == key} ? (${sortDir == 'asc'} ? 'ascending' : 'descending') : null">
+    <a th:href="@{/clan/{tag}(tag=${tag}, sortBy=${key}, sortDir=(${sortBy == key and sortDir == 'asc'} ? 'desc' : 'asc'))} + '#members'"
+       th:classappend="${sortBy == key} ? (${sortDir == 'asc'} ? 'sort-asc' : 'sort-desc') : 'sort-none'"
+       th:text="${label}"></a>
 </th>
 
 <!-- クランランキングの表。グローバル/ローカルの両タブで共用する(国の列はグローバルのみ)。 -->
 <div th:fragment="rankingTable(rows, showLocation)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
-        <table>
+        <table class="table-ranking">
             <thead>
                 <tr>
                     <th th:text="#{ranking.col.rank}"></th>
                     <th th:text="#{ranking.col.clan}"></th>
                     <th th:if="${showLocation}" th:text="#{ranking.col.location}"></th>
-                    <th th:text="#{ranking.col.score}"></th>
-                    <th th:text="#{ranking.col.members}"></th>
+                    <th class="num" th:text="#{ranking.col.score}"></th>
+                    <th class="num" th:text="#{ranking.col.members}"></th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="row : ${rows}">
-                    <td th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
-                    <td th:attr="data-label=#{ranking.col.clan}">
+                    <td class="cell-rank" th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
+                    <td class="cell-name" th:attr="data-label=#{ranking.col.clan}">
                         <a th:href="@{/clan/{tag}(tag=${row.pathTag()})}" th:text="${row.name()}"></a>
                     </td>
                     <td th:if="${showLocation}" th:attr="data-label=#{ranking.col.location}" th:text="${row.locationName()}"></td>
-                    <td th:attr="data-label=#{ranking.col.score}" th:text="${row.clanScore()}"></td>
-                    <td th:attr="data-label=#{ranking.col.members}" th:text="${row.members()}"></td>
+                    <td class="num" th:attr="data-label=#{ranking.col.score}" th:text="${row.clanScore()}"></td>
+                    <td class="num" th:attr="data-label=#{ranking.col.members}" th:text="${row.members()}"></td>
                 </tr>
             </tbody>
         </table>
@@ -93,26 +140,28 @@
 <div th:fragment="playerRankingTable(rows, detailed)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
-        <table>
+        <table class="table-ranking">
             <thead>
                 <tr>
                     <th th:text="#{ranking.col.rank}"></th>
                     <th th:text="#{playerRanking.col.player}"></th>
                     <th th:if="${detailed}" th:text="#{playerRanking.col.level}"></th>
-                    <th th:text="#{playerRanking.col.rating}"></th>
+                    <th class="num" th:text="#{playerRanking.col.rating}"></th>
                     <th th:if="${detailed}" th:text="#{playerRanking.col.clan}"></th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="row : ${rows}">
-                    <td th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
-                    <td th:attr="data-label=#{playerRanking.col.player}">
+                    <td class="cell-rank" th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
+                    <td class="cell-name" th:attr="data-label=#{playerRanking.col.player}">
                         <a th:href="@{/player/{tag}(tag=${row.pathTag()})}" th:text="${row.name()}"></a>
                     </td>
                     <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.level}"
                         th:text="#{battle.level(${row.expLevel()})}"></td>
-                    <td th:attr="data-label=#{playerRanking.col.rating}" th:text="${row.eloRating()}"></td>
-                    <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.clan}">
+                    <td class="num" th:attr="data-label=#{playerRanking.col.rating}" th:text="${row.eloRating()}"></td>
+                    <!-- クラン未所属の人は、スマホのカード表示で「クラン」の見出しだけが空で残らないよう is-empty を付ける。 -->
+                    <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.clan}"
+                        th:classappend="${row.clanName() == null} ? 'is-empty'">
                         <a th:if="${row.clanName() != null}" th:href="@{/clan/{tag}(tag=${row.clanPathTag()})}"
                            th:text="${row.clanName()}"></a>
                     </td>
@@ -127,15 +176,17 @@
   フラグメント式で受け取る。選択中の国(selectedCountry等)はモデルから直接参照する。
   切り替えは表示/非表示の入れ替えだけで、サーバーへの再取得は行わない。
 -->
-<div th:fragment="rankingTabs(globalPanel, localPanel, formAction)">
+<div th:fragment="rankingTabs(globalPanel, localPanel, formAction)" class="ranking-tabs">
     <div class="tabs" role="tablist" th:aria-label="#{ranking.tabs.label}">
         <button type="button" class="tab" role="tab" id="tab-global" aria-controls="panel-global"
                 th:classappend="${localTabActive} ? '' : 'is-active'"
-                th:attr="aria-selected=${!localTabActive}" th:text="#{ranking.tab.global}"></button>
+                th:attr="aria-selected=${!localTabActive},tabindex=${localTabActive} ? '-1' : '0'"
+                th:text="#{ranking.tab.global}"></button>
         <button type="button" class="tab" role="tab" id="tab-local" aria-controls="panel-local"
                 th:if="${selectedCountry != null}"
                 th:classappend="${localTabActive} ? 'is-active' : ''"
-                th:attr="aria-selected=${localTabActive}" th:text="${selectedCountryName}"></button>
+                th:attr="aria-selected=${localTabActive},tabindex=${localTabActive} ? '0' : '-1'"
+                th:text="${selectedCountryName}"></button>
     </div>
     <div id="panel-global" role="tabpanel" aria-labelledby="tab-global"
          th:attr="hidden=${localTabActive} ? 'hidden' : null" th:insert="${globalPanel}"></div>
@@ -155,20 +206,38 @@
             <div th:insert="${localPanel}"></div>
         </div>
     </th:block>
+    <!--
+      対象はこのフラグメント内のタブだけに限る(ページ全体の .tabs を拾うと、将来1画面に2つ置いたときに干渉するため)。
+      左右キーでの移動と tabindex の切り替えは、ARIAのタブパターンに合わせている。
+    -->
     <script>
-        (function () {
-            var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
-            tabs.forEach(function (tab) {
+        (function (root) {
+            var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+            function select(tab) {
+                tabs.forEach(function (other) {
+                    var selected = other === tab;
+                    other.setAttribute('aria-selected', String(selected));
+                    other.setAttribute('tabindex', selected ? '0' : '-1');
+                    other.classList.toggle('is-active', selected);
+                    root.querySelector('#' + other.getAttribute('aria-controls')).hidden = !selected;
+                });
+            }
+            tabs.forEach(function (tab, index) {
                 tab.addEventListener('click', function () {
-                    tabs.forEach(function (other) {
-                        var selected = other === tab;
-                        other.setAttribute('aria-selected', String(selected));
-                        other.classList.toggle('is-active', selected);
-                        document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
-                    });
+                    select(tab);
+                });
+                tab.addEventListener('keydown', function (event) {
+                    var step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+                    if (step === 0) {
+                        return;
+                    }
+                    event.preventDefault();
+                    var next = tabs[(index + step + tabs.length) % tabs.length];
+                    select(next);
+                    next.focus();
                 });
             });
-        })();
+        })(document.currentScript.parentElement);
     </script>
 </div>
 

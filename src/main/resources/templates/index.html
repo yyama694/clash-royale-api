@@ -7,27 +7,8 @@
     <main class="container">
         <p class="notice lead" th:text="#{app.description}"></p>
 
-        <div class="card">
-            <h2 th:text="#{home.player.heading}"></h2>
-            <form class="search-form" th:action="@{/player/search}" method="get">
-                <label>
-                    <span th:text="#{home.player.label}"></span>
-                    <input type="text" name="q" required th:placeholder="#{home.player.placeholder}">
-                </label>
-                <button type="submit" th:text="#{action.search}"></button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2 th:text="#{home.clan.heading}"></h2>
-            <form class="search-form" th:action="@{/clan/search}" method="get">
-                <label>
-                    <span th:text="#{home.clan.label}"></span>
-                    <input type="text" name="q" required th:placeholder="#{home.clan.placeholder}">
-                </label>
-                <button type="submit" th:text="#{action.search}"></button>
-            </form>
-        </div>
+        <div th:replace="~{fragments/layout :: playerSearchForm(null)}"></div>
+        <div th:replace="~{fragments/layout :: clanSearchForm(null)}"></div>
 
         <div class="card" id="player-ranking">
             <h2 th:text="#{playerRanking.heading}"></h2>
@@ -37,7 +18,7 @@
                      ~{fragments/layout :: playerRankingTable(${globalRanking}, false)},
                      ~{fragments/layout :: playerRankingTable(${localRanking}, false)},
                      '/#player-ranking')}"></div>
-            <a class="btn btn-secondary" th:href="@{/ranking/players}" th:text="#{playerRanking.link}"></a>
+            <a class="btn btn-secondary card-action" th:href="@{/ranking/players}" th:text="#{playerRanking.link}"></a>
         </div>
 
         <div class="card">
