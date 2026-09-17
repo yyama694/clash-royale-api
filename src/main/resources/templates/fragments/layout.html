@@ -60,5 +60,34 @@
        th:text="${label} + (${sortBy == key} ? (${sortDir == 'asc'} ? ' ▲' : ' ▼') : '')"></a>
 </th>
 
+<!-- クランランキングの表。グローバル/ローカルの両タブで共用する(国の列はグローバルのみ)。 -->
+<div th:fragment="rankingTable(rows, showLocation)">
+    <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
+    <div th:unless="${rows.isEmpty()}" class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th th:text="#{ranking.col.rank}"></th>
+                    <th th:text="#{ranking.col.clan}"></th>
+                    <th th:if="${showLocation}" th:text="#{ranking.col.location}"></th>
+                    <th th:text="#{ranking.col.score}"></th>
+                    <th th:text="#{ranking.col.members}"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="row : ${rows}">
+                    <td th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
+                    <td th:attr="data-label=#{ranking.col.clan}">
+                        <a th:href="@{/clan/{tag}(tag=${row.pathTag()})}" th:text="${row.name()}"></a>
+                    </td>
+                    <td th:if="${showLocation}" th:attr="data-label=#{ranking.col.location}" th:text="${row.locationName()}"></td>
+                    <td th:attr="data-label=#{ranking.col.score}" th:text="${row.clanScore()}"></td>
+                    <td th:attr="data-label=#{ranking.col.members}" th:text="${row.members()}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 </body>
 </html>

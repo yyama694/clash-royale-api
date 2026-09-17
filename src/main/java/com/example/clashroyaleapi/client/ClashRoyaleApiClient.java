@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.client;
 
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
@@ -62,6 +63,21 @@ public class ClashRoyaleApiClient {
                 .uri(uriBuilder -> uriBuilder.path("/clans").queryParam("name", name).build())
                 .retrieve()
                 .body(ClanSearchResponse.class));
+        return response == null || response.items() == null ? List.of() : response.items();
+    }
+
+    /**
+     * 指定範囲のクランランキング上位。locationId には "global" か /locations が返す数値IDを渡す。
+     * プレイヤーのトロフィーランキング(/rankings/players)は現在の公式API仕様では常に空配列を返すため使わない。
+     */
+    @Cacheable("clanRankings")
+    public List<ClanRankingResponse.RankedClan> getClanRankings(String locationId, int limit) {
+        ClanRankingResponse response = call(() -> restClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/locations/{locationId}/rankings/clans")
+                        .queryParam("limit", limit)
+                        .build(locationId))
+                .retrieve()
+                .body(ClanRankingResponse.class));
         return response == null || response.items() == null ? List.of() : response.items();
     }
 

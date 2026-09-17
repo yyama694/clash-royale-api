@@ -28,6 +28,38 @@
                 <button type="submit" th:text="#{action.search}"></button>
             </form>
         </div>
+
+        <div class="card">
+            <h2 th:text="#{ranking.heading}"></h2>
+            <div class="tabs" role="tablist" th:aria-label="#{ranking.heading}">
+                <button type="button" class="tab is-active" role="tab" id="tab-global"
+                        aria-controls="panel-global" aria-selected="true" th:text="#{ranking.tab.global}"></button>
+                <button type="button" class="tab" role="tab" id="tab-local"
+                        aria-controls="panel-local" aria-selected="false" th:text="#{ranking.tab.local}"></button>
+            </div>
+            <div id="panel-global" role="tabpanel" aria-labelledby="tab-global"
+                 th:insert="~{fragments/layout :: rankingTable(${globalRanking}, true)}"></div>
+            <div id="panel-local" role="tabpanel" aria-labelledby="tab-local" hidden
+                 th:insert="~{fragments/layout :: rankingTable(${localRanking}, false)}"></div>
+            <p class="notice" th:text="'※' + #{ranking.notice}"></p>
+        </div>
     </main>
+
+    <script>
+        // タブ切り替え。両方のランキングはサーバー側で描画済みなので、切り替えても通信は発生しない。
+        (function () {
+            var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(function (other) {
+                        var selected = other === tab;
+                        other.setAttribute('aria-selected', String(selected));
+                        other.classList.toggle('is-active', selected);
+                        document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+                    });
+                });
+            });
+        })();
+    </script>
 </body>
 </html>

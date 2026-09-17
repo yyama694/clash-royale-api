@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
@@ -13,6 +14,7 @@ import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanMemberView;
+import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 
@@ -71,6 +73,14 @@ public class ViewMapper {
     private static Long inactiveDaysOf(ClanResponse.Member member, Instant now) {
         OptionalLong days = MemberActivity.inactiveDays(member.lastSeen(), now);
         return days.isPresent() ? days.getAsLong() : null;
+    }
+
+    public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans) {
+        return clans.stream()
+                .map(clan -> new ClanRankingRowView(clan.rank(), Tags.toPathSegment(clan.tag()), clan.tag(),
+                        clan.name(), clan.clanScore(), clan.members(),
+                        clan.location() == null ? null : clan.location().name()))
+                .toList();
     }
 
     public List<ClanSummaryView> toClanSummaries(List<ClanSearchResponse.ClanSummary> clans) {

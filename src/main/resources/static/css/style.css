@@ -530,6 +530,43 @@ tbody tr:hover {
 }
 
 /* タブレット〜小型ノート。左右2カラムでは1枚あたりの幅が足りなくなるため縦積みに戻す。 */
+
+.tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.tabs .tab {
+    appearance: none;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.5rem 1rem;
+    margin-bottom: -1px;
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.tabs .tab:hover {
+    color: var(--color-primary);
+}
+
+.tabs .tab.is-active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.rank {
+    display: inline-block;
+    min-width: 1.8rem;
+    font-weight: 700;
+}
+
 @media (max-width: 760px) {
     .decks {
         grid-template-columns: 1fr;

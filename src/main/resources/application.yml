@@ -7,7 +7,7 @@ spring:
     # OSの既定ロケールがja_JPのため、falseにしないと英語表示の要求まで日本語にフォールバックしてしまう。
     fallback-to-system-locale: false
   cache:
-    cache-names: players,clans,battleLogs,clanSearches
+    cache-names: players,clans,battleLogs,clanSearches,clanRankings
     caffeine:
       spec: maximumSize=500,expireAfterWrite=2m
   http:
