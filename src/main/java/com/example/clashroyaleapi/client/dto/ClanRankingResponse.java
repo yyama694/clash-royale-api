@@ -12,6 +12,6 @@ public record ClanRankingResponse(List<RankedClan> items) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Location(String name) {
+    public record Location(String name, String countryCode) {
     }
 }

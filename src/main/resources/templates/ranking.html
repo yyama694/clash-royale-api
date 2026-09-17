@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{ranking.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{ranking.heading}"></h1>
+            <div class="tabs" role="tablist" th:aria-label="#{ranking.heading}">
+                <button type="button" class="tab" role="tab" id="tab-global" aria-controls="panel-global"
+                        th:classappend="${localTabActive} ? '' : 'is-active'"
+                        th:attr="aria-selected=${!localTabActive}" th:text="#{ranking.tab.global}"></button>
+                <button type="button" class="tab" role="tab" id="tab-local" aria-controls="panel-local"
+                        th:if="${selectedCountry != null}"
+                        th:classappend="${localTabActive} ? 'is-active' : ''"
+                        th:attr="aria-selected=${localTabActive}" th:text="${selectedCountryName}"></button>
+            </div>
+            <div id="panel-global" role="tabpanel" aria-labelledby="tab-global"
+                 th:attr="hidden=${localTabActive} ? 'hidden' : null"
+                 th:insert="~{fragments/layout :: rankingTable(${globalRanking}, true)}"></div>
+            <th:block th:if="${selectedCountry != null}">
+                <div id="panel-local" role="tabpanel" aria-labelledby="tab-local"
+                     th:attr="hidden=${localTabActive} ? null : 'hidden'">
+                    <form class="country-form" th:action="@{/ranking}" method="get">
+                        <label>
+                            <span th:text="#{ranking.country.label}"></span>
+                            <select name="country">
+                                <option th:each="c : ${countries}" th:value="${c.code()}" th:text="${c.name()}"
+                                        th:selected="${c.code() == selectedCountry}"></option>
+                            </select>
+                        </label>
+                        <button type="submit" th:text="#{ranking.country.apply}"></button>
+                    </form>
+                    <div th:insert="~{fragments/layout :: rankingTable(${localRanking}, false)}"></div>
+                </div>
+            </th:block>
+            <p class="notice" th:text="'※' + #{ranking.notice}"></p>
+        </div>
+    </main>
+
+    <script>
+        // タブ切り替え。両方のランキングはサーバー側で描画済みなので、切り替えても通信は発生しない。
+        (function () {
+            var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(function (other) {
+                        var selected = other === tab;
+                        other.setAttribute('aria-selected', String(selected));
+                        other.classList.toggle('is-active', selected);
+                        document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+                    });
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

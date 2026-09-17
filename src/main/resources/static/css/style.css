@@ -567,6 +567,38 @@ tbody tr:hover {
     font-weight: 700;
 }
 
+
+.country-form {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.country-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.country-form select {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    max-width: 16rem;
+}
+
+.country-form button {
+    padding: 0.45rem 1.1rem;
+}
+
 @media (max-width: 760px) {
     .decks {
         grid-template-columns: 1fr;

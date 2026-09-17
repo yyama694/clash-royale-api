@@ -6,6 +6,7 @@ import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
@@ -16,10 +17,12 @@ import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanMemberView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
+import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 
 import org.springframework.stereotype.Component;
 
+import java.text.Collator;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -75,12 +78,50 @@ public class ViewMapper {
         return days.isPresent() ? days.getAsLong() : null;
     }
 
-    public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans) {
+    public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans, Locale locale) {
         return clans.stream()
                 .map(clan -> new ClanRankingRowView(clan.rank(), Tags.toPathSegment(clan.tag()), clan.tag(),
-                        clan.name(), clan.clanScore(), clan.members(),
-                        clan.location() == null ? null : clan.location().name()))
+                        clan.name(), clan.clanScore(), clan.members(), locationName(clan.location(), locale)))
                 .toList();
+    }
+
+    private String locationName(ClanRankingResponse.Location location, Locale locale) {
+        if (location == null) {
+            return null;
+        }
+        if (location.countryCode() == null || location.countryCode().isBlank()) {
+            return location.name();
+        }
+        return countryName(new Country(null, location.countryCode(), location.name()), locale);
+    }
+
+    /**
+     * 画面が対応しているのは日本語と英語だけなので、国名もそのどちらかに寄せる。
+     * 解決されたロケール(Accept-Language由来でde等になり得る)をそのまま使うと、
+     * 英語表示の画面に "Deutschland" のような現地語の国名が混ざる。
+     */
+    private static Locale displayLocale(Locale locale) {
+        return "ja".equals(locale.getLanguage()) ? Locale.JAPANESE : Locale.ENGLISH;
+    }
+
+    public List<CountryOptionView> toCountryOptions(List<Country> countries, Locale locale) {
+        Collator collator = Collator.getInstance(locale);
+        return countries.stream()
+                .map(country -> new CountryOptionView(country.countryCode(), countryName(country, locale)))
+                .sorted((left, right) -> collator.compare(left.name(), right.name()))
+                .toList();
+    }
+
+    /**
+     * 国名の訳はJDK(CLDR)の翻訳をそのまま使う。200件超の訳語を自前で持つとメンテできないため。
+     * 公式APIが返す国コードにはISO以外のものも含まれ、その場合はJDKが訳せずコードをそのまま返すので、
+     * 公式APIの英語名にフォールバックする。
+     */
+    public String countryName(Country country, Locale locale) {
+        String displayName = Locale.of("", country.countryCode()).getDisplayCountry(displayLocale(locale));
+        return displayName.isBlank() || displayName.equals(country.countryCode())
+                ? country.englishName()
+                : displayName;
     }
 
     public List<ClanSummaryView> toClanSummaries(List<ClanSearchResponse.ClanSummary> clans) {

@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
+import com.example.clashroyaleapi.client.dto.LocationsResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
@@ -78,6 +79,19 @@ public class ClashRoyaleApiClient {
                         .build(locationId))
                 .retrieve()
                 .body(ClanRankingResponse.class));
+        return response == null || response.items() == null ? List.of() : response.items();
+    }
+
+    /**
+     * 国・地域の一覧。公式APIのlocationIdは国コードから機械的に導けないため、この一覧から引く必要がある。
+     * 内容はほぼ変化しないので、キャッシュが切れてもAPIへの負荷は小さい。
+     */
+    @Cacheable("locations")
+    public List<LocationsResponse.Location> getLocations() {
+        LocationsResponse response = call(() -> restClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/locations").queryParam("limit", 1000).build())
+                .retrieve()
+                .body(LocationsResponse.class));
         return response == null || response.items() == null ? List.of() : response.items();
     }
 
