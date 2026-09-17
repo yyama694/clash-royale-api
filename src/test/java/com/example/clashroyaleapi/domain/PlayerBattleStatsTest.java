@@ -78,8 +78,8 @@ class PlayerBattleStatsTest {
             log.add(battle(3, 0, "Knight"));
         }
         log.add(battle(0, 3, "Knight"));
-        // Bats: 3戦3勝(勝率100%)。単純な勝率順ならこちらが1位になってしまう。
-        for (int i = 0; i < 3; i++) {
+        // Bats: 5戦5勝(勝率100%)。単純な勝率順ならこちらが1位になってしまう。
+        for (int i = 0; i < 5; i++) {
             log.add(battle(3, 0, "Bats"));
         }
         // 苦手側の母数を確保するためのカード。
@@ -101,8 +101,8 @@ class PlayerBattleStatsTest {
         for (int i = 0; i < 9; i++) {
             log.add(battle(0, 3, "Golem"));
         }
-        // Bats: 3戦0勝(勝率0%)だが母数が少ない
-        for (int i = 0; i < 3; i++) {
+        // Bats: 5戦0勝(勝率0%)だが母数が少ない
+        for (int i = 0; i < 5; i++) {
             log.add(battle(0, 3, "Bats"));
         }
         // 得意側の母数を確保するためのカード。
@@ -113,6 +113,30 @@ class PlayerBattleStatsTest {
         PlayerBattleStats stats = PlayerBattleStats.from(log);
 
         assertEquals("Golem", stats.weakCards().get(0).cardName());
+    }
+
+    @Test
+    void 使用回数が5回に満たないカードは勝率が高くても順位付けの対象外にする() {
+        List<BattleLogEntry> log = new ArrayList<>();
+        // Bats: 4戦4勝。Wilson score の下限でも Knight より上になるため、閾値で除外されない限り1位になる。
+        for (int i = 0; i < 4; i++) {
+            log.add(battle(3, 0, "Bats"));
+        }
+        // Knight: 7戦5勝
+        for (int i = 0; i < 5; i++) {
+            log.add(battle(3, 0, "Knight"));
+        }
+        for (int i = 0; i < 2; i++) {
+            log.add(battle(0, 3, "Knight"));
+        }
+        // 苦手側の母数を確保するためのカード。
+        for (int i = 0; i < 5; i++) {
+            log.add(battle(0, 3, "Golem"));
+        }
+
+        PlayerBattleStats stats = PlayerBattleStats.from(log);
+
+        assertEquals("Knight", stats.favoriteCards().get(0).cardName());
     }
 
     @Test

@@ -16,8 +16,9 @@ import java.util.stream.Collectors;
 public record PlayerBattleStats(int total, int wins, int losses, int draws, List<CardPerformance> favoriteCards,
         List<CardPerformance> weakCards) {
 
-    // 使用回数がこれ未満のカードはノイズとして除外する。
-    private static final int MIN_USES_FOR_RANKING = 3;
+    // 使用回数がこれ未満のカードはノイズとして除外する。5回はユーザー指定の仕様値のため、
+    // Wilson score で少数回のカードの順位が下がるからといって下げないこと。
+    private static final int MIN_USES_FOR_RANKING = 5;
     private static final int MAX_RANKING_SIZE = 3;
     // Wilson score interval の z 値。1.96 は95%信頼区間に対応する。
     private static final double Z = 1.96;
