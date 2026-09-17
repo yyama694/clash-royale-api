@@ -40,6 +40,8 @@ public class HomeController {
                 .map(c -> viewMapper.toPlayerRankingRows(rankingService.topPlayers(c.locationId(),
                         PLAYER_RANKING_SIZE)))
                 .orElseGet(List::of));
+        // トップページでは、訪問者に身近な自国のランキングを最初に見せる(国が決まらないときはグローバル)。
+        model.addAttribute("localTabActive", selected.isPresent());
         return "index";
     }
 }
