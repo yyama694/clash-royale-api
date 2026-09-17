@@ -102,7 +102,8 @@
 - エラー画面は`GlobalExceptionHandler`(`@ControllerAdvice`)に集約する。Controller内で`model.addAttribute("error", ...)`を書かない。
 - APIレスポンスはCaffeineで2分キャッシュする(レート制限対策と低スペックVMの負荷軽減)。
 - application.properties/yml にAPIキーなどの秘密情報を平文でコミットしない。ローカル用設定と本番用設定は分離する。
-- .gitignore には target/, .idea/, *.iml, `config/`, `application-*.yml` を含める(ファイル名の個別列挙ではなくパターンで弾く)。
+- .gitignore には target/, .idea/, *.iml, `/config/`, `application-*.yml` を含める(ファイル名の個別列挙ではなくパターンで弾く)。
+  - `config`は必ず先頭に`/`を付けてリポジトリ直下に限定する。`config/`だとソースの`config`パッケージ(`src/main/java/.../config/`)まで無視され、`CacheConfig.java`・`WebConfig.java`が一度もコミットされていなかった(2026-09-17に判明・修正)。
 
 ## セキュリティ上の注意
 

@@ -7,7 +7,7 @@ target/
 .vscode/
 
 # 秘密情報を含む設定。jarに焼き込まれないよう src/main/resources の外(./config)に置く。
-config/
+/config/
 application-*.yml
 application-*.properties
 
