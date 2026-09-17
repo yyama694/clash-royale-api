@@ -84,3 +84,109 @@
 
 **その他**
 - ダークモードの`--color-primary-dark`が実際には明るい色で、変数名と実体がずれている(バグではないが今後触るときの誤解の元)。
+
+## 多言語化(i18n)の改善候補(2026-09-17に洗い出し、未着手)
+
+ユーザーの依頼で洗い出した候補。コードの読み取りに加えて、次の方法で裏付けを取った(数値はこの日時点のもの)。
+
+- 公式APIの実データ: `/cards`、日本上位クランのメンバーなど9人分の対戦履歴(計270戦)
+- ローカル起動での実測: コミット`ce63eaf`の状態をポート18080で起動し、curlで確認
+
+### 実害が大きいもの(実データ・実測で確認済み)
+
+**1. ゲームモード名の訳が実データの65%で欠けており、内部IDがそのまま表示される**
+- 270戦の内訳:
+
+  | gameMode.name | type | 件数 | 訳 |
+  |---|---|---|---|
+  | `Ladder` | `trail` | 95 | あり |
+  | `Ranked1v1_NewArena2` | `pathOfLegend` | 79 | なし |
+  | `Challenge_AllCards_EventDeck_NoSet` | `trail` | 50 | なし |
+  | `TeamVsTeam` | `trail` | 30 | なし |
+  | `PickMode` | `trail` | 16 | なし |
+
+- `gameMode.name`はイベントやアリーナごとに接尾辞付きのIDが増えるため(`Ranked1v1_NewArena2`など)、完全一致の辞書では追いつかない。`type`の方が分類として安定しているので、「`type`で大分類を表示し、既知のIDだけ詳しい名前にする」二段構えを検討する。
+- 英語側(`messages.properties`)にはゲームモードの定義が1件も無い。そのため英語UIでは、訳を用意したモードでも`PathOfLegend`のような内部IDが出る。
+- 日本語ラベルに「ランク戦 (Ladder)」のように内部IDを併記しているのは、旧`GameModeLabels`時代の「日本語 (英語名)」形式の名残。
+- `Ladder`が「ランク戦」、`Ranked1v1`が「ランク戦(1vs1)」と、別モードがほぼ同じ名前になっている。実データでは`Ladder`は`type=trail`(トロフィーロード側)。訳語は公式情報で裏取りしてから直す。
+
+**2. カード名の訳の抜け6枚と、キーの綴り違い1件**
+- 公式API `/cards`(通常123枚+タワーユニット4枚)と`messages_ja.properties`を突き合わせた。
+- 訳が無いカードと、270戦中の出現回数:
+
+  | カード | 出現回数 |
+  |---|---|
+  | `Spirit Empress` | 23 |
+  | `Vines` | 21 |
+  | `Ronin` | 16 |
+  | `Boss Bandit` | 9 |
+  | `Goblin Curse` | 8 |
+  | `Goblin Demolisher` | 2 |
+
+  日本語UIでも、これらは英語名のまま表示される。
+- `Vines`は、辞書側のキーが`card.Vine`(末尾のsが無い)になっている。訳を用意してあるのに効いていない。
+- 新カードの追加に気付く仕組みが無い。`LabelResolver`が辞書に無いキーに当たったらWARNログを出す、などで検知できるようにしたい。
+
+**3. 不正な`?lang=`でHTTP 500になる**
+- 実測: `?lang=a.b`で500。
+- 原因: `LocaleChangeInterceptor`の`ignoreInvalidLocale`は既定で`false`。そのため、`StringUtils.parseLocale`が投げる`IllegalArgumentException`が、そのまま500になる(spring-webmvc 7.0.9のバイトコードで確認)。
+- URLを書き換えるだけで500を出せるので、ログや監視のノイズになる。`WebConfig`で`setIgnoreInvalidLocale(true)`にする。
+
+**4. 対応していない言語の扱い**
+
+| リクエスト | `<html lang>` | 本文 | 問題 |
+|---|---|---|---|
+| `Accept-Language: fr` | `fr` | 英語 | 属性と本文の言語が食い違う |
+| `Accept-Language: fr,ja;q=0.9` | `fr` | 英語 | 第2候補の日本語が読めるのに英語になる |
+| `Accept-Language: zh-TW,ja;q=0.8` | `zh` | 英語 | 同上 |
+| `?lang=fr` | `fr` | 英語 | 対応していない`fr`をCookieに保存してしまう |
+
+- 原因: `request.getLocale()`は最優先の1言語しか見ない。
+- 対応案: 対応言語(ja/en)のリストを持ち、Accept-Languageのq値の順に、最初に一致した対応言語を選ぶ(`Locale.lookup`、または`AcceptHeaderLocaleResolver#setSupportedLocales`と同じ考え方)。`?lang=`も対応言語以外は無視する。これで`<html lang>`も実際の表示言語と一致する。
+- 国別ランキングの`CountryPreference`(2026-09-17時点で別セッションが作業中)も、Accept-Languageを自前でq値の順に解釈している。言語の判定も同じ考え方に揃えられる。
+
+### 表示の自然さ
+
+**5. 対戦日時が`20260917T030143.000Z`のまま、UTCで表示される**
+- 対象: `player.html`の対戦履歴一覧、`battle-detail.html`の見出しの下。読みにくいうえに、利用者のタイムゾーンと合っていない。
+- ロケールに応じた書式で表示する(例: 日本語`2026/09/17 12:01`、英語`Sep 17, 2026, 3:01 AM`)。
+- タイムゾーンはAccept-Languageからは決められない。「言語がjaならAsia/Tokyo」と割り切るか、ブラウザ側のJS(`Intl.DateTimeFormat`)で変換するかを決める必要がある。URLのキーとしての`battleTime`は今のまま使う。
+- 関連1: 最終アクセスの「今日/1日前」は、UTC基準の24時間単位の経過なので、利用者の暦日とずれることがある。
+- 関連2: 寄付数リセットの注記「毎週日曜0時(GMT)」は、日本語なら「日曜9時(日本時間)」の方が親切。
+
+**6. 英語の単数・複数(`1 crowns`など)**
+- 単数でも複数形のまま出るメッセージ:
+  - `battle.crowns={0} crowns`(対戦詳細で「1 crowns」になる)
+  - `stats.draws=({0} draws)`
+  - `stats.summary=... in the last {0} battles`
+  - `clanSearch.members={0} members`
+- `clan.lastSeen.day`/`days`はテンプレートの`th:switch`で分岐している。英語の「1とそれ以外」という単複ルールを前提にしたロジックがテンプレートにある状態で、複数形が3種類以上ある言語(ロシア語など)を足すと破綻する。
+- ICU4Jの`MessageFormat`(`{0, plural, one{# crown} other{# crowns}}`)を`MessageSource`に組み込めば、単複を言語ごとのメッセージ側で表現でき、テンプレートの分岐も消せる。依存ライブラリが1つ増える。Java標準の`ChoiceFormat`は、`#`の衝突で過去にハマっている(`進捗ログ.md`参照)。
+
+**7. 日本語の記号がテンプレートに直書きされている**
+- 注記の先頭の`※`(`player.html`に3箇所、`clan.html`に2箇所、`ranking.html`に1箇所)が、英語UIにも出る。
+- `battle-detail.html`のデッキ見出しの全角括弧が、英語UIでも使われる(`Your deck(Name)`)。
+- 記号や括弧もメッセージ側に含める(例: `battle.deck.team=自分のデッキ({0})` / `Your deck ({0})`)。
+
+**8. 数値の桁区切り**
+- トロフィーやクランスコアは、テンプレートで数値をそのまま出しており、`85000`のように区切りが無い。
+- 一方、メッセージの`{0}`は`MessageFormat`が区切りを入れるため、画面内で表記が混ざりうる。
+- `#numbers.formatInteger(x, 1, 'DEFAULT')`などで、ロケールに応じた区切りに揃える。
+
+### 運用・構造
+
+**9. 言語選択のCookieが、ブラウザを閉じると消える**
+- 実測: `Set-Cookie: lang=en; Path=/; SameSite=Lax`で、Max-Ageが無い(`CookieLocaleResolver`の既定)。
+- `setCookieMaxAge`で有効期限を延ばす。国選択のCookieは365日にしているので、それに揃える。
+
+**10. エラー画面の言語切替リンクの行き先が`/error?lang=...`になる**
+- 実測: 存在しないURLなど、サーブレットコンテナのエラー処理を経由した場合に起きる。`GlobalModelAttributes`が`request.getRequestURI()`を使っており、エラー処理の中では`/error`になるため。
+- 元のURLが入っているリクエスト属性`RequestDispatcher.ERROR_REQUEST_URI`を使う。
+
+**11. 日英のメッセージキーの一致がテストで担保されていない**
+- 2026-09-17の確認では、`card.*`/`gamemode.*`以外のキーは日英で一致していた。ただ、キーを追加したときの片方の漏れは検知できない。
+- 2つの`.properties`を読んでキーの集合を比べるテストは、純粋ロジックのテストの範囲で書ける。
+
+**12. 検索エンジンやキャッシュへの言語の伝え方**(上の「ページビュー向上に関するTODO」と関連)
+- 同じURLでも、CookieやAccept-Languageによって返す言語が変わる。それなのに`Vary`ヘッダが無い(`Content-Language`は付いている)。将来CDNやリバースプロキシを挟むと、別の言語のページがキャッシュから返る恐れがある。
+- 検索エンジンのクローラーは基本的にAccept-Languageを送らないため、英語ページはインデックスされにくい。`?lang=en`付きのURLを`<link rel="alternate" hreflang>`で示すと、英語圏からの流入を狙える。
