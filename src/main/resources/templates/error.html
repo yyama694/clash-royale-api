@@ -8,8 +8,10 @@
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
 
         <!-- errorKey は GlobalExceptionHandler が原因別に設定する。
-             Spring Boot 標準のエラー(404など)でここに来た場合は汎用の文言にフォールバックする。 -->
-        <div class="error-box" th:text="${errorKey != null} ? #{${errorKey}} : #{error.notFound}"></div>
+             存在しないURLや想定外の例外など、Spring Boot 標準のエラー処理でここに来た場合は errorKey が無いため、
+             Spring Boot が渡す status で「ページが無い」と「それ以外」を出し分ける。 -->
+        <div class="error-box"
+             th:text="${errorKey != null} ? #{${errorKey}} : (${status == 404} ? #{error.pageNotFound} : #{error.generic})"></div>
     </main>
 </body>
 </html>
