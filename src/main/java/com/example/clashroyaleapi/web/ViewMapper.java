@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
+import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.MemberActivity;
@@ -19,6 +20,7 @@ import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
+import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 
 import org.springframework.stereotype.Component;
 
@@ -102,6 +104,15 @@ public class ViewMapper {
      */
     private static Locale displayLocale(Locale locale) {
         return "ja".equals(locale.getLanguage()) ? Locale.JAPANESE : Locale.ENGLISH;
+    }
+
+    public List<PlayerRankingRowView> toPlayerRankingRows(List<PlayerRankingResponse.RankedPlayer> players) {
+        return players.stream()
+                .map(player -> new PlayerRankingRowView(player.rank(), Tags.toPathSegment(player.tag()), player.tag(),
+                        player.name(), player.expLevel(), player.eloRating(),
+                        player.clan() == null ? null : player.clan().name(),
+                        player.clan() == null ? null : Tags.toPathSegment(player.clan().tag())))
+                .toList();
     }
 
     public List<CountryOptionView> toCountryOptions(List<Country> countries, Locale locale) {

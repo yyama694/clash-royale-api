@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
+import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,29 @@ class RankingServiceTest {
                 .thenThrow(new ApiUnavailableException("boom", null));
 
         assertTrue(rankingService.topClans(RankingService.GLOBAL_LOCATION_ID).isEmpty());
+    }
+
+
+    @Test
+    void 個人ランキングも指定したlocationIdで取得する() {
+        when(apiClient.getPathOfLegendRankings(eq("global"), anyInt())).thenReturn(List.of(rankedPlayer(1, "#P1")));
+        when(apiClient.getPathOfLegendRankings(eq("57000122"), anyInt())).thenReturn(List.of(rankedPlayer(1, "#P2")));
+
+        assertEquals("#P1", rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, 3).get(0).tag());
+        assertEquals("#P2", rankingService.topPlayers("57000122", 3).get(0).tag());
+    }
+
+    @Test
+    void 個人ランキングもAPI障害時は空リストを返す() {
+        when(apiClient.getPathOfLegendRankings(anyString(), anyInt()))
+                .thenThrow(new ApiUnavailableException("boom", null));
+
+        assertTrue(rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, 3).isEmpty());
+    }
+
+    private static PlayerRankingResponse.RankedPlayer rankedPlayer(int rank, String tag) {
+        return new PlayerRankingResponse.RankedPlayer(tag, "player" + rank, 70, 4000 - rank, rank,
+                new PlayerRankingResponse.Clan("#C1", "clan"));
     }
 
     private static ClanRankingResponse.RankedClan rankedClan(int rank, String tag) {

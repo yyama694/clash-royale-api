@@ -18,6 +18,9 @@ import java.util.Optional;
 @Controller
 public class RankingController {
 
+    // 低スペックVMでの描画コストを考えて、詳細画面でも上位50件までにしている。
+    private static final int PLAYER_RANKING_SIZE = 50;
+
     private final RankingService rankingService;
     private final LocationService locationService;
     private final CountryPreference countryPreference;
@@ -53,5 +56,29 @@ public class RankingController {
         // 国を選び直した直後は、結果が見えるよう国別タブを開いた状態にする。
         model.addAttribute("localTabActive", requestedExplicitly && selected.isPresent());
         return "ranking";
+    }
+
+    @GetMapping("/ranking/players")
+    public String playerRanking(@RequestParam(required = false) String country, HttpServletRequest request,
+            HttpServletResponse response, Model model, Locale locale) {
+        List<Country> countries = locationService.countries();
+        Optional<Country> selected = countryPreference.resolve(country, request, countries);
+        boolean requestedExplicitly = country != null && !country.isBlank();
+        if (requestedExplicitly) {
+            selected.ifPresent(c -> countryPreference.remember(c.countryCode(), response));
+        }
+
+        // クランランキングと同じく、両方の範囲をここで取得してタブ切り替えでは通信しない。
+        model.addAttribute("globalRanking", viewMapper.toPlayerRankingRows(
+                rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE)));
+        model.addAttribute("localRanking", selected
+                .map(c -> viewMapper.toPlayerRankingRows(rankingService.topPlayers(c.locationId(),
+                        PLAYER_RANKING_SIZE)))
+                .orElseGet(List::of));
+        model.addAttribute("countries", viewMapper.toCountryOptions(countries, locale));
+        model.addAttribute("selectedCountry", selected.map(Country::countryCode).orElse(null));
+        model.addAttribute("selectedCountryName", selected.map(c -> viewMapper.countryName(c, locale)).orElse(null));
+        model.addAttribute("localTabActive", requestedExplicitly && selected.isPresent());
+        return "player-ranking";
     }
 }

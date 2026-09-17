@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
+import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 
 import org.slf4j.Logger;
@@ -36,6 +37,16 @@ public class RankingService {
             return apiClient.getClanRankings(locationId, RANKING_LIMIT);
         } catch (ClashRoyaleApiException e) {
             log.warn("clan ranking unavailable for location {}: {}", locationId, e.toString());
+            return List.of();
+        }
+    }
+
+    /** 個人ランキング(パス・オブ・レジェンドの現在シーズン)。失敗時の扱いはクランランキングと同じ。 */
+    public List<PlayerRankingResponse.RankedPlayer> topPlayers(String locationId, int limit) {
+        try {
+            return apiClient.getPathOfLegendRankings(locationId, limit);
+        } catch (ClashRoyaleApiException e) {
+            log.warn("player ranking unavailable for location {}: {}", locationId, e.toString());
             return List.of();
         }
     }

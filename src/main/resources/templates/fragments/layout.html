@@ -89,5 +89,88 @@
     </div>
 </div>
 
+<!-- 個人ランキングの表。トップページの概要(detailed=false)と詳細画面(detailed=true)で共用する。 -->
+<div th:fragment="playerRankingTable(rows, detailed)">
+    <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
+    <div th:unless="${rows.isEmpty()}" class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th th:text="#{ranking.col.rank}"></th>
+                    <th th:text="#{playerRanking.col.player}"></th>
+                    <th th:if="${detailed}" th:text="#{playerRanking.col.level}"></th>
+                    <th th:text="#{playerRanking.col.rating}"></th>
+                    <th th:if="${detailed}" th:text="#{playerRanking.col.clan}"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="row : ${rows}">
+                    <td th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
+                    <td th:attr="data-label=#{playerRanking.col.player}">
+                        <a th:href="@{/player/{tag}(tag=${row.pathTag()})}" th:text="${row.name()}"></a>
+                    </td>
+                    <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.level}"
+                        th:text="#{battle.level(${row.expLevel()})}"></td>
+                    <td th:attr="data-label=#{playerRanking.col.rating}" th:text="${row.eloRating()}"></td>
+                    <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.clan}">
+                        <a th:if="${row.clanName() != null}" th:href="@{/clan/{tag}(tag=${row.clanPathTag()})}"
+                           th:text="${row.clanName()}"></a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!--
+  グローバル/国別のタブ。クランランキングと個人ランキングで共用するため、中身の表は呼び出し側から
+  フラグメント式で受け取る。選択中の国(selectedCountry等)はモデルから直接参照する。
+  切り替えは表示/非表示の入れ替えだけで、サーバーへの再取得は行わない。
+-->
+<div th:fragment="rankingTabs(globalPanel, localPanel, formAction)">
+    <div class="tabs" role="tablist" th:aria-label="#{ranking.tabs.label}">
+        <button type="button" class="tab" role="tab" id="tab-global" aria-controls="panel-global"
+                th:classappend="${localTabActive} ? '' : 'is-active'"
+                th:attr="aria-selected=${!localTabActive}" th:text="#{ranking.tab.global}"></button>
+        <button type="button" class="tab" role="tab" id="tab-local" aria-controls="panel-local"
+                th:if="${selectedCountry != null}"
+                th:classappend="${localTabActive} ? 'is-active' : ''"
+                th:attr="aria-selected=${localTabActive}" th:text="${selectedCountryName}"></button>
+    </div>
+    <div id="panel-global" role="tabpanel" aria-labelledby="tab-global"
+         th:attr="hidden=${localTabActive} ? 'hidden' : null" th:insert="${globalPanel}"></div>
+    <th:block th:if="${selectedCountry != null}">
+        <div id="panel-local" role="tabpanel" aria-labelledby="tab-local"
+             th:attr="hidden=${localTabActive} ? null : 'hidden'">
+            <form class="country-form" th:action="@{${formAction}}" method="get">
+                <label>
+                    <span th:text="#{ranking.country.label}"></span>
+                    <select name="country">
+                        <option th:each="c : ${countries}" th:value="${c.code()}" th:text="${c.name()}"
+                                th:selected="${c.code() == selectedCountry}"></option>
+                    </select>
+                </label>
+                <button type="submit" th:text="#{ranking.country.apply}"></button>
+            </form>
+            <div th:insert="${localPanel}"></div>
+        </div>
+    </th:block>
+    <script>
+        (function () {
+            var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(function (other) {
+                        var selected = other === tab;
+                        other.setAttribute('aria-selected', String(selected));
+                        other.classList.toggle('is-active', selected);
+                        document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+                    });
+                });
+            });
+        })();
+    </script>
+</div>
+
 </body>
 </html>

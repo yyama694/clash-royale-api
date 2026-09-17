@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.LocationsResponse;
+import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
@@ -92,6 +93,22 @@ public class ClashRoyaleApiClient {
                 .uri(uriBuilder -> uriBuilder.path("/locations").queryParam("limit", 1000).build())
                 .retrieve()
                 .body(LocationsResponse.class));
+        return response == null || response.items() == null ? List.of() : response.items();
+    }
+
+    /**
+     * パス・オブ・レジェンドの個人ランキング上位(現在シーズン)。locationIdは "global" か数値ID。
+     * トロフィーの個人ランキング(/rankings/players)は公式API側が常に空配列を返すため、こちらを使う。
+     * なお /pathoflegend/{seasonId}/rankings/players は確定済みシーズン専用で、当月や国別は404になる。
+     */
+    @Cacheable("playerRankings")
+    public List<PlayerRankingResponse.RankedPlayer> getPathOfLegendRankings(String locationId, int limit) {
+        PlayerRankingResponse response = call(() -> restClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/locations/{locationId}/pathoflegend/players")
+                        .queryParam("limit", limit)
+                        .build(locationId))
+                .retrieve()
+                .body(PlayerRankingResponse.class));
         return response == null || response.items() == null ? List.of() : response.items();
     }
 

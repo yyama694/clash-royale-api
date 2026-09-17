@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{playerRanking.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToSearch}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{playerRanking.heading}"></h1>
+            <div th:replace="~{fragments/layout :: rankingTabs(
+                     ~{fragments/layout :: playerRankingTable(${globalRanking}, true)},
+                     ~{fragments/layout :: playerRankingTable(${localRanking}, true)},
+                     '/ranking/players')}"></div>
+            <p class="notice" th:text="'※' + #{playerRanking.notice}"></p>
+            <a class="btn btn-secondary" th:href="@{/ranking}" th:text="#{ranking.link}"></a>
+        </div>
+    </main>
+</body>
+</html>

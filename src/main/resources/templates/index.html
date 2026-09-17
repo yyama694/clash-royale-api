@@ -30,6 +30,13 @@
         </div>
 
         <div class="card">
+            <h2 th:text="#{playerRanking.heading}"></h2>
+            <p th:text="#{playerRanking.lead}"></p>
+            <div th:replace="~{fragments/layout :: playerRankingTable(${playerRanking}, false)}"></div>
+            <a class="btn btn-secondary" th:href="@{/ranking/players}" th:text="#{playerRanking.link}"></a>
+        </div>
+
+        <div class="card">
             <h2 th:text="#{ranking.heading}"></h2>
             <p th:text="#{ranking.lead}"></p>
             <a class="btn btn-secondary" th:href="@{/ranking}" th:text="#{ranking.link}"></a>
