@@ -29,10 +29,14 @@
             </form>
         </div>
 
-        <div class="card">
+        <div class="card" id="player-ranking">
             <h2 th:text="#{playerRanking.heading}"></h2>
             <p th:text="#{playerRanking.lead}"></p>
-            <div th:replace="~{fragments/layout :: playerRankingTable(${playerRanking}, false)}"></div>
+            <!--/* 国を選び直すとページ先頭に戻ってしまうため、送信先にアンカーを付けてランキングの位置に戻す */-->
+            <div th:replace="~{fragments/layout :: rankingTabs(
+                     ~{fragments/layout :: playerRankingTable(${globalRanking}, false)},
+                     ~{fragments/layout :: playerRankingTable(${localRanking}, false)},
+                     '/#player-ranking')}"></div>
             <a class="btn btn-secondary" th:href="@{/ranking/players}" th:text="#{playerRanking.link}"></a>
         </div>
 
