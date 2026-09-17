@@ -22,6 +22,10 @@ public class RankingService {
     // クランランキング画面の表示量と、低スペックVMでの描画コストのバランスで上位10件にしている。
     private static final int RANKING_LIMIT = 10;
 
+    // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIは最大1000件まで返すが、
+    // 低スペックVMでの描画コストを考えて200件にしている。
+    public static final int MAX_PLAYER_RANKING_SIZE = 200;
+
     private final ClashRoyaleApiClient apiClient;
 
     public RankingService(ClashRoyaleApiClient apiClient) {
@@ -41,10 +45,19 @@ public class RankingService {
         }
     }
 
-    /** 個人ランキング(パス・オブ・レジェンドの現在シーズン)。失敗時の扱いはクランランキングと同じ。 */
+    /**
+     * 個人ランキング(パス・オブ・レジェンドの現在シーズン)。失敗時の扱いはクランランキングと同じ。
+     * 画面ごとに件数が違っても、公式APIからは常に最大件数で取得して先頭を切り出す。
+     * 件数ごとに取得するとキャッシュのキーが分かれ、同じデータを画面の数だけ取り直すことになるため。
+     */
     public List<PlayerRankingResponse.RankedPlayer> topPlayers(String locationId, int limit) {
+        if (limit > MAX_PLAYER_RANKING_SIZE) {
+            throw new IllegalArgumentException("limit must be <= " + MAX_PLAYER_RANKING_SIZE + ": " + limit);
+        }
         try {
-            return apiClient.getPathOfLegendRankings(locationId, limit);
+            return apiClient.getPathOfLegendRankings(locationId, MAX_PLAYER_RANKING_SIZE).stream()
+                    .limit(limit)
+                    .toList();
         } catch (ClashRoyaleApiException e) {
             log.warn("player ranking unavailable for location {}: {}", locationId, e.toString());
             return List.of();

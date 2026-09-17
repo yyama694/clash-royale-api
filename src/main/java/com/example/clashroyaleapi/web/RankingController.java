@@ -17,8 +17,8 @@ import java.util.Optional;
 @Controller
 public class RankingController {
 
-    // トップページ(上位100人)より多く見せる画面。APIは最大1000件まで返すが、低スペックVMでの描画コストを考えて200人にしている。
-    private static final int PLAYER_RANKING_SIZE = 200;
+    // トップページ(上位100人)より多く見せる画面なので、取得できる最大件数をそのまま出す。
+    private static final int PLAYER_RANKING_SIZE = RankingService.MAX_PLAYER_RANKING_SIZE;
 
     private final RankingService rankingService;
     private final RankingScope rankingScope;

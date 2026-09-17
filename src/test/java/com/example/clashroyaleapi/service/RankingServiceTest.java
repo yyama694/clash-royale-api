@@ -11,11 +11,15 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class RankingServiceTest {
@@ -54,6 +58,28 @@ class RankingServiceTest {
 
         assertEquals("#P1", rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, 3).get(0).tag());
         assertEquals("#P2", rankingService.topPlayers("57000122", 3).get(0).tag());
+    }
+
+    @Test
+    void 個人ランキングは件数に関係なく最大件数で取得し先頭を切り出す() {
+        when(apiClient.getPathOfLegendRankings("global", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of(rankedPlayer(1, "#P1"), rankedPlayer(2, "#P2"), rankedPlayer(3, "#P3")));
+
+        List<PlayerRankingResponse.RankedPlayer> top2 = rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, 2);
+        List<PlayerRankingResponse.RankedPlayer> all = rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID,
+                RankingService.MAX_PLAYER_RANKING_SIZE);
+
+        assertEquals(List.of("#P1", "#P2"), top2.stream().map(PlayerRankingResponse.RankedPlayer::tag).toList());
+        assertEquals(3, all.size());
+        // 件数違いでも同じ引数で呼ぶので、キャッシュのキーが1つにまとまる。
+        verify(apiClient, times(2)).getPathOfLegendRankings("global", RankingService.MAX_PLAYER_RANKING_SIZE);
+        verifyNoMoreInteractions(apiClient);
+    }
+
+    @Test
+    void 個人ランキングの件数が最大件数を超えると例外() {
+        assertThrows(IllegalArgumentException.class, () -> rankingService.topPlayers(
+                RankingService.GLOBAL_LOCATION_ID, RankingService.MAX_PLAYER_RANKING_SIZE + 1));
     }
 
     @Test
