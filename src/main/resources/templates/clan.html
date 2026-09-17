@@ -19,8 +19,8 @@
 
         <div class="card" id="members">
             <h2 th:text="#{clan.memberList.heading}"></h2>
-            <p class="notice" th:text="'※' + #{clan.donationNotice}"></p>
-            <p class="notice" th:text="'※' + #{clan.lastSeenNotice}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{clan.donationNotice})}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{clan.lastSeenNotice})}"></p>
             <div class="table-scroll">
                 <table class="table-sortable">
                     <thead>
@@ -39,12 +39,14 @@
                             <td class="num" th:attr="data-label=#{clan.col.trophies}" th:text="${member.trophies()}"></td>
                             <td class="num" th:attr="data-label=#{clan.col.donations}" th:text="${member.donations()}"></td>
                             <!--/* 長期間アクセスの無いメンバーは、クランの整理対象を探しやすいよう警告色で目立たせる */-->
-                            <td th:attr="data-label=#{clan.col.lastSeen}" th:switch="${member.inactiveDays()}">
+                            <td th:attr="data-label=#{clan.col.lastSeen}" th:with="lastSeen=${member.lastSeenIso()}"
+                                th:switch="${member.inactiveDays()}">
                                 <span th:case="null" th:text="#{clan.lastSeen.unknown}"></span>
-                                <span th:case="0" th:text="#{clan.lastSeen.today}"></span>
-                                <span th:case="1" th:text="#{clan.lastSeen.day}"></span>
-                                <span th:case="*" th:classappend="${member.longInactive()} ? 'inactive-badge'"
-                                      th:text="#{clan.lastSeen.days(${member.inactiveDays()})}"></span>
+                                <time th:case="0" th:datetime="${lastSeen}" th:text="#{clan.lastSeen.today}"></time>
+                                <time th:case="1" th:datetime="${lastSeen}" th:text="#{clan.lastSeen.day}"></time>
+                                <time th:case="*" th:datetime="${lastSeen}"
+                                      th:classappend="${member.longInactive()} ? 'inactive-badge'"
+                                      th:text="#{clan.lastSeen.days(${member.inactiveDays()})}"></time>
                             </td>
                         </tr>
                     </tbody>

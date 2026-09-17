@@ -9,7 +9,10 @@
 
         <div class="card">
             <h1 th:text="#{battle.pageTitle}"></h1>
-            <p class="notice" th:text="${battle.battleTime()} + ' / ' + ${battle.gameMode()}"></p>
+            <p class="notice">
+                <time th:replace="~{fragments/layout :: localTime(${battle.time()})}"></time>
+                <span th:text="' / ' + ${battle.gameMode()}"></span>
+            </p>
 
             <div class="matchup">
                 <div th:replace="~{fragments/layout :: matchupSide(${battle.team()})}"></div>

@@ -9,6 +9,22 @@
     <title th:text="${title} + ' | ' + #{app.name}"></title>
     <meta name="description" th:content="#{app.description}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!--
+      公式APIの日時は常にUTCで、閲覧者のタイムゾーンはサーバーからは分からない。そのため変換はブラウザに任せる。
+      スクリプトが動かない場合は、サーバーが入れたUTC表記がそのまま残る。
+    -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var format = new Intl.DateTimeFormat(document.documentElement.lang,
+                {dateStyle: 'medium', timeStyle: 'short'});
+            document.querySelectorAll('time[data-localtime][datetime]').forEach(function (element) {
+                var value = new Date(element.getAttribute('datetime'));
+                if (!isNaN(value.getTime())) {
+                    element.textContent = format.format(value);
+                }
+            });
+        });
+    </script>
 </head>
 
 <!-- ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 -->
@@ -49,6 +65,15 @@
         <button type="submit" th:text="#{action.search}"></button>
     </form>
 </div>
+
+<!--
+  日時。datetime にはUTCのISO形式を入れ、表示文字列はブラウザ側で閲覧者の時刻に書き換わる。
+  APIの値を解釈できなかった場合は iso が null になり、datetime 属性ごと出ない(書き換えの対象にもならない)。
+-->
+<time th:fragment="localTime(time)" data-localtime th:datetime="${time.iso()}" th:text="${time.text()}"></time>
+
+<!-- 注記。先頭の記号は言語ごとに違うため、テンプレートに直書きせずメッセージ側に持つ。 -->
+<p th:fragment="notice(text)" class="notice" th:text="#{notice.format(${text})}"></p>
 
 <!-- 勝敗バッジ。判定はViewModel側で済ませてあるので、ここは表示のみ。 -->
 <span th:fragment="resultBadge(result)" class="badge"

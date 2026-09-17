@@ -24,14 +24,14 @@
 
         <div th:if="${battleStats}" class="card">
             <h2 th:text="#{stats.heading}"></h2>
-            <p class="notice" th:text="'※' + #{stats.notice}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{stats.notice})}"></p>
             <p class="stats-summary">
                 <span th:text="#{stats.summary(${battleStats.total()}, ${battleStats.wins()}, ${battleStats.losses()})}"></span>
                 <span th:if="${battleStats.draws() > 0}" th:text="#{stats.draws(${battleStats.draws()})}"></span>
             </p>
 
             <div th:if="${battleStats.hasCardRanking()}">
-                <p class="notice" th:text="'※' + #{stats.method}"></p>
+                <p th:replace="~{fragments/layout :: notice(#{stats.method})}"></p>
 
                 <h3 th:text="#{stats.favorite.heading}"></h3>
                 <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.favoriteCards()}, 'good')}"></div>
@@ -44,7 +44,7 @@
 
         <div class="card">
             <h2 th:text="#{battlelog.heading}"></h2>
-            <p class="notice" th:text="'※' + #{battlelog.notice}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{battlelog.notice})}"></p>
             <p th:if="${battleLogErrorKey}" class="error-box" th:text="#{${battleLogErrorKey}}"></p>
             <p th:if="${battles != null and #lists.isEmpty(battles)}" class="empty-state" th:text="#{battlelog.empty}"></p>
             <div th:if="${battles != null and not #lists.isEmpty(battles)}" class="table-scroll">
@@ -61,7 +61,9 @@
                     </thead>
                     <tbody>
                         <tr th:each="b : ${battles}">
-                            <td th:attr="data-label=#{battlelog.col.time}" th:text="${b.battleTime()}"></td>
+                            <td th:attr="data-label=#{battlelog.col.time}">
+                                <time th:replace="~{fragments/layout :: localTime(${b.time()})}"></time>
+                            </td>
                             <td th:attr="data-label=#{battlelog.col.mode}" th:text="${b.gameMode()}"></td>
                             <td th:attr="data-label=#{battlelog.col.result}"><span th:replace="~{fragments/layout :: resultBadge(${b.result()})}"></span></td>
                             <td class="num" th:attr="data-label=#{battlelog.col.crowns}" th:text="${b.selfCrowns()} + ' / ' + ${b.opponentCrowns()}"></td>

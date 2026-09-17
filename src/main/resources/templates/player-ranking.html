@@ -13,7 +13,7 @@
                      ~{fragments/layout :: playerRankingTable(${globalRanking}, true)},
                      ~{fragments/layout :: playerRankingTable(${localRanking}, true)},
                      '/ranking/players')}"></div>
-            <p class="notice" th:text="'※' + #{playerRanking.notice}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{playerRanking.notice})}"></p>
             <a class="btn btn-secondary" th:href="@{/ranking}" th:text="#{ranking.link}"></a>
         </div>
     </main>
