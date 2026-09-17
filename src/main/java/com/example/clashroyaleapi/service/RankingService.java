@@ -19,7 +19,7 @@ public class RankingService {
 
     private static final Logger log = LoggerFactory.getLogger(RankingService.class);
 
-    // トップページの表示量と、低スペックVMでの描画コストのバランスで上位10件にしている。
+    // クランランキング画面の表示量と、低スペックVMでの描画コストのバランスで上位10件にしている。
     private static final int RANKING_LIMIT = 10;
 
     private final ClashRoyaleApiClient apiClient;
@@ -29,7 +29,7 @@ public class RankingService {
     }
 
     /**
-     * ランキング取得に失敗してもトップページの検索機能は使えるべきなので、
+     * ランキングは付加的な情報で、取得に失敗しても画面の他の部分(国の選択など)は使えるべきなので、
      * ここでは例外をエラー画面に伝播させず空リストにする(画面側は「取得できません」と表示する)。
      */
     public List<ClanRankingResponse.RankedClan> topClans(String locationId) {

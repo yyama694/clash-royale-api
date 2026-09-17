@@ -37,7 +37,7 @@ public class LocationService {
                             location.name()))
                     .toList();
         } catch (ClashRoyaleApiException e) {
-            // 国一覧が取れないだけでトップページ全体を落とさない(国別ランキングは非表示になる)。
+            // 国一覧が取れないだけでランキング画面全体を落とさない(国別ランキングは非表示になる)。
             log.warn("locations unavailable: {}", e.toString());
             return List.of();
         }

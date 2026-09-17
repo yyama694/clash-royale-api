@@ -135,7 +135,7 @@
 
 - 原因: `request.getLocale()`は最優先の1言語しか見ない。
 - 対応案: 対応言語(ja/en)のリストを持ち、Accept-Languageのq値の順に、最初に一致した対応言語を選ぶ(`Locale.lookup`、または`AcceptHeaderLocaleResolver#setSupportedLocales`と同じ考え方)。`?lang=`も対応言語以外は無視する。これで`<html lang>`も実際の表示言語と一致する。
-- 国別ランキングの`CountryPreference`(2026-09-17時点で別セッションが作業中)も、Accept-Languageを自前でq値の順に解釈している。言語の判定も同じ考え方に揃えられる。
+- 国別ランキングの`CountryPreference`も、Accept-Languageを自前でq値の順に解釈している。言語の判定も同じ考え方に揃えられる。
 
 ### 表示の自然さ
 
