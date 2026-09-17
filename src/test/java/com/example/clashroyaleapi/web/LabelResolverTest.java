@@ -57,10 +57,22 @@ class LabelResolverTest {
     }
 
     @Test
-    void ゲームモードは日本語ロケールでのみ英語名を併記する() {
-        assertEquals("ランク戦 (Ladder)", labels.gameMode("Ladder", Locale.JAPANESE));
-        assertEquals("Ladder", labels.gameMode("Ladder", Locale.ENGLISH));
-        assertEquals("SomeFutureMode", labels.gameMode("SomeFutureMode", Locale.JAPANESE));
+    void ゲームモードは辞書にあれば名前で解決する() {
+        assertEquals("トロフィー目標", labels.gameMode("trail", "Ladder", Locale.JAPANESE));
+        assertEquals("Trophy Road", labels.gameMode("trail", "Ladder", Locale.ENGLISH));
+    }
+
+    @Test
+    void 辞書にない名前は対戦種別で解決する() {
+        // gameMode.name はアリーナやイベントごとに増える(Ranked1v1_NewArena2 など)ため、名前の完全一致では追いつかない。
+        assertEquals("ランク戦", labels.gameMode("pathOfLegend", "Ranked1v1_NewArena2", Locale.JAPANESE));
+        assertEquals("Rank Battle", labels.gameMode("pathOfLegend", "Ranked1v1_NewArena2", Locale.ENGLISH));
+    }
+
+    @Test
+    void 名前も種別も辞書に無ければその他にし内部IDは出さない() {
+        assertEquals("その他", labels.gameMode("futureType", "SomeFutureMode", Locale.JAPANESE));
+        assertEquals("Other", labels.gameMode("futureType", "SomeFutureMode", Locale.ENGLISH));
     }
 
     @Test
@@ -80,7 +92,7 @@ class LabelResolverTest {
     void nullや空文字はハイフンを返す() {
         assertEquals("-", labels.cardName(null, Locale.JAPANESE));
         assertEquals("-", labels.cardName("   ", Locale.JAPANESE));
-        assertEquals("-", labels.gameMode(null, Locale.JAPANESE));
+        assertEquals("-", labels.gameMode(null, null, Locale.JAPANESE));
         assertEquals("-", labels.role("", Locale.JAPANESE));
     }
 }

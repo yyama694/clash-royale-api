@@ -1,11 +1,7 @@
 spring:
   application:
     name: clash-royale-api
-  messages:
-    basename: messages
-    encoding: UTF-8
-    # OSの既定ロケールがja_JPのため、falseにしないと英語表示の要求まで日本語にフォールバックしてしまう。
-    fallback-to-system-locale: false
+  # メッセージリソースの設定(basename等)は MessageSourceConfig にある。ICUの書式を使うため自前で定義している。
   cache:
     cache-names: players,clans,battleLogs,clanSearches,clanRankings,playerRankings,locations
     caffeine:

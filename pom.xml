@@ -49,6 +49,12 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
+        <!-- JDK標準に無い国際化機能(英語などの単数・複数、CLDRの短い国名、言語から代表的な国の推定)のため。 -->
+        <dependency>
+            <groupId>com.ibm.icu</groupId>
+            <artifactId>icu4j</artifactId>
+            <version>78.3</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

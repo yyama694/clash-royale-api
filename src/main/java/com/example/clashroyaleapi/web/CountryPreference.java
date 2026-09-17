@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.domain.Country;
 
+import com.ibm.icu.util.ULocale;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,7 +33,10 @@ public class CountryPreference {
         }
         return find(countries, requested)
                 .or(() -> find(countries, cookieValue(request)))
-                .or(() -> find(countries, acceptLanguageCountry(request)))
+                .or(() -> acceptLanguageCountries(request).stream()
+                        .map(countryCode -> find(countries, countryCode))
+                        .flatMap(Optional::stream)
+                        .findFirst())
                 .or(() -> find(countries, FALLBACK_COUNTRY_CODE));
     }
 
@@ -60,21 +64,24 @@ public class CountryPreference {
     /**
      * request.getLocale() はLocaleResolverが解決した表示言語(ja/en)になり国を含まないため、
      * 国の推定にはAccept-Languageヘッダを直接見る。
+     * 地域が付いていない言語(en、fr等)は、CLDRの対応表(likely subtags)でその言語の代表的な国を推定する
+     * (en→US、fr→FR、zh-Hant→TW)。希望の高い順に並べて返す。
      */
-    private String acceptLanguageCountry(HttpServletRequest request) {
+    private List<String> acceptLanguageCountries(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.ACCEPT_LANGUAGE);
         if (header == null || header.isBlank()) {
-            return null;
+            return List.of();
         }
         try {
             return Locale.LanguageRange.parse(header).stream()
-                    .map(range -> Locale.forLanguageTag(range.getRange()).getCountry())
+                    .map(Locale.LanguageRange::getRange)
+                    .filter(range -> !range.startsWith("*"))
+                    .map(range -> ULocale.addLikelySubtags(ULocale.forLanguageTag(range)).getCountry())
                     .filter(country -> !country.isEmpty())
-                    .findFirst()
-                    .orElse(null);
+                    .toList();
         } catch (IllegalArgumentException e) {
             // 壊れたAccept-Languageを送ってくるクライアントがあるため、推定を諦めるだけにする。
-            return null;
+            return List.of();
         }
     }
 }

@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
+import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.SortDirection;
 import com.example.clashroyaleapi.service.ClanService;
@@ -62,7 +63,7 @@ public class ClanController {
         SortDirection direction = SortDirection.from(sortDir);
 
         model.addAttribute("clan", clan);
-        model.addAttribute("clanName", DisplayNames.of(clan.name()));
+        model.addAttribute("clanName", GameText.stripFormatting(clan.name()));
         model.addAttribute("clanPathTag", Tags.toPathSegment(clan.tag()));
         model.addAttribute("members",
                 viewMapper.toMembers(clanService.sortMembers(clan.memberList(), sortKey, direction), locale));

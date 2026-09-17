@@ -28,9 +28,9 @@ class ViewMapperTest {
     @BeforeEach
     void setUp() {
         LabelResolver labels = mock(LabelResolver.class);
-        when(labels.gameMode(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(labels.gameMode(anyString(), anyString(), any())).thenAnswer(invocation -> invocation.getArgument(1));
         when(labels.cardName(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
-        viewMapper = new ViewMapper(labels);
+        viewMapper = new ViewMapper(labels, mock(CountryNames.class), mock(TimeFormatter.class));
     }
 
     @Test

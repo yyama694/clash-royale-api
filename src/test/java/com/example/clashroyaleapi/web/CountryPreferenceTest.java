@@ -55,9 +55,26 @@ class CountryPreferenceTest {
     }
 
     @Test
-    void 国を特定できない場合は日本にフォールバックする() {
+    void 地域の無い言語はその言語の代表的な国と推定する() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "en");
+
+        assertEquals("US", countryPreference.resolve(null, request, COUNTRIES).orElseThrow().countryCode());
+    }
+
+    @Test
+    void 推定した国がランキングの対象外なら次の候補を見る() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        // frから推定するフランスは国一覧(COUNTRIES)に無いので、次のde-DEが使われる。
+        request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "fr,de-DE;q=0.8");
+
+        assertEquals("DE", countryPreference.resolve(null, request, COUNTRIES).orElseThrow().countryCode());
+    }
+
+    @Test
+    void 国を特定できない場合は日本にフォールバックする() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "*");
 
         assertEquals("JP", countryPreference.resolve(null, request, COUNTRIES).orElseThrow().countryCode());
     }

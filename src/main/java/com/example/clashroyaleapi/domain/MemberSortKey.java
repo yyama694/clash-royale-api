@@ -9,7 +9,9 @@ import java.util.Optional;
 /** クランメンバー一覧のソート対象。不正な値をURLで渡されても列挙にない限り無視される。 */
 public enum MemberSortKey {
 
-    NAME("name", Comparator.comparing(ClanResponse.Member::name, String.CASE_INSENSITIVE_ORDER)),
+    // 装飾タグ付きの名前(<c2>Name)が先頭にまとまらないよう、表示と同じ名前で並べる。
+    NAME("name", Comparator.comparing(member -> GameText.stripFormatting(member.name()),
+            Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))),
     ROLE("role", Comparator.comparingInt(member -> ClanRole.rankOf(member.role()))),
     TROPHIES("trophies", Comparator.comparingInt(ClanResponse.Member::trophies)),
     DONATIONS("donations", Comparator.comparingInt(ClanResponse.Member::donations)),

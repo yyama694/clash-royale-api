@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.service.PlayerService;
 
 import org.springframework.stereotype.Controller;
@@ -43,10 +44,10 @@ public class PlayerController {
     public String player(@PathVariable String tag, Model model, Locale locale) {
         PlayerResponse player = playerService.findPlayer(tag);
         model.addAttribute("player", player);
-        model.addAttribute("playerName", DisplayNames.of(player.name()));
+        model.addAttribute("playerName", GameText.stripFormatting(player.name()));
         model.addAttribute("playerPathTag", Tags.toPathSegment(player.tag()));
         if (player.clan() != null) {
-            model.addAttribute("clanName", DisplayNames.of(player.clan().name()));
+            model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
         }
 
