@@ -31,7 +31,7 @@
   - プレイヤータグ検索: 戦績サマリー・得意/苦手カード・直近対戦履歴、対戦詳細(両者のデッキ・タワーユニット)
   - クラン検索(タグ・クラン名の両対応): メンバー一覧(役職・トロフィー・寄付数・最終アクセス、列ごとのソート)
   - クランランキング画面(`/ranking`、トップページからリンク): グローバル/国・地域別をタブで切替。対象国はAccept-Language推定+Cookie保存
-  - 個人ランキング: トップページに上位100人、個人ランキング画面(`/ranking/players`)に上位200人(パス・オブ・レジェンド現在シーズン)。どちらもグローバル/国・地域別をタブで切替
+  - 個人ランキング: トップページに上位10人、個人ランキング画面(`/ranking/players`)に上位200人(ランク戦の現在シーズン。ランク戦は2025年6月に公式がパス・オブ・レジェンドから改名したもの)。どちらもグローバル/国・地域別をタブで切替
   - 日本語/英語の表示切替
 - **フェーズ2以降(未着手・アイデア段階)**: クラロワクイズなど、ユーザーが継続的に遊べる追加コンテンツ。着手時にこのセクションを更新する。
 
@@ -101,6 +101,7 @@
   - `web` … Controllerは「パラメータを受けてServiceを呼びModelに詰める」だけ。表示用の整形は`ViewMapper`と`web/view`のViewModelで行い、テンプレートにロジックを書かない。
 - Clash Royale APIとの通信は専用のクラス(`ClashRoyaleApiClient`)に閉じ込め、Controllerから直接HTTP呼び出しを行わない。
 - エラー画面は`GlobalExceptionHandler`(`@ControllerAdvice`)に集約する。Controller内で`model.addAttribute("error", ...)`を書かない。
+  - 例外: 画面の一部だけ取得に失敗した場合は、エラー画面にせずその部分に文言を出す。プレイヤー情報画面の対戦履歴(`PlayerController`の`battleLogErrorKey`)と、ランキング(`RankingService`が空リストを返し`ranking.unavailable`を表示)がこれに当たる。
 - APIレスポンスはCaffeineで2分キャッシュする(レート制限対策と低スペックVMの負荷軽減)。
 - application.properties/yml にAPIキーなどの秘密情報を平文でコミットしない。ローカル用設定と本番用設定は分離する。
 - .gitignore には target/, .idea/, *.iml, `/config/`, `application-*.yml` を含める(ファイル名の個別列挙ではなくパターンで弾く)。
