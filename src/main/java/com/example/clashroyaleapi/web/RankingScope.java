@@ -32,16 +32,19 @@ public class RankingScope {
             Model model, Locale locale) {
         List<Country> countries = locationService.countries();
         Optional<Country> selected = countryPreference.resolve(country, request, countries);
-        boolean requestedExplicitly = country != null && !country.isBlank();
-        if (requestedExplicitly) {
-            selected.ifPresent(c -> countryPreference.remember(c.countryCode(), response));
+        // 指定された国が一覧に無いと、resolveは前回の選択などにフォールバックする。
+        // その国を「選び直した国」として保存・表示しないよう、指定どおりの国に決まった場合だけを明示選択とみなす。
+        boolean chosenExplicitly = country != null
+                && selected.filter(c -> c.countryCode().equalsIgnoreCase(country.strip())).isPresent();
+        if (chosenExplicitly) {
+            countryPreference.remember(selected.get().countryCode(), response);
         }
 
         model.addAttribute("countries", viewMapper.toCountryOptions(countries, locale));
         model.addAttribute("selectedCountry", selected.map(Country::countryCode).orElse(null));
         model.addAttribute("selectedCountryName", selected.map(c -> viewMapper.countryName(c, locale)).orElse(null));
         // 国を選び直した直後は、結果が見えるよう国別タブを開いた状態にする。
-        model.addAttribute("localTabActive", requestedExplicitly && selected.isPresent());
+        model.addAttribute("localTabActive", chosenExplicitly);
         return selected;
     }
 }
