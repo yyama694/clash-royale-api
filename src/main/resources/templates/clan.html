@@ -43,10 +43,9 @@
                                 th:switch="${member.inactiveDays()}">
                                 <span th:case="null" th:text="#{clan.lastSeen.unknown}"></span>
                                 <time th:case="0" th:datetime="${lastSeen}" th:text="#{clan.lastSeen.today}"></time>
-                                <time th:case="1" th:datetime="${lastSeen}" th:text="#{clan.lastSeen.day}"></time>
                                 <time th:case="*" th:datetime="${lastSeen}"
                                       th:classappend="${member.longInactive()} ? 'inactive-badge'"
-                                      th:text="#{clan.lastSeen.days(${member.inactiveDays()})}"></time>
+                                      th:text="#{clan.lastSeen.ago(${member.inactiveDays()})}"></time>
                             </td>
                         </tr>
                     </tbody>
