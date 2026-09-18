@@ -32,7 +32,7 @@ public class HomeController {
     @GetMapping("/")
     public String index(@RequestParam(required = false) String country, HttpServletRequest request,
             HttpServletResponse response, Model model, Locale locale) {
-        Optional<Country> selected = rankingScope.resolve(country, request, response, model, locale);
+        Optional<Country> selected = rankingScope.resolve(country, request, response, model, locale).country();
 
         model.addAttribute("globalRanking", viewMapper.toPlayerRankingRows(
                 rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE)));

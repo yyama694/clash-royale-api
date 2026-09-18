@@ -49,7 +49,7 @@ class RankingScopeTest {
     void 国を明示的に選んだときはCookieに保存し国別タブを開く() {
         when(locationService.countries()).thenReturn(COUNTRIES);
 
-        Optional<Country> selected = rankingScope.resolve("us", request, response, model, Locale.ENGLISH);
+        Optional<Country> selected = rankingScope.resolve("us", request, response, model, Locale.ENGLISH).country();
 
         assertEquals("US", selected.orElseThrow().countryCode());
         assertEquals("US", response.getCookie(WebConstants.COUNTRY_PARAM).getValue());
@@ -63,7 +63,7 @@ class RankingScopeTest {
         when(locationService.countries()).thenReturn(COUNTRIES);
         request.setCookies(new Cookie(WebConstants.COUNTRY_PARAM, "US"));
 
-        Optional<Country> selected = rankingScope.resolve(null, request, response, model, Locale.ENGLISH);
+        Optional<Country> selected = rankingScope.resolve(null, request, response, model, Locale.ENGLISH).country();
 
         assertEquals("US", selected.orElseThrow().countryCode());
         assertNull(response.getCookie(WebConstants.COUNTRY_PARAM));
@@ -75,7 +75,7 @@ class RankingScopeTest {
         when(locationService.countries()).thenReturn(COUNTRIES);
         request.setCookies(new Cookie(WebConstants.COUNTRY_PARAM, "US"));
 
-        Optional<Country> selected = rankingScope.resolve("ZZ", request, response, model, Locale.ENGLISH);
+        Optional<Country> selected = rankingScope.resolve("ZZ", request, response, model, Locale.ENGLISH).country();
 
         assertEquals("US", selected.orElseThrow().countryCode());
         assertNull(response.getCookie(WebConstants.COUNTRY_PARAM));
@@ -87,7 +87,7 @@ class RankingScopeTest {
     void 国一覧が取れないときは国別タブを出さない() {
         when(locationService.countries()).thenReturn(List.of());
 
-        Optional<Country> selected = rankingScope.resolve("JP", request, response, model, Locale.JAPANESE);
+        Optional<Country> selected = rankingScope.resolve("JP", request, response, model, Locale.JAPANESE).country();
 
         assertTrue(selected.isEmpty());
         assertNull(model.get("selectedCountry"));

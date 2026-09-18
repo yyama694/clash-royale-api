@@ -213,7 +213,8 @@
   フラグメント式で受け取る。選択中の国(selectedCountry等)はモデルから直接参照する。
   切り替えは表示/非表示の入れ替えだけで、サーバーへの再取得は行わない。
 -->
-<div th:fragment="rankingTabs(globalPanel, localPanel, formAction)" class="ranking-tabs">
+<div th:fragment="rankingTabs(globalPanel, localPanel, formAction, lazyUrl)" class="ranking-tabs"
+     th:attr="data-loading-text=#{ranking.loading},data-error-text=#{ranking.unavailable}">
     <div class="tabs" role="tablist" th:aria-label="#{ranking.tabs.label}">
         <button type="button" class="tab" role="tab" id="tab-global" aria-controls="panel-global"
                 th:classappend="${localTabActive} ? '' : 'is-active'"
@@ -225,8 +226,18 @@
                 th:attr="aria-selected=${localTabActive},tabindex=${localTabActive} ? '0' : '-1'"
                 th:text="${selectedCountryName}"></button>
     </div>
+    <!--/*
+      ranking-slot が表の入る場所。lazyUrl を渡した画面では、最初は開いているタブの表だけを描き、
+      もう一方には data-lazy-url だけを置く(件数が多い画面でHTMLが倍になるのを避けるため)。
+      lazyUrl が無ければ今までどおり両方を描く。
+    */-->
     <div id="panel-global" role="tabpanel" aria-labelledby="tab-global"
-         th:attr="hidden=${localTabActive} ? 'hidden' : null" th:insert="${globalPanel}"></div>
+         th:attr="hidden=${localTabActive} ? 'hidden' : null">
+        <div class="ranking-slot"
+             th:attr="data-lazy-url=${lazyUrl != null and localTabActive} ? @{${lazyUrl}} : null">
+            <th:block th:if="${lazyUrl == null or !localTabActive}" th:insert="${globalPanel}"></th:block>
+        </div>
+    </div>
     <th:block th:if="${selectedCountry != null}">
         <div id="panel-local" role="tabpanel" aria-labelledby="tab-local"
              th:attr="hidden=${localTabActive} ? null : 'hidden'">
@@ -240,7 +251,10 @@
                 </label>
                 <button type="submit" th:text="#{ranking.country.apply}"></button>
             </form>
-            <div th:insert="${localPanel}"></div>
+            <div class="ranking-slot"
+                 th:attr="data-lazy-url=${lazyUrl != null and !localTabActive} ? @{${lazyUrl}(country=${selectedCountry})} : null">
+                <th:block th:if="${lazyUrl == null or localTabActive}" th:insert="${localPanel}"></th:block>
+            </div>
         </div>
     </th:block>
     <!--
@@ -250,13 +264,46 @@
     <script>
         (function (root) {
             var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+            function notice(slot, text) {
+                var p = document.createElement('p');
+                p.className = 'notice';
+                p.textContent = text;
+                slot.replaceChildren(p);
+            }
+            // まだ表が入っていないタブを開いたときだけ取りに行く。二度目以降は取得済みの表をそのまま見せる。
+            function fill(panel) {
+                var slot = panel.querySelector('.ranking-slot[data-lazy-url]');
+                if (!slot) {
+                    return;
+                }
+                var url = slot.getAttribute('data-lazy-url');
+                slot.removeAttribute('data-lazy-url');
+                notice(slot, root.getAttribute('data-loading-text'));
+                fetch(url)
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error(response.status);
+                        }
+                        return response.text();
+                    })
+                    .then(function (html) {
+                        slot.innerHTML = html;
+                    })
+                    .catch(function () {
+                        notice(slot, root.getAttribute('data-error-text'));
+                    });
+            }
             function select(tab) {
                 tabs.forEach(function (other) {
                     var selected = other === tab;
                     other.setAttribute('aria-selected', String(selected));
                     other.setAttribute('tabindex', selected ? '0' : '-1');
                     other.classList.toggle('is-active', selected);
-                    root.querySelector('#' + other.getAttribute('aria-controls')).hidden = !selected;
+                    var panel = root.querySelector('#' + other.getAttribute('aria-controls'));
+                    panel.hidden = !selected;
+                    if (selected) {
+                        fill(panel);
+                    }
                 });
             }
             tabs.forEach(function (tab, index) {

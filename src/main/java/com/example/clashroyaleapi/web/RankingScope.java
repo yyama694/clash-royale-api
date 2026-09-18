@@ -18,6 +18,13 @@ import java.util.Optional;
 @Component
 public class RankingScope {
 
+    /**
+     * @param country 対象国(国一覧が取れないときは空)
+     * @param localTabActive 国別タブを開いた状態で描くか。国を選び直した直後だけtrueになる。
+     */
+    public record Scope(Optional<Country> country, boolean localTabActive) {
+    }
+
     private final LocationService locationService;
     private final CountryPreference countryPreference;
     private final ViewMapper viewMapper;
@@ -28,7 +35,7 @@ public class RankingScope {
         this.viewMapper = viewMapper;
     }
 
-    public Optional<Country> resolve(String country, HttpServletRequest request, HttpServletResponse response,
+    public Scope resolve(String country, HttpServletRequest request, HttpServletResponse response,
             Model model, Locale locale) {
         List<Country> countries = locationService.countries();
         Optional<Country> selected = countryPreference.resolve(country, request, countries, locale);
@@ -45,6 +52,6 @@ public class RankingScope {
         model.addAttribute("selectedCountryName", selected.map(c -> viewMapper.countryName(c, locale)).orElse(null));
         // 国を選び直した直後は、結果が見えるよう国別タブを開いた状態にする。
         model.addAttribute("localTabActive", chosenExplicitly);
-        return selected;
+        return new Scope(selected, chosenExplicitly);
     }
 }

@@ -17,7 +17,7 @@
             <div th:replace="~{fragments/layout :: rankingTabs(
                      ~{fragments/layout :: playerRankingTable(${globalRanking}, false)},
                      ~{fragments/layout :: playerRankingTable(${localRanking}, false)},
-                     '/#player-ranking')}"></div>
+                     '/#player-ranking', null)}"></div>
             <a class="btn btn-secondary card-action" th:href="@{/ranking/players}" th:text="#{playerRanking.link}"></a>
         </div>
 
