@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,8 +27,17 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // @ExceptionHandler には @ControllerAdvice の @ModelAttribute が適用されないため、
+    // 全画面共通の属性(言語切替リンクとhreflangが使う)をここで自分で詰める。
+    private final GlobalModelAttributes modelAttributes;
+
+    public GlobalExceptionHandler(GlobalModelAttributes modelAttributes) {
+        this.modelAttributes = modelAttributes;
+    }
+
     @ExceptionHandler(ClashRoyaleApiException.class)
-    public String handleApiError(ClashRoyaleApiException e, Model model, HttpServletResponse response) {
+    public String handleApiError(ClashRoyaleApiException e, Model model, HttpServletRequest request,
+            HttpServletResponse response) {
         HttpStatus status = statusOf(e);
         if (status.is5xxServerError()) {
             log.warn("Clash Royale API call failed: {}", e.getMessage(), e);
@@ -36,13 +46,20 @@ public class GlobalExceptionHandler {
         model.addAttribute("errorKey", e.messageKey());
         // 「見つからない」は利用者の入力の問題でシステム障害ではないため、画面では赤いエラー表示にせず再検索を促す。
         model.addAttribute("notFound", status == HttpStatus.NOT_FOUND);
-        return "error";
+        return errorView(model, request);
     }
 
     @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
-    public String handleBadRequest(Exception e, Model model, HttpServletResponse response) {
+    public String handleBadRequest(Exception e, Model model, HttpServletRequest request,
+            HttpServletResponse response) {
         response.setStatus(HttpStatus.BAD_REQUEST.value());
         model.addAttribute("errorKey", "error.badRequest");
+        return errorView(model, request);
+    }
+
+    private String errorView(Model model, HttpServletRequest request) {
+        model.addAttribute("currentUri", modelAttributes.currentUri(request));
+        model.addAttribute("siteBaseUrl", modelAttributes.siteBaseUrl(request));
         return "error";
     }
 

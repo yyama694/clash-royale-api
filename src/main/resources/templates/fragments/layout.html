@@ -13,9 +13,11 @@
       同じURLでもCookieやAccept-Languageで返す言語が変わるため、検索エンジンには言語ごとのURLを明示する。
       hreflangは絶対URLでないと解釈されないので、アクセスされたホストを付ける。
     */-->
-    <link rel="alternate" hreflang="ja" th:href="@{${siteBaseUrl + currentUri}(lang='ja')}">
-    <link rel="alternate" hreflang="en" th:href="@{${siteBaseUrl + currentUri}(lang='en')}">
-    <link rel="alternate" hreflang="x-default" th:href="@{${siteBaseUrl + currentUri}}">
+    <th:block th:if="${siteBaseUrl != null and currentUri != null}" th:with="pageUrl=${siteBaseUrl + currentUri}">
+        <link rel="alternate" hreflang="ja" th:href="@{${pageUrl}(lang='ja')}">
+        <link rel="alternate" hreflang="en" th:href="@{${pageUrl}(lang='en')}">
+        <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
+    </th:block>
     <!--
       公式APIの日時は常にUTCで、閲覧者のタイムゾーンはサーバーからは分からない。そのため変換はブラウザに任せる。
       スクリプトが動かない場合は、サーバーが入れたUTC表記がそのまま残る。
