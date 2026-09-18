@@ -25,6 +25,10 @@ spring:
 
 server:
   port: 8080
+  # 個人ランキング画面は1000人×2タブでHTMLが約1.6MBになり、転送だけで本番で3〜6秒かかっていた
+  # (サーバー側の描画は0.04秒で、遅さの原因はほぼ転送量)。既定では圧縮が無効なため明示的に有効にする。
+  compression:
+    enabled: true
 
 clashroyale:
   api:
