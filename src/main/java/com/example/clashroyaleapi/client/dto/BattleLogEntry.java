@@ -18,7 +18,7 @@ public record BattleLogEntry(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     /** levelはレアリティごとに1から数え直した値。ゲーム内表記に直すにはmaxLevelが要る(CardLevel参照)。 */
-    public record Card(String name, int level, int maxLevel, IconUrls iconUrls) {
+    public record Card(int id, String name, int level, int maxLevel, IconUrls iconUrls) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
 import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
+import com.example.clashroyaleapi.client.exception.CardNotFoundException;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 
@@ -64,7 +65,8 @@ public class GlobalExceptionHandler {
     }
 
     private HttpStatus statusOf(ClashRoyaleApiException e) {
-        if (e instanceof ResourceNotFoundException || e instanceof BattleNotFoundException) {
+        if (e instanceof ResourceNotFoundException || e instanceof BattleNotFoundException
+                || e instanceof CardNotFoundException) {
             return HttpStatus.NOT_FOUND;
         }
         if (e instanceof ApiRateLimitException) {

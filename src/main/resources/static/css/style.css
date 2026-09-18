@@ -575,6 +575,26 @@ td.cell-action {
     margin: 0 auto 0.35rem;
 }
 
+/* カード画像は詳細画面へのリンク。押せることが分かるよう、重ねたときだけ少し拡大する。 */
+.card-link {
+    display: block;
+    border-radius: 6px;
+}
+
+.card-link img {
+    transition: transform 0.12s ease-out;
+}
+
+.card-link:hover img {
+    transform: scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card-link img {
+        transition: none;
+    }
+}
+
 .deck-card .card-name {
     font-size: 0.78rem;
     font-weight: 600;
@@ -993,4 +1013,46 @@ td.cell-action {
         grid-row: auto;
         text-align: center;
     }
+}
+
+/* カード詳細画面 */
+.card-english-name {
+    margin: -0.25rem 0 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.card-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.card-artwork {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.card-artwork img {
+    width: 150px;
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+.card-artwork figure {
+    margin: 0;
+    text-align: center;
+}
+
+.card-artwork figcaption {
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.card-detail .stat-grid {
+    flex: 1 1 260px;
 }

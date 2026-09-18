@@ -91,12 +91,21 @@
       th:text="#{'battle.result.' + ${result.code()}}"></span>
 
 <!--
+  カード画像から詳細画面へのリンク。カード名はすぐ下に出ているので alt は空にし、
+  リンクの読み上げには aria-label を使う(同じ名前を二度読ませないため)。
+-->
+<a th:fragment="cardLink(id, name, iconUrl)" th:if="${iconUrl != null}" class="card-link"
+   th:href="@{/card/{id}(id=${id})}" th:aria-label="#{card.detail.link(${name})}">
+    <img th:src="${iconUrl}" alt="" width="285" height="420" loading="lazy">
+</a>
+
+<!--
   カード画像は width/height を指定し、読み込み前から枠の大きさを確保する(遅延読み込みの間に配置がガタつくため)。
   公式APIのカード画像は 285x420 で統一されている。
 -->
 <div th:fragment="deckGrid(cards)" class="deck-grid">
     <div class="deck-card" th:each="c : ${cards}">
-        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" alt="" width="285" height="420" loading="lazy">
+        <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
         <div class="card-name" th:text="${c.name()}"></div>
         <div class="card-sub" th:text="#{battle.level(${c.level()})}"></div>
     </div>
@@ -105,7 +114,7 @@
 <!-- 得意/苦手カード。kind(good/bad)で枠と勝率の色を変え、見出しを読まなくても強弱が伝わるようにする。 -->
 <div th:fragment="performanceGrid(cards, kind)" class="deck-grid">
     <div class="deck-card" th:each="c : ${cards}" th:classappend="'perf-' + ${kind}">
-        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" alt="" width="285" height="420" loading="lazy">
+        <a th:replace="~{fragments/layout :: cardLink(${c.cardId()}, ${c.name()}, ${c.iconUrl()})}"></a>
         <div class="card-name" th:text="${c.name()}"></div>
         <div class="card-sub perf-rate" th:text="#{stats.record(${c.winRatePercent()}, ${c.wins()}, ${c.uses()})}"></div>
     </div>
@@ -115,7 +124,7 @@
 <div th:fragment="supportCardRow(label, cards)" class="support-row">
     <span class="support-label" th:text="${label}"></span>
     <div class="support-card" th:each="c : ${cards}">
-        <img th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}" alt="" width="285" height="420" loading="lazy">
+        <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
         <span class="card-name" th:text="${c.name()}"></span>
         <span class="card-sub" th:text="#{battle.level(${c.level()})}"></span>
     </div>

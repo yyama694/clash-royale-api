@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
@@ -15,6 +16,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
+import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanMemberView;
@@ -79,6 +81,24 @@ public class ViewMapper {
                 gameModeOf(battle, locale),
                 toCards(self.cards(), locale),
                 toCards(self.supportCards(), locale));
+    }
+
+    /**
+     * カード詳細。公式APIが返さない項目(説明文・ステータス)は無いため、ここにある内容が全て。
+     * 進化画像は、進化が実装されているカードにだけ付く(maxEvolutionLevelがあっても画像が無いカードがある)。
+     */
+    public CardDetailView toCardDetail(CardsResponse.Card card, Locale locale) {
+        CardsResponse.Card.IconUrls icons = card.iconUrls();
+        return new CardDetailView(
+                card.id(),
+                labels.cardName(card.name(), locale),
+                card.name(),
+                icons == null ? null : icons.medium(),
+                icons == null ? null : icons.evolutionMedium(),
+                labels.rarity(card.rarity(), locale),
+                card.elixirCost(),
+                CardLevel.inGame(1, card.maxLevel()),
+                CardLevel.inGame(card.maxLevel(), card.maxLevel()));
     }
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
@@ -190,7 +210,7 @@ public class ViewMapper {
             return List.of();
         }
         return cards.stream()
-                .map(card -> new CardView(labels.cardName(card.name(), locale), iconUrlOf(card),
+                .map(card -> new CardView(card.id(), labels.cardName(card.name(), locale), iconUrlOf(card),
                         CardLevel.inGame(card.level(), card.maxLevel())))
                 .toList();
     }
@@ -198,8 +218,8 @@ public class ViewMapper {
     private List<CardPerformanceView> toPerformances(List<PlayerBattleStats.CardPerformance> performances,
             Locale locale) {
         return performances.stream()
-                .map(card -> new CardPerformanceView(labels.cardName(card.cardName(), locale), card.iconUrl(),
-                        card.uses(), card.wins(), card.winRatePercent()))
+                .map(card -> new CardPerformanceView(card.cardId(), labels.cardName(card.cardName(), locale),
+                        card.iconUrl(), card.uses(), card.wins(), card.winRatePercent()))
                 .toList();
     }
 

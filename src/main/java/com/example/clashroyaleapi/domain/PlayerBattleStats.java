@@ -23,8 +23,8 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
     // Wilson score interval の z 値。1.96 は95%信頼区間に対応する。
     private static final double Z = 1.96;
 
-    public record CardPerformance(String cardName, String iconUrl, int uses, int wins, int winRatePercent,
-            double lowerBound, double upperBound) {
+    public record CardPerformance(int cardId, String cardName, String iconUrl, int uses, int wins,
+            int winRatePercent, double lowerBound, double upperBound) {
     }
 
     public static PlayerBattleStats from(List<BattleLogEntry> battleLog) {
@@ -82,7 +82,8 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
             if (card == null || card.name() == null) {
                 continue;
             }
-            CardTally cardTally = tallies.computeIfAbsent(card.name(), key -> new CardTally(iconUrlOf(card)));
+            CardTally cardTally = tallies.computeIfAbsent(card.name(),
+                    key -> new CardTally(card.id(), iconUrlOf(card)));
             cardTally.uses++;
             if (result == BattleResult.WIN) {
                 cardTally.wins++;
@@ -119,7 +120,7 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
 
     private static CardPerformance toPerformance(String name, CardTally tally) {
         int winRate = Math.round(100f * tally.wins / tally.uses);
-        return new CardPerformance(name, tally.iconUrl, tally.uses, tally.wins, winRate,
+        return new CardPerformance(tally.cardId, name, tally.iconUrl, tally.uses, tally.wins, winRate,
                 wilsonBound(tally.wins, tally.uses, -1), wilsonBound(tally.wins, tally.uses, 1));
     }
 
@@ -142,11 +143,13 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
     }
 
     private static final class CardTally {
+        private final int cardId;
         private final String iconUrl;
         private int uses;
         private int wins;
 
-        private CardTally(String iconUrl) {
+        private CardTally(int cardId, String iconUrl) {
+            this.cardId = cardId;
             this.iconUrl = iconUrl;
         }
     }

@@ -25,6 +25,16 @@ class CardLevelTest {
         assertEquals(16, CardLevel.inGame(6, 6));
     }
 
+    /** カード詳細の「レベル 9〜16」の開始側。ゲーム内でカードを入手したときのレベルに当たる。 */
+    @Test
+    void レベル1はレアリティごとの開始レベルになる() {
+        assertEquals(1, CardLevel.inGame(1, 16));
+        assertEquals(3, CardLevel.inGame(1, 14));
+        assertEquals(6, CardLevel.inGame(1, 11));
+        assertEquals(9, CardLevel.inGame(1, 8));
+        assertEquals(11, CardLevel.inGame(1, 6));
+    }
+
     @Test
     void 想定外のmaxLevelは生値のまま返す() {
         // 上限が引き上げられた場合や、APIがmaxLevelを返さなかった場合。

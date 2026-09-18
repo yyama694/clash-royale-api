@@ -90,7 +90,7 @@ class PlayerServiceTest {
     }
 
     private static BattleLogEntry battle(String battleTime, int teamSize, int deckSize) {
-        List<BattleLogEntry.Card> cards = Collections.nCopies(deckSize, new BattleLogEntry.Card("Knight", 11, 16, null));
+        List<BattleLogEntry.Card> cards = Collections.nCopies(deckSize, new BattleLogEntry.Card(26000000, "Knight", 11, 16, null));
         List<BattleLogEntry.Participant> team = Collections.nCopies(teamSize,
                 new BattleLogEntry.Participant("#SELF", "Self", 1, cards, List.of()));
         List<BattleLogEntry.Participant> opponent = Collections.nCopies(teamSize,

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${card.name()})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <div class="card">
+            <h1><bdi th:text="${card.name()}"></bdi></h1>
+            <!--/* 日本語UIでは英語名も併記する。英語UIでは同じ文字列になるので出さない。 */-->
+            <p class="card-english-name" th:if="${card.englishName() != card.name()}"
+               lang="en" th:text="${card.englishName()}"></p>
+
+            <div class="card-detail">
+                <!--/* 進化があるカードは2枚並ぶため、どちらがどちらか分かるよう通常側にもラベルを付ける */-->
+                <div class="card-artwork">
+                    <figure th:if="${card.iconUrl() != null}">
+                        <img th:src="${card.iconUrl()}" alt="" width="285" height="420">
+                        <figcaption th:if="${card.evolutionIconUrl() != null}" th:text="#{card.normal}"></figcaption>
+                    </figure>
+                    <figure th:if="${card.evolutionIconUrl() != null}">
+                        <img th:src="${card.evolutionIconUrl()}" alt="" width="285" height="420">
+                        <figcaption th:text="#{card.evolution}"></figcaption>
+                    </figure>
+                </div>
+
+                <ul class="stat-grid">
+                    <li><span class="label" th:text="#{card.rarity}"></span><span class="value" th:text="${card.rarity()}"></span></li>
+                    <li th:if="${card.elixirCost() != null}"><span class="label" th:text="#{card.elixirCost}"></span><span class="value" th:text="${card.elixirCost()}"></span></li>
+                    <li><span class="label" th:text="#{card.levelRange}"></span><span class="value" th:text="#{card.levelRange.value(${card.minLevel()}, ${card.maxLevel()})}"></span></li>
+                </ul>
+            </div>
+
+            <p th:replace="~{fragments/layout :: notice(#{card.notice})}"></p>
+        </div>
+    </main>
+</body>
+</html>

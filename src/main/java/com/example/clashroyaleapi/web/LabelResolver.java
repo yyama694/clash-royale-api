@@ -71,6 +71,14 @@ public class LabelResolver {
         return messageSource.getMessage("battletype.other", null, EMPTY, locale);
     }
 
+    /** レアリティ。辞書に無い新レアリティはAPIの生値をそのまま出す。 */
+    public String rarity(String rawRarity, Locale locale) {
+        if (isEmpty(rawRarity)) {
+            return EMPTY;
+        }
+        return messageSource.getMessage("rarity." + rawRarity, null, rawRarity, locale);
+    }
+
     public String role(String rawRole, Locale locale) {
         if (isEmpty(rawRole)) {
             return EMPTY;
