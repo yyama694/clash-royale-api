@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
@@ -189,7 +190,8 @@ public class ViewMapper {
             return List.of();
         }
         return cards.stream()
-                .map(card -> new CardView(labels.cardName(card.name(), locale), iconUrlOf(card), card.level()))
+                .map(card -> new CardView(labels.cardName(card.name(), locale), iconUrlOf(card),
+                        CardLevel.inGame(card.level(), card.maxLevel())))
                 .toList();
     }
 

@@ -205,6 +205,6 @@ class PlayerBattleStatsTest {
     }
 
     private static BattleLogEntry.Card card(String name) {
-        return new BattleLogEntry.Card(name, 11, null);
+        return new BattleLogEntry.Card(name, 11, 16, null);
     }
 }
