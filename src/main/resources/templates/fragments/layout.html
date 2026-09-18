@@ -6,9 +6,16 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${title} + ' | ' + #{app.name}"></title>
+    <title th:text="#{title.format(${title}, #{app.name})}"></title>
     <meta name="description" th:content="#{app.description}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!--/*
+      同じURLでもCookieやAccept-Languageで返す言語が変わるため、検索エンジンには言語ごとのURLを明示する。
+      hreflangは絶対URLでないと解釈されないので、アクセスされたホストを付ける。
+    */-->
+    <link rel="alternate" hreflang="ja" th:href="@{${siteBaseUrl + currentUri}(lang='ja')}">
+    <link rel="alternate" hreflang="en" th:href="@{${siteBaseUrl + currentUri}(lang='en')}">
+    <link rel="alternate" hreflang="x-default" th:href="@{${siteBaseUrl + currentUri}}">
     <!--
       公式APIの日時は常にUTCで、閲覧者のタイムゾーンはサーバーからは分からない。そのため変換はブラウザに任せる。
       スクリプトが動かない場合は、サーバーが入れたUTC表記がそのまま残る。
@@ -36,9 +43,10 @@
         <a th:href="@{/ranking}" th:text="#{nav.clanRanking}"></a>
     </nav>
     <nav class="lang-switch" th:aria-label="#{nav.language}">
-        <a th:href="@{${currentUri}(lang='ja')}" th:text="#{lang.ja}"
+        <!--/* リンク文字列は常にその言語自身の表記なので、読み上げが正しい言語になるようlangを付ける。 */-->
+        <a th:href="@{${currentUri}(lang='ja')}" th:text="#{lang.ja}" lang="ja" hreflang="ja"
            th:classappend="${#locale.language == 'ja'} ? 'is-active'"></a>
-        <a th:href="@{${currentUri}(lang='en')}" th:text="#{lang.en}"
+        <a th:href="@{${currentUri}(lang='en')}" th:text="#{lang.en}" lang="en" hreflang="en"
            th:classappend="${#locale.language != 'ja'} ? 'is-active'"></a>
     </nav>
 </header>
@@ -114,7 +122,7 @@
 <!-- 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。 -->
 <div th:fragment="matchupSide(side)" class="side">
     <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">
-        <a th:href="@{/player/{tag}(tag=${p.pathTag()})}" th:text="${p.name()}"></a>
+        <a th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.name()}"></bdi></a>
     </div>
     <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
     <div th:text="#{battle.crowns(${side[0].crowns()})}"></div>
@@ -150,10 +158,11 @@
                 <tr th:each="row : ${rows}">
                     <td class="cell-rank" th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
                     <td class="cell-name" th:attr="data-label=#{ranking.col.clan}">
-                        <a th:href="@{/clan/{tag}(tag=${row.pathTag()})}" th:text="${row.name()}"></a>
+                        <a th:href="@{/clan/{tag}(tag=${row.pathTag()})}"><bdi th:text="${row.name()}"></bdi></a>
                     </td>
                     <td th:if="${showLocation}" th:attr="data-label=#{ranking.col.location}" th:text="${row.locationName()}"></td>
-                    <td class="num" th:attr="data-label=#{ranking.col.score}" th:text="${row.clanScore()}"></td>
+                    <td class="num" th:attr="data-label=#{ranking.col.score}"
+                        th:text="${#numbers.formatInteger(row.clanScore(), 1, 'DEFAULT')}"></td>
                     <td class="num" th:attr="data-label=#{ranking.col.members}" th:text="${row.members()}"></td>
                 </tr>
             </tbody>
@@ -179,16 +188,17 @@
                 <tr th:each="row : ${rows}">
                     <td class="cell-rank" th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
                     <td class="cell-name" th:attr="data-label=#{playerRanking.col.player}">
-                        <a th:href="@{/player/{tag}(tag=${row.pathTag()})}" th:text="${row.name()}"></a>
+                        <a th:href="@{/player/{tag}(tag=${row.pathTag()})}"><bdi th:text="${row.name()}"></bdi></a>
                     </td>
                     <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.level}"
                         th:text="#{battle.level(${row.expLevel()})}"></td>
-                    <td class="num" th:attr="data-label=#{playerRanking.col.rating}" th:text="${row.eloRating()}"></td>
+                    <td class="num" th:attr="data-label=#{playerRanking.col.rating}"
+                        th:text="${#numbers.formatInteger(row.eloRating(), 1, 'DEFAULT')}"></td>
                     <!-- クラン未所属の人は、スマホのカード表示で「クラン」の見出しだけが空で残らないよう is-empty を付ける。 -->
                     <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.clan}"
                         th:classappend="${row.clanName() == null} ? 'is-empty'">
-                        <a th:if="${row.clanName() != null}" th:href="@{/clan/{tag}(tag=${row.clanPathTag()})}"
-                           th:text="${row.clanName()}"></a>
+                        <a th:if="${row.clanName() != null}" th:href="@{/clan/{tag}(tag=${row.clanPathTag()})}">
+                            <bdi th:text="${row.clanName()}"></bdi></a>
                     </td>
                 </tr>
             </tbody>

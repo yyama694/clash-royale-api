@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -28,6 +29,14 @@ class GlobalModelAttributesTest {
     @Test
     void 名前がlangで始まる別のパラメータは取り除かない() {
         assertEquals("/?language=x", attributes.currentUri(request("/", "language=x&lang=en")));
+    }
+
+    @Test
+    void エラー画面では転送前のURLを返す() {
+        MockHttpServletRequest request = request("/error", "x=1&lang=en");
+        request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI, "/nonexistent");
+
+        assertEquals("/nonexistent?x=1", attributes.currentUri(request));
     }
 
     private static MockHttpServletRequest request(String uri, String query) {

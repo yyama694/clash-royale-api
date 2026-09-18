@@ -12,7 +12,7 @@
 
         <div class="card" id="player-ranking">
             <h2 th:text="#{playerRanking.heading}"></h2>
-            <p th:text="#{playerRanking.lead}"></p>
+            <p th:text="#{playerRanking.lead(${playerRankingSize})}"></p>
             <!--/* 国を選び直すとページ先頭に戻ってしまうため、送信先にアンカーを付けてランキングの位置に戻す */-->
             <div th:replace="~{fragments/layout :: rankingTabs(
                      ~{fragments/layout :: playerRankingTable(${globalRanking}, false)},

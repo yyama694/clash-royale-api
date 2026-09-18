@@ -42,6 +42,8 @@ public class HomeController {
                 .map(c -> viewMapper.toPlayerRankingRows(rankingService.topPlayers(c.locationId(),
                         PLAYER_RANKING_SIZE)))
                 .orElseGet(List::of));
+        // 注記の「上位n人」を文言に直書きすると定数を変えたときにずれるため、件数も渡す。
+        model.addAttribute("playerRankingSize", PLAYER_RANKING_SIZE);
         // トップページでは、訪問者に身近な自国のランキングを最初に見せる(国が決まらないときはグローバル)。
         model.addAttribute("localTabActive", selected.isPresent());
         return "index";

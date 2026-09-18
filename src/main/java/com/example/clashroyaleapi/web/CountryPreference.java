@@ -23,11 +23,12 @@ import java.util.Optional;
 @Component
 public class CountryPreference {
 
-    // 主な利用者が日本のプレイヤーのため、国を特定できないときは日本を既定にする。
+    // 表示言語からも国を決められなかったときの最後の砦。主な利用者が日本のプレイヤーのため日本にする。
     private static final String FALLBACK_COUNTRY_CODE = "JP";
     private static final Duration COOKIE_MAX_AGE = Duration.ofDays(365);
 
-    public Optional<Country> resolve(String requested, HttpServletRequest request, List<Country> countries) {
+    public Optional<Country> resolve(String requested, HttpServletRequest request, List<Country> countries,
+            Locale displayLocale) {
         if (countries.isEmpty()) {
             return Optional.empty();
         }
@@ -37,6 +38,7 @@ public class CountryPreference {
                         .map(countryCode -> find(countries, countryCode))
                         .flatMap(Optional::stream)
                         .findFirst())
+                .or(() -> find(countries, displayLanguageCountry(displayLocale)))
                 .or(() -> find(countries, FALLBACK_COUNTRY_CODE));
     }
 
@@ -46,6 +48,15 @@ public class CountryPreference {
         cookie.setMaxAge((int) COOKIE_MAX_AGE.toSeconds());
         cookie.setHttpOnly(true);
         response.addCookie(cookie);
+    }
+
+    /**
+     * Accept-Languageに地域が無い(en だけ、など)訪問者に、言語と関係なく日本を出さないための推定。
+     * 表示言語の代表的な国をCLDRの対応表で求める(ja→JP、en→US)。
+     */
+    private String displayLanguageCountry(Locale displayLocale) {
+        Locale supported = SupportedLanguages.displayLocale(displayLocale);
+        return ULocale.addLikelySubtags(ULocale.forLocale(supported)).getCountry();
     }
 
     private Optional<Country> find(List<Country> countries, String countryCode) {

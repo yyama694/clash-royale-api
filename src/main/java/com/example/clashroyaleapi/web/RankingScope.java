@@ -31,7 +31,7 @@ public class RankingScope {
     public Optional<Country> resolve(String country, HttpServletRequest request, HttpServletResponse response,
             Model model, Locale locale) {
         List<Country> countries = locationService.countries();
-        Optional<Country> selected = countryPreference.resolve(country, request, countries);
+        Optional<Country> selected = countryPreference.resolve(country, request, countries, locale);
         // 指定された国が一覧に無いと、resolveは前回の選択などにフォールバックする。
         // その国を「選び直した国」として保存・表示しないよう、指定どおりの国に決まった場合だけを明示選択とみなす。
         boolean chosenExplicitly = country != null

@@ -70,6 +70,13 @@ class LabelResolverTest {
     }
 
     @Test
+    void イベント名は接頭辞で分類する() {
+        // Challenge_* は type が trail のため、接頭辞を見ないと「通常バトル」に埋もれる。
+        assertEquals("チャレンジ", labels.gameMode("trail", "Challenge_AllCards_EventDeck_NoSet", Locale.JAPANESE));
+        assertEquals("Challenge", labels.gameMode("trail", "Challenge_AllCards_EventDeck_NoSet", Locale.ENGLISH));
+    }
+
+    @Test
     void 名前も種別も辞書に無ければその他にし内部IDは出さない() {
         assertEquals("その他", labels.gameMode("futureType", "SomeFutureMode", Locale.JAPANESE));
         assertEquals("Other", labels.gameMode("futureType", "SomeFutureMode", Locale.ENGLISH));

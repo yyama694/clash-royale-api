@@ -17,7 +17,7 @@ import java.util.Optional;
 @Controller
 public class RankingController {
 
-    // トップページ(上位100人)より多く見せる画面なので、取得できる最大件数をそのまま出す。
+    // トップページ(概要のみ)より多く見せる画面なので、取得できる最大件数をそのまま出す。
     private static final int PLAYER_RANKING_SIZE = RankingService.MAX_PLAYER_RANKING_SIZE;
 
     private final RankingService rankingService;
@@ -41,6 +41,8 @@ public class RankingController {
         model.addAttribute("localRanking", selected
                 .map(c -> viewMapper.toClanRankingRows(rankingService.topClans(c.locationId()), locale))
                 .orElseGet(List::of));
+        // 注記の「上位n件」を文言に直書きすると定数を変えたときにずれるため、件数も渡す。
+        model.addAttribute("clanRankingSize", RankingService.CLAN_RANKING_SIZE);
         return "ranking";
     }
 
@@ -55,6 +57,7 @@ public class RankingController {
                 .map(c -> viewMapper.toPlayerRankingRows(rankingService.topPlayers(c.locationId(),
                         PLAYER_RANKING_SIZE)))
                 .orElseGet(List::of));
+        model.addAttribute("playerRankingSize", PLAYER_RANKING_SIZE);
         return "player-ranking";
     }
 }

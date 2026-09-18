@@ -20,7 +20,8 @@ public class RankingService {
     private static final Logger log = LoggerFactory.getLogger(RankingService.class);
 
     // クランランキング画面の表示量と、低スペックVMでの描画コストのバランスで上位10件にしている。
-    private static final int RANKING_LIMIT = 10;
+    // 画面の注記にも件数を出すため公開している(文言と実際の件数がずれないようにするため)。
+    public static final int CLAN_RANKING_SIZE = 10;
 
     // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIは最大1000件まで返すが、
     // 低スペックVMでの描画コストを考えて200件にしている。
@@ -38,7 +39,7 @@ public class RankingService {
      */
     public List<ClanRankingResponse.RankedClan> topClans(String locationId) {
         try {
-            return apiClient.getClanRankings(locationId, RANKING_LIMIT);
+            return apiClient.getClanRankings(locationId, CLAN_RANKING_SIZE);
         } catch (ClashRoyaleApiException e) {
             log.warn("clan ranking unavailable for location {}: {}", locationId, e.toString());
             return List.of();

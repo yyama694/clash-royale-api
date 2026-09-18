@@ -30,7 +30,7 @@
         <div class="decks">
             <div class="card deck-panel deck-panel-team" th:each="p, iter : ${battle.team()}"
                  th:style="'--row: ' + ${iter.count}">
-                <h2 th:text="(${p.viewer()} ? #{battle.deck.team} : #{battle.deck.teammate}) + '(' + ${p.name()} + ')'"></h2>
+                <h2 th:text="${p.viewer()} ? #{battle.deck.team(${p.name()})} : #{battle.deck.teammate(${p.name()})}"></h2>
                 <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
                 <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
@@ -38,7 +38,7 @@
             </div>
             <div class="card deck-panel deck-panel-opponent" th:each="p, iter : ${battle.opponents()}"
                  th:style="'--row: ' + ${iter.count}">
-                <h2 th:text="#{battle.deck.opponent} + '(' + ${p.name()} + ')'"></h2>
+                <h2 th:text="#{battle.deck.opponent(${p.name()})}"></h2>
                 <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
                 <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>

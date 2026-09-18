@@ -8,18 +8,35 @@
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <div class="card">
-            <h1 th:text="${playerName}"></h1>
+            <h1><bdi th:text="${playerName}"></bdi></h1>
             <p><span class="tag-pill" th:text="${player.tag()}"></span></p>
             <!--/* 絵文字は見た目の目印なので、読み上げでは項目名だけが読まれるよう aria-hidden にする */-->
             <ul class="stat-grid">
                 <li><span class="label"><span aria-hidden="true">⭐</span> <span th:text="#{player.expLevel}"></span></span><span class="value" th:text="${player.expLevel()}"></span></li>
-                <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{player.trophies}"></span></span><span class="value" th:text="${player.trophies()}"></span></li>
-                <li><span class="label"><span aria-hidden="true">🥇</span> <span th:text="#{player.bestTrophies}"></span></span><span class="value" th:text="${player.bestTrophies()}"></span></li>
-                <li><span class="label"><span aria-hidden="true">✅</span> <span th:text="#{player.wins}"></span></span><span class="value" th:text="${player.wins()}"></span></li>
-                <li><span class="label"><span aria-hidden="true">❌</span> <span th:text="#{player.losses}"></span></span><span class="value" th:text="${player.losses()}"></span></li>
-                <li><span class="label"><span aria-hidden="true">👑</span> <span th:text="#{player.threeCrownWins}"></span></span><span class="value" th:text="${player.threeCrownWins()}"></span></li>
-                <li th:if="${player.clan()}"><span class="label"><span aria-hidden="true">🛡️</span> <span th:text="#{player.clan}"></span></span><span class="value"><a th:href="@{/clan/{tag}(tag=${clanPathTag})}" th:text="${clanName}"></a></span></li>
+                <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{player.trophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.trophies(), 1, 'DEFAULT')}"></span></li>
+                <li><span class="label"><span aria-hidden="true">🥇</span> <span th:text="#{player.bestTrophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.bestTrophies(), 1, 'DEFAULT')}"></span></li>
+                <li><span class="label"><span aria-hidden="true">✅</span> <span th:text="#{player.wins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.wins(), 1, 'DEFAULT')}"></span></li>
+                <li><span class="label"><span aria-hidden="true">❌</span> <span th:text="#{player.losses}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.losses(), 1, 'DEFAULT')}"></span></li>
+                <li><span class="label"><span aria-hidden="true">👑</span> <span th:text="#{player.threeCrownWins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.threeCrownWins(), 1, 'DEFAULT')}"></span></li>
+                <li th:if="${player.clan()}"><span class="label"><span aria-hidden="true">🛡️</span> <span th:text="#{player.clan}"></span></span><span class="value"><a th:href="@{/clan/{tag}(tag=${clanPathTag})}"><bdi th:text="${clanName}"></bdi></a></span></li>
             </ul>
+        </div>
+
+        <div th:if="${battles != null}" class="card current-deck">
+            <h2 th:text="#{deck.heading}"></h2>
+            <p th:replace="~{fragments/layout :: notice(#{deck.notice})}"></p>
+            <th:block th:if="${currentDeck}">
+                <p class="deck-source">
+                    <span th:text="#{deck.source}"></span>
+                    <a th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${currentDeck.battleTime()})}"><span th:text="${currentDeck.gameMode()}"></span>
+                        <time th:replace="~{fragments/layout :: localTime(${currentDeck.time()})}"></time></a>
+                </p>
+                <div th:replace="~{fragments/layout :: deckGrid(${currentDeck.cards()})}"></div>
+                <th:block th:if="${not #lists.isEmpty(currentDeck.supportCards())}">
+                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${currentDeck.supportCards()})}"></div>
+                </th:block>
+            </th:block>
+            <p th:unless="${currentDeck}" class="empty-state" th:text="#{deck.empty}"></p>
         </div>
 
         <div th:if="${battleStats}" class="card">
@@ -70,12 +87,12 @@
                             <!--/* 2v2では相手が2人いて味方もいるため、全員を出す(相手の1人目だけだと対戦の半分しか分からない) */-->
                             <td th:attr="data-label=#{battlelog.col.opponent}">
                                 <span class="name-list">
-                                    <a th:each="o : ${b.opponents()}" th:href="@{/player/{tag}(tag=${o.pathTag()})}" th:text="${o.name()}"></a>
+                                    <a th:each="o : ${b.opponents()}" th:href="@{/player/{tag}(tag=${o.pathTag()})}"><bdi th:text="${o.name()}"></bdi></a>
                                 </span>
                                 <span th:unless="${#lists.isEmpty(b.teammates())}" class="teammates">
                                     <span th:text="#{battlelog.teammate}"></span>
                                     <span class="name-list">
-                                        <a th:each="t : ${b.teammates()}" th:href="@{/player/{tag}(tag=${t.pathTag()})}" th:text="${t.name()}"></a>
+                                        <a th:each="t : ${b.teammates()}" th:href="@{/player/{tag}(tag=${t.pathTag()})}"><bdi th:text="${t.name()}"></bdi></a>
                                     </span>
                                 </span>
                             </td>

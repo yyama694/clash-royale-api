@@ -8,11 +8,11 @@
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <div class="card">
-            <h1 th:text="${clanName}"></h1>
+            <h1><bdi th:text="${clanName}"></bdi></h1>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
             <p class="clan-description" th:if="${clan.description()}" th:text="${clan.description()}"></p>
             <ul class="stat-grid">
-                <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{clan.score}"></span></span><span class="value" th:text="${clan.clanScore()}"></span></li>
+                <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{clan.score}"></span></span><span class="value" th:text="${#numbers.formatInteger(clan.clanScore(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">👥</span> <span th:text="#{clan.memberCount}"></span></span><span class="value" th:text="${clan.members()}"></span></li>
             </ul>
         </div>
@@ -34,10 +34,10 @@
                     </thead>
                     <tbody>
                         <tr th:each="member : ${members}">
-                            <td th:attr="data-label=#{clan.col.name}"><a th:href="@{/player/{tag}(tag=${member.pathTag()})}" th:text="${member.name()}"></a></td>
+                            <td th:attr="data-label=#{clan.col.name}"><a th:href="@{/player/{tag}(tag=${member.pathTag()})}"><bdi th:text="${member.name()}"></bdi></a></td>
                             <td th:attr="data-label=#{clan.col.role}" th:text="${member.role()}"></td>
-                            <td class="num" th:attr="data-label=#{clan.col.trophies}" th:text="${member.trophies()}"></td>
-                            <td class="num" th:attr="data-label=#{clan.col.donations}" th:text="${member.donations()}"></td>
+                            <td class="num" th:attr="data-label=#{clan.col.trophies}" th:text="${#numbers.formatInteger(member.trophies(), 1, 'DEFAULT')}"></td>
+                            <td class="num" th:attr="data-label=#{clan.col.donations}" th:text="${#numbers.formatInteger(member.donations(), 1, 'DEFAULT')}"></td>
                             <!--/* 長期間アクセスの無いメンバーは、クランの整理対象を探しやすいよう警告色で目立たせる */-->
                             <td th:attr="data-label=#{clan.col.lastSeen}" th:with="lastSeen=${member.lastSeenIso()}"
                                 th:switch="${member.inactiveDays()}">

@@ -55,6 +55,12 @@ public class LabelResolver {
         if (byName != null) {
             return byName;
         }
+        // Challenge_AllCards_EventDeck_NoSet のようにイベントごとに増える名前は、完全一致では追いつかない。
+        // type では trail(通常バトル)に混ざってしまうので、名前の接頭辞で先に分類する。
+        String byPrefix = isEmpty(name) ? null : messageSource.getMessage(prefixKey(name), null, null, locale);
+        if (byPrefix != null) {
+            return byPrefix;
+        }
         String byType = isEmpty(type) ? null : messageSource.getMessage("battletype." + type, null, null, locale);
         if (byType != null) {
             return byType;
@@ -77,6 +83,12 @@ public class LabelResolver {
 
     public String message(String key, Locale locale) {
         return messageSource.getMessage(key, null, key, locale);
+    }
+
+    /** "Challenge_AllCards_EventDeck_NoSet" → "gamemodeprefix.Challenge"。区切りが無い名前は名前全体を接頭辞とみなす。 */
+    private String prefixKey(String name) {
+        int separator = name.indexOf('_');
+        return "gamemodeprefix." + (separator < 0 ? name : name.substring(0, separator));
     }
 
     private void reportIfUntranslated(String key) {
