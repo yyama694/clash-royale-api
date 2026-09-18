@@ -344,6 +344,11 @@ button:hover, .btn:hover {
     max-width: 560px;
 }
 
+/* 右寄せのコピーボタンがデッキから離れないよう、デッキと同じ幅に収める。 */
+.current-deck .deck-meta {
+    max-width: 560px;
+}
+
 .table-scroll {
     overflow-x: auto;
 }
@@ -662,6 +667,36 @@ td.cell-action {
 .support-card .card-sub {
     font-size: 0.72rem;
     color: var(--color-text-muted);
+}
+
+.deck-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-top: 0.75rem;
+}
+
+.deck-metric {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.deck-metric-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.deck-metric-value {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+/* 指標の数が変わってもボタンの位置が揺れないよう、行の右端に寄せる。 */
+.deck-meta .deck-copy {
+    margin-left: auto;
 }
 
 .matchup {

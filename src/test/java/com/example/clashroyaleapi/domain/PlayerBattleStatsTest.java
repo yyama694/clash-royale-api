@@ -206,6 +206,6 @@ class PlayerBattleStatsTest {
 
     // カードIDは名前ごとに一意であればよいので、名前のハッシュから作る(詳細画面へのリンクに使う値)。
     private static BattleLogEntry.Card card(String name) {
-        return new BattleLogEntry.Card(name.hashCode(), name, 11, 16, null);
+        return new BattleLogEntry.Card(name.hashCode(), name, 11, 16, 3, null);
     }
 }

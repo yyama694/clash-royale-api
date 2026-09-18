@@ -35,6 +35,7 @@
                 <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
                 </th:block>
+                <div th:replace="~{fragments/layout :: deckMeta(${p.meta()})}"></div>
             </div>
             <div class="card deck-panel deck-panel-opponent" th:each="p, iter : ${battle.opponents()}"
                  th:style="'--row: ' + ${iter.count}">
@@ -43,6 +44,7 @@
                 <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
                 </th:block>
+                <div th:replace="~{fragments/layout :: deckMeta(${p.meta()})}"></div>
             </div>
         </div>
     </main>

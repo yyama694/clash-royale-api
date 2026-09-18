@@ -10,6 +10,7 @@ import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.Country;
+import com.example.clashroyaleapi.domain.Deck;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
@@ -24,6 +25,7 @@ import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
+import com.example.clashroyaleapi.web.view.DeckMetaView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
@@ -34,6 +36,8 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
@@ -80,7 +84,8 @@ public class ViewMapper {
                 timeFormatter.apiTimestamp(battle.battleTime(), locale),
                 gameModeOf(battle, locale),
                 toCards(self.cards(), locale),
-                toCards(self.supportCards(), locale));
+                toCards(self.supportCards(), locale),
+                toDeckMeta(self));
     }
 
     /**
@@ -201,8 +206,23 @@ public class ViewMapper {
                         result,
                         toCards(participant.cards(), locale),
                         toCards(participant.supportCards(), locale),
+                        toDeckMeta(participant),
                         isViewer(participant, viewerTag)))
                 .toList();
+    }
+
+    static DeckMetaView toDeckMeta(BattleLogEntry.Participant participant) {
+        List<BattleLogEntry.Card> cards = participant.cards() == null ? List.of() : participant.cards();
+        List<Integer> elixirCosts = cards.stream().map(BattleLogEntry.Card::elixirCost).toList();
+        List<Integer> cardIds = cards.stream().map(BattleLogEntry.Card::id).toList();
+        Integer towerTroopId = participant.supportCards() == null || participant.supportCards().isEmpty()
+                ? null : participant.supportCards().get(0).id();
+        OptionalDouble average = Deck.averageElixir(elixirCosts);
+        OptionalInt cycle = Deck.fourCardCycle(elixirCosts);
+        return new DeckMetaView(
+                average.isPresent() ? average.getAsDouble() : null,
+                cycle.isPresent() ? cycle.getAsInt() : null,
+                Deck.copyUrl(cardIds, towerTroopId).orElse(null));
     }
 
     private List<CardView> toCards(List<BattleLogEntry.Card> cards, Locale locale) {

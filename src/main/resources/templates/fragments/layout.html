@@ -282,6 +282,24 @@
     </div>
 </div>
 
+<!--
+  デッキの平均エリクサー・4枚サイクルとコピーボタン。求められない項目はViewMapperでnullにしてあり、その項目だけ出さない。
+  コピーのリンクはゲームを起動するため、今のページを残せるよう別タブで開く。
+-->
+<div th:fragment="deckMeta(meta)" class="deck-meta"
+     th:if="${meta.averageElixir() != null or meta.copyUrl() != null}">
+    <span class="deck-metric" th:if="${meta.averageElixir() != null}">
+        <span class="deck-metric-label" th:text="#{deck.averageElixir}"></span>
+        <span class="deck-metric-value" th:text="${#numbers.formatDecimal(meta.averageElixir(), 1, 1)}"></span>
+    </span>
+    <span class="deck-metric" th:if="${meta.fourCardCycle() != null}">
+        <span class="deck-metric-label" th:text="#{deck.fourCardCycle}"></span>
+        <span class="deck-metric-value" th:text="${meta.fourCardCycle()}"></span>
+    </span>
+    <a th:if="${meta.copyUrl() != null}" class="btn btn-secondary btn-small deck-copy" th:href="${meta.copyUrl()}"
+       th:title="#{deck.copy.title}" target="_blank" rel="noopener noreferrer" th:text="#{deck.copy}"></a>
+</div>
+
 <!-- 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。 -->
 <div th:fragment="matchupSide(side)" class="side">
     <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">

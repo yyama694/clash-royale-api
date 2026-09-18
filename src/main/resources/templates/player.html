@@ -35,6 +35,7 @@
                 <th:block th:if="${not #lists.isEmpty(currentDeck.supportCards())}">
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${currentDeck.supportCards()})}"></div>
                 </th:block>
+                <div th:replace="~{fragments/layout :: deckMeta(${currentDeck.meta()})}"></div>
             </th:block>
             <p th:unless="${currentDeck}" class="empty-state" th:text="#{deck.empty}"></p>
         </div>
