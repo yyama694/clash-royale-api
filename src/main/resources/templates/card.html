@@ -5,7 +5,7 @@
     <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+        <a class="back-link" th:href="@{${origin.backPath()}}">&laquo; <span th:text="#{${origin.backLabelKey()}}"></span></a>
 
         <div class="card">
             <h1><bdi th:text="${card.name()}"></bdi></h1>

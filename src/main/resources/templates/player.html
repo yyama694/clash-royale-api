@@ -31,9 +31,9 @@
                     <a th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${currentDeck.battleTime()})}"><span th:text="${currentDeck.gameMode()}"></span>
                         <time th:replace="~{fragments/layout :: localTime(${currentDeck.time()})}"></time></a>
                 </p>
-                <div th:replace="~{fragments/layout :: deckGrid(${currentDeck.cards()})}"></div>
+                <div th:replace="~{fragments/layout :: deckGrid(${currentDeck.cards()}, ${cardOrigin})}"></div>
                 <th:block th:if="${not #lists.isEmpty(currentDeck.supportCards())}">
-                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${currentDeck.supportCards()})}"></div>
+                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${currentDeck.supportCards()}, ${cardOrigin})}"></div>
                 </th:block>
             </th:block>
             <p th:unless="${currentDeck}" class="empty-state" th:text="#{deck.empty}"></p>
@@ -51,10 +51,10 @@
                 <p th:replace="~{fragments/layout :: notice(#{stats.method})}"></p>
 
                 <h3 th:text="#{stats.favorite.heading}"></h3>
-                <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.favoriteCards()}, 'good')}"></div>
+                <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.favoriteCards()}, 'good', ${cardOrigin})}"></div>
 
                 <h3 th:text="#{stats.weak.heading}"></h3>
-                <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.weakCards()}, 'bad')}"></div>
+                <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.weakCards()}, 'bad', ${cardOrigin})}"></div>
             </div>
             <p th:unless="${battleStats.hasCardRanking()}" class="empty-state" th:text="#{stats.insufficient}"></p>
         </div>
