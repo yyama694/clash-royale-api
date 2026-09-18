@@ -55,6 +55,8 @@ public class PlayerController {
         try {
             List<BattleLogEntry> battleLog = playerService.findBattleLog(tag);
             model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, player.tag(), locale));
+            playerService.latestOneOnOne(battleLog)
+                    .ifPresent(battle -> model.addAttribute("currentDeck", viewMapper.toCurrentDeck(battle, locale)));
             if (!battleLog.isEmpty()) {
                 model.addAttribute("battleStats", viewMapper.toStats(playerService.statsOf(battleLog), locale));
             }

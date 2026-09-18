@@ -330,6 +330,20 @@ button:hover, .btn:hover {
     font-weight: 600;
 }
 
+.deck-source {
+    font-size: 0.9rem;
+}
+
+/*
+  ゲーム内と同じ4列×2行にする(auto-fitだとスマホで3・3・2に折り返す)。
+  8列にするとPC幅でもカード名が折り返し、4列のまま全幅に広げると間延びするため、幅に上限を設ける。
+*/
+.current-deck .deck-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    max-width: 560px;
+}
+
 .table-scroll {
     overflow-x: auto;
 }

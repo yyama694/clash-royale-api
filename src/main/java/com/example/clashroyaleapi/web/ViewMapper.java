@@ -20,6 +20,7 @@ import com.example.clashroyaleapi.web.view.ClanMemberView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
+import com.example.clashroyaleapi.web.view.CurrentDeckView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
@@ -66,6 +67,17 @@ public class ViewMapper {
                 gameModeOf(battle, locale),
                 toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, viewerTag, locale),
                 toParticipants(battle.opponent(), invert(teamResult), viewerTag, locale));
+    }
+
+    /** 1vs1の対戦を渡す前提なので、teamの先頭が見ているプレイヤー本人になる。 */
+    public CurrentDeckView toCurrentDeck(BattleLogEntry battle, Locale locale) {
+        BattleLogEntry.Participant self = battle.team().get(0);
+        return new CurrentDeckView(
+                battle.battleTime(),
+                timeFormatter.apiTimestamp(battle.battleTime(), locale),
+                gameModeOf(battle, locale),
+                toCards(self.cards(), locale),
+                toCards(self.supportCards(), locale));
     }
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
