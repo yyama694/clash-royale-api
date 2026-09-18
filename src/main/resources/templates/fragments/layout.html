@@ -34,6 +34,158 @@
             });
         });
     </script>
+    <!--
+      戻るリンク(.back-link)を「ひとつ前の画面」に戻す。行き先はブラウザの履歴に任せ(history.back)、
+      文言だけ直前のページのパスから決める。サーバーから戻り先を決めると、戻った先の画面でも
+      「さっきの画面に戻る」が出て2画面の往復になるため。
+      履歴が無い(直接開いた・新しいタブで開いた)ときは、サーバーが出したリンクをそのまま使う。
+
+      言語切替・並べ替え・国選択のようにパスが同じでクエリだけ変わる遷移は、履歴を積まずに置き換える。
+      積むと「戻る」が同じ画面の切替前に戻ってしまうため。置き換えた後は referrer が自分自身になるので、
+      画面に入ってきたときの直前のパスを sessionStorage に覚えておき、それを使う。
+    -->
+    <script th:inline="javascript">
+        (function () {
+            var labels = {
+                top: /*[[#{action.backToTop}]]*/ '',
+                playerRanking: /*[[#{action.backToPlayerRanking}]]*/ '',
+                clanRanking: /*[[#{action.backToClanRanking}]]*/ '',
+                battle: /*[[#{action.backToBattle}]]*/ '',
+                player: /*[[#{action.backToPlayer}]]*/ '',
+                clanSearch: /*[[#{action.backToClanSearch}]]*/ '',
+                clan: /*[[#{action.backToClan}]]*/ '',
+                card: /*[[#{action.backToCard}]]*/ '',
+                other: /*[[#{action.back}]]*/ ''
+            };
+            // 上から順に判定する(/player/{tag} より /player/{tag}/battles/{time} を先に)。
+            // [/ はThymeleafのインライン記法(閉じ要素)と解釈されるため、配列ではなくオブジェクトで持つ。
+            var screens = [
+                {pattern: /^\/$/, screen: 'top'},
+                {pattern: /^\/ranking\/players$/, screen: 'playerRanking'},
+                {pattern: /^\/ranking$/, screen: 'clanRanking'},
+                {pattern: /^\/player\/[^/]+\/battles\/[^/]+$/, screen: 'battle'},
+                {pattern: /^\/player\/[^/]+$/, screen: 'player'},
+                {pattern: /^\/clan\/search$/, screen: 'clanSearch'},
+                {pattern: /^\/clan\/[^/]+$/, screen: 'clan'},
+                {pattern: /^\/card\/[^/]+$/, screen: 'card'}
+            ];
+            var storageKey = 'backFrom:' + location.pathname;
+
+            function sameOrigin(href) {
+                try {
+                    var url = new URL(href, location.href);
+                    return url.origin === location.origin ? url : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+            function storage(action) {
+                try {
+                    return action(window.sessionStorage);
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            var referrer = document.referrer ? sameOrigin(document.referrer) : null;
+            var backFrom = null;
+            if (referrer && referrer.pathname === location.pathname) {
+                backFrom = storage(function (s) { return s.getItem(storageKey); });
+            } else {
+                if (referrer) {
+                    // hrefにも使うので、別タブで開いたときに言語が切り替わらないよう lang は落とす。
+                    referrer.searchParams.delete('lang');
+                    backFrom = referrer.pathname + referrer.search;
+                }
+                storage(function (s) {
+                    if (backFrom) {
+                        s.setItem(storageKey, backFrom);
+                    } else {
+                        s.removeItem(storageKey);
+                    }
+                });
+            }
+
+            // 戻った先はブラウザのキャッシュから復元されるため、途中で言語を切り替えていると古い言語のまま出る。
+            // 最後に表示した言語を覚えておき、履歴で戻ってきて食い違っていたら読み直す。
+            function languageChanged() {
+                var last = storage(function (s) { return s.getItem('lastLang'); });
+                return last && last !== document.documentElement.lang;
+            }
+            // URLに ?lang= が残っているとそちらが優先されて元の言語に戻るため、外してから開き直す。
+            function reloadWithoutLangParam() {
+                var url = new URL(location.href);
+                url.searchParams.delete('lang');
+                location.replace(url.href);
+            }
+            function rememberLanguage() {
+                storage(function (s) { s.setItem('lastLang', document.documentElement.lang); });
+            }
+            var navigation = performance.getEntriesByType('navigation')[0];
+            if (navigation && navigation.type === 'back_forward' && languageChanged()) {
+                reloadWithoutLangParam();
+                return;
+            }
+            rememberLanguage();
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted && languageChanged()) {
+                    reloadWithoutLangParam();
+                }
+            });
+
+            function isPlainClick(event) {
+                return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+            }
+
+            document.addEventListener('click', function (event) {
+                if (event.defaultPrevented || !isPlainClick(event)) {
+                    return;
+                }
+                var link = event.target.closest('a[href]');
+                if (!link || link.target || link.hasAttribute('download')) {
+                    return;
+                }
+                var url = sameOrigin(link.href);
+                // ページ内リンク(#だけ違う)はブラウザに任せる。
+                if (!url || url.pathname !== location.pathname || url.search === location.search) {
+                    return;
+                }
+                event.preventDefault();
+                location.replace(url.href);
+            });
+
+            document.addEventListener('submit', function (event) {
+                var form = event.target;
+                var url = sameOrigin(form.action);
+                if (event.defaultPrevented || form.method.toLowerCase() !== 'get'
+                        || !url || url.pathname !== location.pathname) {
+                    return;
+                }
+                event.preventDefault();
+                url.search = new URLSearchParams(new FormData(form)).toString();
+                location.replace(url.href);
+            });
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var link = document.querySelector('a.back-link');
+                if (!link || !backFrom || history.length < 2) {
+                    return;
+                }
+                var path = backFrom.split('?')[0];
+                var match = screens.find(function (entry) { return entry.pattern.test(path); });
+                link.querySelector('span').textContent = labels[match ? match.screen : 'other'];
+                // 新しいタブで開かれた場合に備えて、hrefも直前の画面にしておく。
+                link.setAttribute('href', backFrom);
+                link.addEventListener('click', function (event) {
+                    if (!isPlainClick(event)) {
+                        return;
+                    }
+                    event.preventDefault();
+                    history.back();
+                });
+            });
+        })();
+    </script>
 </head>
 
 <!-- ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 -->
