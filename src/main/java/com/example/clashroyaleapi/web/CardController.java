@@ -6,7 +6,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Locale;
 
@@ -22,10 +21,8 @@ public class CardController {
     }
 
     @GetMapping("/card/{id}")
-    public String card(@PathVariable int id, @RequestParam(required = false) String player,
-            @RequestParam(required = false) String battle, Model model, Locale locale) {
+    public String card(@PathVariable int id, Model model, Locale locale) {
         model.addAttribute("card", viewMapper.toCardDetail(cardService.byId(id), locale));
-        model.addAttribute("origin", CardOrigin.fromQuery(player, battle));
         return "card";
     }
 }

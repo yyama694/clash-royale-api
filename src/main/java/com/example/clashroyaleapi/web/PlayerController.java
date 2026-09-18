@@ -46,7 +46,6 @@ public class PlayerController {
         model.addAttribute("player", player);
         model.addAttribute("playerName", GameText.stripFormatting(player.name()));
         model.addAttribute("playerPathTag", Tags.toPathSegment(player.tag()));
-        model.addAttribute("cardOrigin", CardOrigin.player(player.tag()));
         if (player.clan() != null) {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
@@ -72,7 +71,6 @@ public class PlayerController {
             Locale locale) {
         BattleLogEntry battle = playerService.findBattle(tag, battleTime);
         model.addAttribute("playerPathTag", Tags.toPathSegment(tag));
-        model.addAttribute("cardOrigin", CardOrigin.battle(tag, battleTime));
         model.addAttribute("battle", viewMapper.toBattleDetail(battle, tag, locale));
         return "battle-detail";
     }
