@@ -17,9 +17,7 @@ import java.util.Optional;
 @Controller
 public class HomeController {
 
-    // 検索がトップページの主役なので、ランキングは概要に留めて続きは個人ランキング画面に任せる。
-    // 100人表示にしていた時期は、ページの高さがPCで約5,600px・スマホで約12,500pxになり、下のクランランキングへの導線が埋もれた。
-    private static final int PLAYER_RANKING_SIZE = 10;
+    private static final int PLAYER_RANKING_SIZE = 100;
 
     private final RankingService rankingService;
     private final RankingScope rankingScope;

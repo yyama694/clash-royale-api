@@ -23,9 +23,8 @@ public class RankingService {
     // 画面の注記にも件数を出すため公開している(文言と実際の件数がずれないようにするため)。
     public static final int CLAN_RANKING_SIZE = 10;
 
-    // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIは最大1000件まで返すが、
-    // 低スペックVMでの描画コストを考えて200件にしている。
-    public static final int MAX_PLAYER_RANKING_SIZE = 200;
+    // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIが返せる上限と同じ。
+    public static final int MAX_PLAYER_RANKING_SIZE = 1000;
 
     private final ClashRoyaleApiClient apiClient;
 
