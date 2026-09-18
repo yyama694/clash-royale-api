@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.SortDirection;
+import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ class ClanServiceTest {
     @BeforeEach
     void setUp() {
         apiClient = mock(ClashRoyaleApiClient.class);
-        clanService = new ClanService(apiClient);
+        clanService = new ClanService(apiClient, mock(PlayerSightingLog.class));
     }
 
     @Test

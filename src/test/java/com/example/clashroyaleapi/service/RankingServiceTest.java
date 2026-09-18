@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
+import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,7 @@ class RankingServiceTest {
     @BeforeEach
     void setUp() {
         apiClient = mock(ClashRoyaleApiClient.class);
-        rankingService = new RankingService(apiClient);
+        rankingService = new RankingService(apiClient, mock(PlayerSightingLog.class));
     }
 
     @Test

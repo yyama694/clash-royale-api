@@ -4,6 +4,8 @@ import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.domain.PlayerSighting;
+import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,9 +29,11 @@ public class RankingService {
     public static final int MAX_PLAYER_RANKING_SIZE = 1000;
 
     private final ClashRoyaleApiClient apiClient;
+    private final PlayerSightingLog sightingLog;
 
-    public RankingService(ClashRoyaleApiClient apiClient) {
+    public RankingService(ClashRoyaleApiClient apiClient, PlayerSightingLog sightingLog) {
         this.apiClient = apiClient;
+        this.sightingLog = sightingLog;
     }
 
     /**
@@ -55,7 +59,12 @@ public class RankingService {
             throw new IllegalArgumentException("limit must be <= " + MAX_PLAYER_RANKING_SIZE + ": " + limit);
         }
         try {
-            return apiClient.getPathOfLegendRankings(locationId, MAX_PLAYER_RANKING_SIZE).stream()
+            List<PlayerRankingResponse.RankedPlayer> players =
+                    apiClient.getPathOfLegendRankings(locationId, MAX_PLAYER_RANKING_SIZE);
+            sightingLog.record(players.stream()
+                    .map(player -> new PlayerSighting(player.tag(), player.name()))
+                    .toList());
+            return players.stream()
                     .limit(limit)
                     .toList();
         } catch (ClashRoyaleApiException e) {

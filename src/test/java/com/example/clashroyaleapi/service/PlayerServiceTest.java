@@ -3,6 +3,8 @@ package com.example.clashroyaleapi.service;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
+import com.example.clashroyaleapi.domain.PlayerSighting;
+import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,17 +18,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PlayerServiceTest {
 
     private ClashRoyaleApiClient apiClient;
+    private PlayerSightingLog sightingLog;
     private PlayerService playerService;
 
     @BeforeEach
     void setUp() {
         apiClient = mock(ClashRoyaleApiClient.class);
-        playerService = new PlayerService(apiClient);
+        sightingLog = mock(PlayerSightingLog.class);
+        playerService = new PlayerService(apiClient, sightingLog);
     }
 
     @Test
@@ -47,6 +52,15 @@ class PlayerServiceTest {
 
         assertThrows(BattleNotFoundException.class,
                 () -> playerService.findBattle("#TAG", "20250101T000000.000Z"));
+    }
+
+    @Test
+    void 対戦履歴に出てきた自分と対戦相手を記録する() {
+        when(apiClient.getBattleLog(anyString())).thenReturn(List.of(battle("20260101T000000.000Z")));
+
+        playerService.findBattleLog("#SELF");
+
+        verify(sightingLog).record(List.of(new PlayerSighting("#SELF", "Self"), new PlayerSighting("#OPP", "Opp")));
     }
 
     @Test

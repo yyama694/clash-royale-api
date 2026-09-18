@@ -7,7 +7,9 @@ import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
 import com.example.clashroyaleapi.domain.MemberSortKey;
+import com.example.clashroyaleapi.domain.PlayerSighting;
 import com.example.clashroyaleapi.domain.SortDirection;
+import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.springframework.stereotype.Service;
 
@@ -24,13 +26,15 @@ public class ClanService {
     private static final int MIN_SEARCH_NAME_LENGTH = 3;
 
     private final ClashRoyaleApiClient apiClient;
+    private final PlayerSightingLog sightingLog;
 
-    public ClanService(ClashRoyaleApiClient apiClient) {
+    public ClanService(ClashRoyaleApiClient apiClient, PlayerSightingLog sightingLog) {
         this.apiClient = apiClient;
+        this.sightingLog = sightingLog;
     }
 
     public ClanResponse findClan(String tag) {
-        return apiClient.getClan(tag);
+        return recordMembers(apiClient.getClan(tag));
     }
 
     /**
@@ -66,10 +70,19 @@ public class ClanService {
 
     private Optional<ClanResponse> findClanOrEmpty(String tag) {
         try {
-            return Optional.ofNullable(apiClient.getClan(tag));
+            return Optional.ofNullable(apiClient.getClan(tag)).map(this::recordMembers);
         } catch (ResourceNotFoundException e) {
             return Optional.empty();
         }
+    }
+
+    private ClanResponse recordMembers(ClanResponse clan) {
+        if (clan != null && clan.memberList() != null) {
+            sightingLog.record(clan.memberList().stream()
+                    .map(member -> new PlayerSighting(member.tag(), member.name()))
+                    .toList());
+        }
+        return clan;
     }
 
     private ClanSearchResult searchByName(String name) {

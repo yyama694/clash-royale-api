@@ -30,6 +30,11 @@ server:
   compression:
     enabled: true
 
+# 名前検索のために、公式APIの応答で見かけたプレイヤーのタグと名前を蓄積する場所(「プレイヤー名検索（検討中）.md」参照)。
+# 本番は環境変数 PLAYER_INDEX_DIR で /var/lib/clash-royale-api/player-index を指定する。
+player-index:
+  dir: ${PLAYER_INDEX_DIR:data/player-index}
+
 clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1
