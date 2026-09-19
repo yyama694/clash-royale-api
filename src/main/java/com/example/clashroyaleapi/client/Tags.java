@@ -10,6 +10,8 @@ import java.util.regex.Pattern;
 public final class Tags {
 
     private static final Pattern TAG_BODY = Pattern.compile("[0-9A-Z]{3,15}");
+    // 実際のタグに使われる文字だけ(公式のタグは 0289PYLQGRJCUV の14文字で作られる)。
+    private static final Pattern STRICT_TAG_BODY = Pattern.compile("[0289PYLQGRJCUV]{3,15}");
 
     private Tags() {
     }
@@ -40,5 +42,13 @@ public final class Tags {
      */
     public static boolean looksLikeTag(String raw) {
         return TAG_BODY.matcher(normalize(raw).substring(1)).matches();
+    }
+
+    /**
+     * タグに使われる文字だけでできているか。プレイヤー検索で、名前として探すべき入力(「bob」など)を
+     * 公式APIに問い合わせずに名前検索へ回すために使う。
+     */
+    public static boolean usesOnlyTagCharacters(String raw) {
+        return STRICT_TAG_BODY.matcher(normalize(raw).substring(1)).matches();
     }
 }

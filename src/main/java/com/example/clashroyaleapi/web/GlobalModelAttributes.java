@@ -1,5 +1,7 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.config.PlayerIndexProperties;
+
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -16,6 +18,18 @@ import java.util.stream.Collectors;
  */
 @ControllerAdvice
 public class GlobalModelAttributes {
+
+    private final boolean nameSearchEnabled;
+
+    public GlobalModelAttributes(PlayerIndexProperties playerIndexProperties) {
+        this.nameSearchEnabled = playerIndexProperties.nameSearchEnabled();
+    }
+
+    /** プレイヤー検索フォームの文言を「タグ」か「名前またはタグ」で切り替えるため。 */
+    @ModelAttribute("nameSearchEnabled")
+    public boolean nameSearchEnabled() {
+        return nameSearchEnabled;
+    }
 
     @ModelAttribute("currentUri")
     public String currentUri(HttpServletRequest request) {

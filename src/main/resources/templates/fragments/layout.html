@@ -73,7 +73,7 @@
                 clanRanking: /*[[#{action.backToClanRanking}]]*/ '',
                 battle: /*[[#{action.backToBattle}]]*/ '',
                 player: /*[[#{action.backToPlayer}]]*/ '',
-                clanSearch: /*[[#{action.backToClanSearch}]]*/ '',
+                search: /*[[#{action.backToClanSearch}]]*/ '',
                 clan: /*[[#{action.backToClan}]]*/ '',
                 card: /*[[#{action.backToCard}]]*/ '',
                 cards: /*[[#{action.backToCards}]]*/ '',
@@ -86,8 +86,9 @@
                 {pattern: /^\/ranking\/players$/, screen: 'playerRanking'},
                 {pattern: /^\/ranking$/, screen: 'clanRanking'},
                 {pattern: /^\/player\/[^/]+\/battles\/[^/]+$/, screen: 'battle'},
+                {pattern: /^\/player\/search$/, screen: 'search'},
                 {pattern: /^\/player\/[^/]+$/, screen: 'player'},
-                {pattern: /^\/clan\/search$/, screen: 'clanSearch'},
+                {pattern: /^\/clan\/search$/, screen: 'search'},
                 {pattern: /^\/clan\/[^/]+$/, screen: 'clan'},
                 {pattern: /^\/card\/[^/]+$/, screen: 'card'},
                 {pattern: /^\/cards$/, screen: 'cards'}
@@ -256,7 +257,7 @@
     <h2 th:text="#{home.player.heading}"></h2>
     <form class="search-form" th:action="@{/player/search}" method="get">
         <label>
-            <span th:text="#{home.player.label}"></span>
+            <span th:text="${nameSearchEnabled} ? #{home.player.labelWithName} : #{home.player.label}"></span>
             <input type="text" name="q" required th:value="${value}" th:placeholder="#{home.player.placeholder}">
         </label>
         <button type="submit" th:text="#{action.search}"></button>

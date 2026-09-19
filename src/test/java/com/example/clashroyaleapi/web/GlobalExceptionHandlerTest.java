@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
+import com.example.clashroyaleapi.config.PlayerIndexProperties;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -12,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler = new GlobalExceptionHandler(new GlobalModelAttributes());
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler(new GlobalModelAttributes(new PlayerIndexProperties("data", false)));
 
     /**
      * @ExceptionHandler には @ControllerAdvice の @ModelAttribute が適用されない。

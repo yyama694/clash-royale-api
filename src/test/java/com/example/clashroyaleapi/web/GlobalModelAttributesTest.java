@@ -1,5 +1,7 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.config.PlayerIndexProperties;
+
 import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -8,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GlobalModelAttributesTest {
 
-    private final GlobalModelAttributes attributes = new GlobalModelAttributes();
+    private final GlobalModelAttributes attributes = new GlobalModelAttributes(new PlayerIndexProperties("data", false));
 
     @Test
     void クエリが無ければパスだけを返す() {

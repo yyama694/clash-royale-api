@@ -2,19 +2,28 @@ package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
+import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
+import com.example.clashroyaleapi.config.PlayerIndexProperties;
+import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.PlayerSighting;
+import com.example.clashroyaleapi.store.PlayerNameIndex;
 import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,13 +31,72 @@ class PlayerServiceTest {
 
     private ClashRoyaleApiClient apiClient;
     private PlayerSightingLog sightingLog;
+    private PlayerNameIndex nameIndex;
     private PlayerService playerService;
 
     @BeforeEach
     void setUp() {
         apiClient = mock(ClashRoyaleApiClient.class);
         sightingLog = mock(PlayerSightingLog.class);
-        playerService = new PlayerService(apiClient, sightingLog);
+        nameIndex = mock(PlayerNameIndex.class);
+        playerService = new PlayerService(apiClient, sightingLog, nameIndex, new PlayerIndexProperties("data", true));
+    }
+
+    @Test
+    void 井桁付きはタグとして扱い公式APIにも索引にも問い合わせない() {
+        assertEquals(new PlayerSearchResult.Found("#2ABC"), playerService.search(" #2abc "));
+
+        verify(apiClient, never()).getPlayer(anyString());
+        verify(nameIndex, never()).find(anyString());
+    }
+
+    @Test
+    void タグの文字だけの入力はタグで見つかればそのプレイヤーにする() {
+        PlayerResponse player = mock(PlayerResponse.class);
+        when(player.tag()).thenReturn("#PYL");
+        when(apiClient.getPlayer("PYL")).thenReturn(player);
+
+        assertEquals(new PlayerSearchResult.Found("#PYL"), playerService.search("PYL"));
+        verify(nameIndex, never()).find(anyString());
+    }
+
+    @Test
+    void タグで見つからなければ名前として探し直す() {
+        when(apiClient.getPlayer("PYL")).thenThrow(new ResourceNotFoundException("PYL", null));
+        List<PlayerNameMatch> matches = List.of(new PlayerNameMatch("#AAA", "pyl", Instant.EPOCH));
+        when(nameIndex.find("PYL")).thenReturn(matches);
+
+        assertEquals(new PlayerSearchResult.Candidates(matches, 1), playerService.search("PYL"));
+    }
+
+    @Test
+    void タグに使われない文字を含む入力は公式APIに問い合わせず名前で探す() {
+        when(nameIndex.find("bob")).thenReturn(List.of());
+
+        assertEquals(new PlayerSearchResult.NotFound("bob"), playerService.search("bob"));
+        verify(apiClient, never()).getPlayer(anyString());
+    }
+
+    @Test
+    void 名前の候補は上限までに絞り件数は絞る前の数を返す() {
+        List<PlayerNameMatch> matches = IntStream.range(0, 60)
+                .mapToObj(i -> new PlayerNameMatch("#T" + i, "bob", Instant.EPOCH))
+                .toList();
+        when(nameIndex.find("bob")).thenReturn(matches);
+
+        PlayerSearchResult.Candidates result = (PlayerSearchResult.Candidates) playerService.search("bob");
+
+        assertEquals(50, result.players().size());
+        assertEquals(60, result.total());
+    }
+
+    @Test
+    void 名前検索が無効なら入力をすべてタグとして扱う() {
+        PlayerService disabled = new PlayerService(apiClient, sightingLog, nameIndex,
+                new PlayerIndexProperties("data", false));
+
+        assertEquals(new PlayerSearchResult.Found("#B0B"), disabled.search("bob"));
+        verify(nameIndex, never()).find(anyString());
     }
 
     @Test

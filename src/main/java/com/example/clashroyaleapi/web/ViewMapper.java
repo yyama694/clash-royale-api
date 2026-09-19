@@ -15,6 +15,7 @@ import com.example.clashroyaleapi.domain.Deck;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
+import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
@@ -33,6 +34,7 @@ import com.example.clashroyaleapi.web.view.DeckMetaView;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
+import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 
 import org.springframework.stereotype.Component;
@@ -175,6 +177,14 @@ public class ViewMapper {
 
     public String countryName(Country country, Locale locale) {
         return countryNames.countryName(country.countryCode(), country.englishName(), locale);
+    }
+
+    public List<PlayerNameMatchView> toPlayerNameMatches(List<PlayerNameMatch> players, Locale locale) {
+        return players.stream()
+                .map(player -> new PlayerNameMatchView(GameText.stripFormatting(player.name()), player.tag(),
+                        Tags.toPathSegment(player.tag()),
+                        player.lastSeen() == null ? null : timeFormatter.instant(player.lastSeen(), locale)))
+                .toList();
     }
 
     public List<ClanSummaryView> toClanSummaries(List<ClanSearchResponse.ClanSummary> clans) {

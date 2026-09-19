@@ -1,11 +1,17 @@
 package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
+import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
+import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
+import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
+import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.PlayerSighting;
+import com.example.clashroyaleapi.store.PlayerNameIndex;
 import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.springframework.stereotype.Service;
@@ -18,12 +24,48 @@ import java.util.stream.Stream;
 @Service
 public class PlayerService {
 
+    // よくある名前は数百人以上が一致し得るため、最近確認した人から絞って表示する。
+    private static final int SEARCH_RESULT_LIMIT = 50;
+
     private final ClashRoyaleApiClient apiClient;
     private final PlayerSightingLog sightingLog;
+    private final PlayerNameIndex nameIndex;
+    private final boolean nameSearchEnabled;
 
-    public PlayerService(ClashRoyaleApiClient apiClient, PlayerSightingLog sightingLog) {
+    public PlayerService(ClashRoyaleApiClient apiClient, PlayerSightingLog sightingLog, PlayerNameIndex nameIndex,
+            PlayerIndexProperties properties) {
         this.apiClient = apiClient;
         this.sightingLog = sightingLog;
+        this.nameIndex = nameIndex;
+        this.nameSearchEnabled = properties.nameSearchEnabled();
+    }
+
+    /**
+     * プレイヤータグ・名前のどちらでも検索できるようにする。
+     * 「#」付きはタグとしか読めないので、存在確認はプレイヤー情報画面に任せる(無ければそこで見つからない旨を出す)。
+     * タグの文字だけでできた入力は名前の可能性もあるため、タグで見つからなければ名前として探し直す。
+     */
+    public PlayerSearchResult search(String query) {
+        String trimmed = query == null ? "" : query.strip();
+        if (trimmed.isEmpty()) {
+            return new PlayerSearchResult.NotFound("");
+        }
+        if (!nameSearchEnabled || trimmed.startsWith("#")) {
+            return new PlayerSearchResult.Found(Tags.normalize(trimmed));
+        }
+        if (Tags.usesOnlyTagCharacters(trimmed)) {
+            try {
+                return new PlayerSearchResult.Found(findPlayer(trimmed).tag());
+            } catch (ResourceNotFoundException e) {
+                // 名前として探し直す。
+            }
+        }
+        List<PlayerNameMatch> matches = nameIndex.find(trimmed);
+        if (matches.isEmpty()) {
+            return new PlayerSearchResult.NotFound(trimmed);
+        }
+        return new PlayerSearchResult.Candidates(
+                matches.stream().limit(SEARCH_RESULT_LIMIT).toList(), matches.size());
     }
 
     public PlayerResponse findPlayer(String tag) {

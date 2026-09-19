@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{playerSearch.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <!--/* 該当なしは入力の問題でシステムエラーではないので、赤いエラー表示にせず、入力値を残した検索フォームを添える */-->
+        <th:block th:if="${candidates == null}">
+            <div class="notice-box">
+                <p th:text="#{playerSearch.empty}"></p>
+                <p th:text="#{playerSearch.howItWorks}"></p>
+            </div>
+            <div th:replace="~{fragments/layout :: playerSearchForm(${query})}"></div>
+        </th:block>
+
+        <div th:if="${candidates != null}" class="card">
+            <h1 th:text="#{playerSearch.heading(${query})}"></h1>
+            <p th:replace="~{fragments/layout :: notice(#{playerSearch.caveat})}"></p>
+            <p class="notice" th:if="${total > candidates.size()}"
+               th:text="#{playerSearch.notice(${total}, ${candidates.size()})}"></p>
+            <ul class="result-list">
+                <li th:each="p : ${candidates}">
+                    <div class="result-main">
+                        <span class="name"><bdi th:text="${p.name()}"></bdi></span>
+                        <span class="tag-pill" th:text="${p.tag()}"></span>
+                    </div>
+                    <div class="result-meta" th:if="${p.lastSeen() != null}">
+                        <span><span th:text="#{playerSearch.lastSeen}"></span>
+                            <time th:replace="~{fragments/layout :: localTime(${p.lastSeen()})}"></time></span>
+                    </div>
+                    <a class="btn btn-secondary" th:href="@{/player/{tag}(tag=${p.pathTag()})}" th:text="#{action.view}"></a>
+                </li>
+            </ul>
+        </div>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

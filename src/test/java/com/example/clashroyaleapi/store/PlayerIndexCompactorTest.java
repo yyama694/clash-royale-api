@@ -1,5 +1,7 @@
 package com.example.clashroyaleapi.store;
 
+import com.example.clashroyaleapi.domain.PlayerNameMatch;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -10,7 +12,9 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -87,6 +91,61 @@ class PlayerIndexCompactorTest {
         new PlayerIndexCompactor(dir, CLOCK).compact();
 
         assertEquals(List.of(first + "\tA\t2026-09-19T10:00:00Z", second + "\tB\t2026-09-19T10:00:00Z"), byTag(first));
+    }
+
+    @Test
+    void 名前の索引を作り_名前を変えた人は旧名で見つからなくなる() throws IOException {
+        inbox("20260919-10.tsv", "#AAA\tOld Name\t2026-09-19T10:00:00Z", "#BBB\t<c3>OLD　NAME\t2026-09-19T10:30:00Z");
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+
+        assertEquals(List.of("#BBB", "#AAA"), tagsFound("old name"));
+
+        inbox("20260919-11.tsv", "#AAA\tNew Name\t2026-09-19T11:00:00Z");
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+
+        assertEquals(List.of("#BBB"), tagsFound("old name"));
+        assertEquals(List.of(new PlayerNameMatch("#AAA", "New Name", Instant.parse("2026-09-19T11:00:00Z"))),
+                new PlayerNameIndex(dir).find("new name"));
+    }
+
+    @Test
+    void 名前の索引が無ければby_tagから全件作り直す() throws IOException {
+        // by-nameを作る前の版で整理したby-tagだけがある状態(本番の初回)を再現する。
+        inbox("20260919-10.tsv", "#AAA\tAlice\t2026-09-19T10:00:00Z");
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+        deleteRecursively(dir.resolve("by-name"));
+
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+
+        assertEquals(List.of("#AAA"), tagsFound("alice"));
+        assertFalse(Files.exists(dir.resolve("by-name.rebuild")));
+    }
+
+    @Test
+    void 名前の索引に反映し終える前に落ちたら次回は全件作り直す() throws IOException {
+        inbox("20260919-10.tsv", "#AAA\tAlice\t2026-09-19T10:00:00Z");
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+        // by-tagは新しい名前に書き換わったが、by-nameは古いまま落ちた状態を再現する。
+        Files.write(dir.resolve("by-tag").resolve(String.format("%04d.tsv", PlayerIndexCompactor.shardOf("#AAA"))),
+                List.of("#AAA\tAlicia\t2026-09-19T11:00:00Z"), StandardCharsets.UTF_8);
+        Files.createFile(dir.resolve("by-name.rebuild"));
+
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+
+        assertEquals(List.of(), tagsFound("alice"));
+        assertEquals(List.of("#AAA"), tagsFound("alicia"));
+    }
+
+    private List<String> tagsFound(String name) {
+        return new PlayerNameIndex(dir).find(name).stream().map(PlayerNameMatch::tag).toList();
+    }
+
+    private static void deleteRecursively(Path path) throws IOException {
+        try (Stream<Path> paths = Files.walk(path)) {
+            for (Path p : paths.sorted(Comparator.reverseOrder()).toList()) {
+                Files.delete(p);
+            }
+        }
     }
 
     private void inbox(String fileName, String... lines) throws IOException {

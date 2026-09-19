@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.GameText;
+import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.PlayerService;
 
@@ -32,13 +33,26 @@ public class PlayerController {
         this.viewMapper = viewMapper;
     }
 
-    /** 検索フォームの受け口。正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
+    /** 検索フォームの受け口。タグで特定できたら正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
     @GetMapping("/search")
-    public String search(@RequestParam(required = false) String q) {
+    public String search(@RequestParam(required = false) String q, Model model, Locale locale) {
         if (q == null || q.isBlank()) {
             return "redirect:/";
         }
-        return "redirect:/player/" + UriUtils.encodePathSegment(Tags.toPathSegment(q), StandardCharsets.UTF_8);
+        return switch (playerService.search(q)) {
+            case PlayerSearchResult.Found found -> "redirect:/player/"
+                    + UriUtils.encodePathSegment(Tags.toPathSegment(found.tag()), StandardCharsets.UTF_8);
+            case PlayerSearchResult.Candidates candidates -> {
+                model.addAttribute("query", q.strip());
+                model.addAttribute("candidates", viewMapper.toPlayerNameMatches(candidates.players(), locale));
+                model.addAttribute("total", candidates.total());
+                yield "player-search";
+            }
+            case PlayerSearchResult.NotFound notFound -> {
+                model.addAttribute("query", notFound.query());
+                yield "player-search";
+            }
+        };
     }
 
     @GetMapping("/{tag}")

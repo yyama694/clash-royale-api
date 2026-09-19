@@ -45,6 +45,16 @@ class TagsTest {
     }
 
     @Test
+    void タグに使われる文字だけでできているかを判定する() {
+        // プレイヤー検索で、名前にしか見えない入力を公式APIに問い合わせずに名前検索へ回すための判定。
+        assertTrue(Tags.usesOnlyTagCharacters("#2pylqgrjcuv"));
+        assertTrue(Tags.usesOnlyTagCharacters("POG"));
+        assertFalse(Tags.usesOnlyTagCharacters("bob"));
+        assertFalse(Tags.usesOnlyTagCharacters("2ABC123"));
+        assertFalse(Tags.usesOnlyTagCharacters(null));
+    }
+
+    @Test
     void nullでも例外にならない() {
         assertEquals("#", Tags.normalize(null));
         assertFalse(Tags.looksLikeTag(null));
