@@ -128,15 +128,14 @@ a {
     content: "\1F451" / "";
 }
 
-.site-nav,
-.lang-switch {
+.site-nav {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
 }
 
 .site-nav a,
-.lang-switch a {
+.lang-menu summary {
     color: #fff;
     text-decoration: none;
     border-radius: 999px;
@@ -146,17 +145,89 @@ a {
 }
 
 .site-nav a:hover,
-.lang-switch a:hover {
+.lang-menu summary:hover,
+.lang-menu details[open] summary {
     background: rgba(255, 255, 255, 0.15);
 }
 
-.lang-switch a {
-    font-size: 0.85rem;
+/*
+  言語メニュー。言語が増えてもヘッダーの幅が変わらないよう、閉じた状態では現在の言語だけを出す。
+  一覧はヘッダーの下に重ねて出し、言語が多くなったらメニューの中でスクロールさせる。
+*/
+.lang-menu details {
+    position: relative;
 }
 
-.lang-switch a.is-active {
-    background: rgba(255, 255, 255, 0.22);
+.lang-menu summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.lang-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.lang-menu-icon::before {
+    content: "\1F310" / "";
+}
+
+/* 開閉できることが分かるよう、閉じているときは下向き、開いているときは上向きの矢印を出す。 */
+.lang-menu summary::after {
+    content: "\25BE" / "";
+    font-size: 0.75rem;
+}
+
+.lang-menu details[open] summary::after {
+    content: "\25B4" / "";
+}
+
+.lang-menu ul {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.35rem);
+    z-index: 10;
+    min-width: 10rem;
+    max-height: min(60vh, 22rem);
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.lang-menu li a {
+    display: block;
+    padding: 0.55rem 0.75rem;
+    border-radius: 6px;
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.lang-menu li a:hover {
+    background: var(--color-bg);
+}
+
+/* ヘッダー内のフォーカス枠は白だが、一覧は明るい背景の上にあるため通常の色に戻す。 */
+.lang-menu li a:focus-visible {
+    outline-color: var(--color-focus);
+}
+
+.lang-menu li a[aria-current="true"] {
     font-weight: 700;
+    color: var(--color-link);
+}
+
+.lang-menu li a[aria-current="true"]::after {
+    content: " \2713" / "";
 }
 
 .container {
@@ -890,6 +961,25 @@ td.cell-action {
 @media (max-width: 600px) {
     .site-header {
         padding: 0.6rem 1rem;
+    }
+
+    /*
+      スマホ幅ではヘッダーの折り返し方次第で言語メニューが左端に来るため、ボタンに右揃えの一覧だと画面の左外にはみ出す。
+      一覧はヘッダーの左右いっぱいに広げる(topを指定しないので、縦位置はボタンの直下のまま)。
+    */
+    .site-header {
+        position: relative;
+    }
+
+    .lang-menu details {
+        position: static;
+    }
+
+    .lang-menu ul {
+        top: auto;
+        left: 1rem;
+        right: 1rem;
+        margin-top: 0.35rem;
     }
 
     /* PC幅と同じ160pxだと375px前後で2列に収まらず、7項目が縦1列に並んでいた。 */
