@@ -236,6 +236,19 @@ a {
     padding: 1.5rem 1rem 3rem;
 }
 
+.site-footer {
+    max-width: 860px;
+    margin: 2rem auto 0;
+    padding: 1rem 1rem 2rem;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
 /*
   デッキを左右に並べる対戦詳細画面用。860pxだとカード1枚あたりが窮屈になる。
   全画面を同じ幅に揃える案も試したが、1000pxでも「ゴブリンドリル」などのカード名が折り返したため、この画面だけ広げている。

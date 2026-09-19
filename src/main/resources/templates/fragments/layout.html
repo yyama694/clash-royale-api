@@ -243,6 +243,14 @@
     </nav>
 </header>
 
+<!-- Supercellのファンコンテンツポリシーで必須の、非公式である旨の表示。全画面の末尾に置く。 -->
+<footer class="site-footer" th:fragment="footer">
+    <p>
+        <span th:text="#{footer.unofficial}"></span>
+        <a th:href="#{footer.policyUrl}" th:text="#{footer.policyLink}" rel="noopener"></a>
+    </p>
+</footer>
+
 <!-- トップページと、見つからなかったときの画面で共用する検索フォーム。value は再検索時に入力値を残すために使う。 -->
 <div th:fragment="playerSearchForm(value)" class="card">
     <h2 th:text="#{home.player.heading}"></h2>
