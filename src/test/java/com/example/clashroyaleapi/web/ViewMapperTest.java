@@ -90,10 +90,29 @@ class ViewMapperTest {
 
     @Test
     void 八枚そろっていないデッキの相手は平均レベルを出さない() {
-        BattleSummaryView summary = viewMapper.toBattleSummaries(
-                List.of(duel(List.of(participant("#VIEWER", "Viewer")))), "#VIEWER", Locale.JAPANESE).get(0);
+        BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
+                new BattleLogEntry.GameMode("Ladder"),
+                List.of(participant("#VIEWER", "Viewer")), List.of(participant("#OPP1", "Opp1")));
+
+        BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
         assertNull(summary.opponents().get(0).averageLevel());
+    }
+
+    @Test
+    void 二対二の相手は八枚そろっていても平均レベルを出さない() {
+        List<BattleLogEntry.Card> deck = List.of(
+                card(9, 16), card(9, 16), card(9, 16), card(9, 16),
+                card(7, 14), card(7, 14), card(4, 11), card(1, 8));
+        BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
+                new BattleLogEntry.GameMode("TeamVsTeam"),
+                List.of(participant("#VIEWER", "Viewer"), participant("#MATE", "Mate")),
+                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of()),
+                        new BattleLogEntry.Participant("#OPP2", "Opp2", 0, deck, List.of())));
+
+        BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
+
+        assertTrue(summary.opponents().stream().allMatch(o -> o.averageLevel() == null));
     }
 
     private static BattleLogEntry.Card card(int level, int maxLevel) {

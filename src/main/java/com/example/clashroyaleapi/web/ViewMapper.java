@@ -212,10 +212,12 @@ public class ViewMapper {
                 .toList();
     }
 
+    /** 2v2はカードレベルがほぼ揃えられていて比べる意味が薄いため、平均レベルを出さない。 */
     private static List<OpponentView> toOpponents(List<BattleLogEntry.Participant> participants) {
+        boolean teamBattle = participants.size() > 1;
         return participants.stream()
                 .map(p -> new OpponentView(GameText.stripFormatting(p.name()), Tags.toPathSegment(p.tag()),
-                        toNullable(Deck.averageLevel(inGameLevels(p.cards())))))
+                        teamBattle ? null : toNullable(Deck.averageLevel(inGameLevels(p.cards())))))
                 .toList();
     }
 
