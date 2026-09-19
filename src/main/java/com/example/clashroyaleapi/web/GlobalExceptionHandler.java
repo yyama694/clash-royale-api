@@ -61,6 +61,7 @@ public class GlobalExceptionHandler {
     private String errorView(Model model, HttpServletRequest request) {
         model.addAttribute("currentUri", modelAttributes.currentUri(request));
         model.addAttribute("siteBaseUrl", modelAttributes.siteBaseUrl(request));
+        model.addAttribute("languageCodes", modelAttributes.languageCodes());
         return "error";
     }
 

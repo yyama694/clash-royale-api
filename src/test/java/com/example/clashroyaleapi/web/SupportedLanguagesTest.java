@@ -23,6 +23,9 @@ class SupportedLanguagesTest {
     void 地域付きの指定も言語で照合する() {
         assertEquals(Locale.JAPANESE, SupportedLanguages.match(Locale.JAPAN).orElseThrow());
         assertEquals(Locale.ENGLISH, SupportedLanguages.match(Locale.forLanguageTag("en-GB")).orElseThrow());
+        assertEquals(Locale.forLanguageTag("es"), SupportedLanguages.match(Locale.forLanguageTag("es-MX")).orElseThrow());
+        assertEquals(Locale.forLanguageTag("pt"), SupportedLanguages.match(Locale.forLanguageTag("pt-BR")).orElseThrow());
+        assertEquals(Locale.forLanguageTag("pt"), SupportedLanguages.match(Locale.forLanguageTag("pt-PT")).orElseThrow());
         assertTrue(SupportedLanguages.match(Locale.FRENCH).isEmpty());
         assertTrue(SupportedLanguages.match(null).isEmpty());
     }
@@ -32,6 +35,8 @@ class SupportedLanguagesTest {
         assertEquals(Locale.JAPANESE, fromHeader("fr,ja;q=0.9"));
         assertEquals(Locale.JAPANESE, fromHeader("zh-TW,ja;q=0.8"));
         assertEquals(Locale.ENGLISH, fromHeader("de-DE,en;q=0.5,ja;q=0.3"));
+        assertEquals(Locale.forLanguageTag("pt"), fromHeader("pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"));
+        assertEquals(Locale.forLanguageTag("es"), fromHeader("it-IT,es;q=0.8,en;q=0.5"));
     }
 
     @Test

@@ -20,7 +20,14 @@ public final class SupportedLanguages {
     // 希望はあるが対応していない言語(fr等)の訪問者には、日本語より読める可能性が高い英語を出す。
     public static final Locale INTERNATIONAL = Locale.ENGLISH;
 
-    public static final List<Locale> SUPPORTED = List.of(Locale.JAPANESE, Locale.ENGLISH);
+    // ポルトガル語の訳はブラジル向け(ゲーム内と同じ)だが、pt-PTの訪問者にも英語より読みやすいので言語だけで照合する。
+    public static final List<Locale> SUPPORTED = List.of(Locale.JAPANESE, Locale.ENGLISH,
+            Locale.forLanguageTag("es"), Locale.forLanguageTag("pt"));
+
+    /** 言語切替リンクとhreflangに使う言語コードの一覧。 */
+    public static List<String> languageCodes() {
+        return SUPPORTED.stream().map(Locale::getLanguage).toList();
+    }
 
     private SupportedLanguages() {
     }

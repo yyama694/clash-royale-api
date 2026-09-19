@@ -18,7 +18,7 @@ import java.time.Duration;
 import java.util.Locale;
 
 /**
- * 表示言語は ?lang=ja / ?lang=en で切り替え、Cookieに保持する。
+ * 表示言語は ?lang=ja / ?lang=es のように切り替え、Cookieに保持する。
  * 未選択の訪問者にはAccept-Languageから対応言語を選ぶ。対応言語の一覧は SupportedLanguages に集約している。
  */
 @Configuration

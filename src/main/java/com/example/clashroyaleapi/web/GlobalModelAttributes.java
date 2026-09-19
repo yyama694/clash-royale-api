@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +30,11 @@ public class GlobalModelAttributes {
                 .filter(param -> !param.startsWith(WebConstants.LANGUAGE_PARAM + "="))
                 .collect(Collectors.joining("&"));
         return kept.isEmpty() ? uri : uri + "?" + kept;
+    }
+
+    @ModelAttribute("languageCodes")
+    public List<String> languageCodes() {
+        return SupportedLanguages.languageCodes();
     }
 
     /**

@@ -10,7 +10,7 @@
 
         <div class="card">
             <h1><bdi th:text="${card.name()}"></bdi></h1>
-            <!--/* 日本語UIでは英語名も併記する。英語UIでは同じ文字列になるので出さない。 */-->
+            <!--/* 英語以外のUIでは英語名も併記する。英語UIでは同じ文字列になるので出さない。 */-->
             <p class="card-english-name" th:if="${card.englishName() != card.name()}"
                lang="en" th:text="${card.englishName()}"></p>
 

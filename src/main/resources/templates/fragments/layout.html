@@ -14,8 +14,8 @@
       hreflangは絶対URLでないと解釈されないので、アクセスされたホストを付ける。
     */-->
     <th:block th:if="${siteBaseUrl != null and currentUri != null}" th:with="pageUrl=${siteBaseUrl + currentUri}">
-        <link rel="alternate" hreflang="ja" th:href="@{${pageUrl}(lang='ja')}">
-        <link rel="alternate" hreflang="en" th:href="@{${pageUrl}(lang='en')}">
+        <link rel="alternate" th:each="code : ${languageCodes}" th:hreflang="${code}"
+              th:href="@{${pageUrl}(lang=${code})}">
         <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
     </th:block>
     <!--
@@ -201,10 +201,8 @@
     </nav>
     <nav class="lang-switch" th:aria-label="#{nav.language}">
         <!--/* リンク文字列は常にその言語自身の表記なので、読み上げが正しい言語になるようlangを付ける。 */-->
-        <a th:href="@{${currentUri}(lang='ja')}" th:text="#{lang.ja}" lang="ja" hreflang="ja"
-           th:classappend="${#locale.language == 'ja'} ? 'is-active'"></a>
-        <a th:href="@{${currentUri}(lang='en')}" th:text="#{lang.en}" lang="en" hreflang="en"
-           th:classappend="${#locale.language != 'ja'} ? 'is-active'"></a>
+        <a th:each="code : ${languageCodes}" th:href="@{${currentUri}(lang=${code})}" th:text="#{'lang.' + ${code}}"
+           th:lang="${code}" th:hreflang="${code}" th:classappend="${#locale.language == code} ? 'is-active'"></a>
     </nav>
 </header>
 
