@@ -100,6 +100,16 @@ class PlayerServiceTest {
     }
 
     @Test
+    void タグとして扱う入力がタグの形式でなければ転送せず見つからないにする() {
+        PlayerService disabled = new PlayerService(apiClient, sightingLog, nameIndex,
+                new PlayerIndexProperties("data", false));
+
+        assertEquals(new PlayerSearchResult.NotFound("#ab/c"), playerService.search("#ab/c", 1));
+        assertEquals(new PlayerSearchResult.NotFound("ab/c"), disabled.search("ab/c", 1));
+        verify(apiClient, never()).getPlayer(anyString());
+    }
+
+    @Test
     void 対戦は位置ではなくbattleTimeで特定する() {
         // 新しい対戦が入ってbattlelogの並びがずれても、同じURLが同じ対戦を指し続けることの確認。
         when(apiClient.getBattleLog(anyString())).thenReturn(List.of(

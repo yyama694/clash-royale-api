@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- 全画面で同一だった <head> をまとめる。titleは各画面から渡す。 -->
+<!--/* 全画面で同一だった <head> をまとめる。titleは各画面から渡す。 */-->
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,9 +18,9 @@
               th:href="@{${pageUrl}(lang=${code})}">
         <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
     </th:block>
-    <!--
+    <!--/*
       言語メニュー(details)は標準では外側を押しても閉じないため、外側のクリックとEscキーで閉じる。
-    -->
+    */-->
     <script>
         document.addEventListener('click', function (event) {
             document.querySelectorAll('.lang-menu details[open]').forEach(function (menu) {
@@ -39,10 +39,10 @@
             });
         });
     </script>
-    <!--
+    <!--/*
       公式APIの日時は常にUTCで、閲覧者のタイムゾーンはサーバーからは分からない。そのため変換はブラウザに任せる。
       スクリプトが動かない場合は、サーバーが入れたUTC表記がそのまま残る。
-    -->
+    */-->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var format = new Intl.DateTimeFormat(document.documentElement.lang,
@@ -55,7 +55,7 @@
             });
         });
     </script>
-    <!--
+    <!--/*
       戻るリンク(.back-link)を「ひとつ前の画面」に戻す。行き先はブラウザの履歴に任せ(history.back)、
       文言だけ直前のページのパスから決める。サーバーから戻り先を決めると、戻った先の画面でも
       「さっきの画面に戻る」が出て2画面の往復になるため。
@@ -64,7 +64,7 @@
       言語切替・並べ替え・国選択のようにパスが同じでクエリだけ変わる遷移は、履歴を積まずに置き換える。
       積むと「戻る」が同じ画面の切替前に戻ってしまうため。置き換えた後は referrer が自分自身になるので、
       画面に入ってきたときの直前のパスを sessionStorage に覚えておき、それを使う。
-    -->
+    */-->
     <script th:inline="javascript">
         (function () {
             var labels = {
@@ -212,7 +212,7 @@
     </script>
 </head>
 
-<!-- ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 -->
+<!--/* ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 */-->
 <header class="site-header" th:fragment="header">
     <a class="brand" th:href="@{/}" th:text="#{app.name}"></a>
     <nav class="site-nav" th:aria-label="#{nav.main}">
@@ -244,7 +244,7 @@
     </nav>
 </header>
 
-<!-- Supercellのファンコンテンツポリシーで必須の、非公式である旨の表示。全画面の末尾に置く。 -->
+<!--/* Supercellのファンコンテンツポリシーで必須の、非公式である旨の表示。全画面の末尾に置く。 */-->
 <footer class="site-footer" th:fragment="footer">
     <p>
         <span th:text="#{footer.unofficial}"></span>
@@ -252,7 +252,7 @@
     </p>
 </footer>
 
-<!-- トップページと、見つからなかったときの画面で共用する検索フォーム。value は再検索時に入力値を残すために使う。 -->
+<!--/* トップページと、見つからなかったときの画面で共用する検索フォーム。value は再検索時に入力値を残すために使う。 */-->
 <div th:fragment="playerSearchForm(value)" class="card">
     <h2 th:text="#{home.player.heading}"></h2>
     <form class="search-form" th:action="@{/player/search}" method="get">
@@ -264,7 +264,7 @@
     </form>
 </div>
 
-<!-- プレイヤー名検索結果の1人分。 -->
+<!--/* プレイヤー名検索結果の1人分。 */-->
 <li th:fragment="playerNameItem(p)">
     <div class="result-main">
         <span class="name"><bdi th:text="${p.name()}"></bdi></span>
@@ -288,33 +288,33 @@
     </form>
 </div>
 
-<!--
+<!--/*
   日時。datetime にはUTCのISO形式を入れ、表示文字列はブラウザ側で閲覧者の時刻に書き換わる。
   APIの値を解釈できなかった場合は iso が null になり、datetime 属性ごと出ない(書き換えの対象にもならない)。
--->
+*/-->
 <time th:fragment="localTime(time)" data-localtime th:datetime="${time.iso()}" th:text="${time.text()}"></time>
 
-<!-- 注記。先頭の記号は言語ごとに違うため、テンプレートに直書きせずメッセージ側に持つ。 -->
+<!--/* 注記。先頭の記号は言語ごとに違うため、テンプレートに直書きせずメッセージ側に持つ。 */-->
 <p th:fragment="notice(text)" class="notice" th:text="#{notice.format(${text})}"></p>
 
-<!-- 勝敗バッジ。判定はViewModel側で済ませてあるので、ここは表示のみ。 -->
+<!--/* 勝敗バッジ。判定はViewModel側で済ませてあるので、ここは表示のみ。 */-->
 <span th:fragment="resultBadge(result)" class="badge"
       th:classappend="'badge-' + ${result.code()}"
       th:text="#{'battle.result.' + ${result.code()}}"></span>
 
-<!--
+<!--/*
   カード画像から詳細画面へのリンク。カード名はすぐ下に出ているので alt は空にし、
   リンクの読み上げには aria-label を使う(同じ名前を二度読ませないため)。
--->
+*/-->
 <a th:fragment="cardLink(id, name, iconUrl)" th:if="${iconUrl != null}" class="card-link"
    th:href="@{/card/{id}(id=${id})}" th:aria-label="#{card.detail.link(${name})}">
     <img th:src="${iconUrl}" alt="" width="285" height="420" loading="lazy">
 </a>
 
-<!--
+<!--/*
   カード画像は width/height を指定し、読み込み前から枠の大きさを確保する(遅延読み込みの間に配置がガタつくため)。
   公式APIのカード画像は 285x420 で統一されている。
--->
+*/-->
 <div th:fragment="deckGrid(cards)" class="deck-grid">
     <div class="deck-card" th:each="c : ${cards}">
         <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
@@ -323,7 +323,7 @@
     </div>
 </div>
 
-<!-- 得意/苦手カード。kind(good/bad)で枠と勝率の色を変え、見出しを読まなくても強弱が伝わるようにする。 -->
+<!--/* 得意/苦手カード。kind(good/bad)で枠と勝率の色を変え、見出しを読まなくても強弱が伝わるようにする。 */-->
 <div th:fragment="performanceGrid(cards, kind)" class="deck-grid">
     <div class="deck-card" th:each="c : ${cards}" th:classappend="'perf-' + ${kind}">
         <a th:replace="~{fragments/layout :: cardLink(${c.cardId()}, ${c.name()}, ${c.iconUrl()})}"></a>
@@ -332,7 +332,7 @@
     </div>
 </div>
 
-<!-- タワーユニットは通常1枚のみのため、deckGridだと1枚が横幅いっぱいに伸びてしまう。ラベルと横並びの小さい行で表示する。 -->
+<!--/* タワーユニットは通常1枚のみのため、deckGridだと1枚が横幅いっぱいに伸びてしまう。ラベルと横並びの小さい行で表示する。 */-->
 <div th:fragment="supportCardRow(label, cards)" class="support-row">
     <span class="support-label" th:text="${label}"></span>
     <div class="support-card" th:each="c : ${cards}">
@@ -342,10 +342,10 @@
     </div>
 </div>
 
-<!--
+<!--/*
   デッキの平均エリクサー・4枚サイクル・平均カードレベルとコピーボタン。求められない項目はViewMapperでnullにしてあり、その項目だけ出さない。
   コピーのリンクはゲームを起動するため、今のページを残せるよう別タブで開く。
--->
+*/-->
 <div th:fragment="deckMeta(meta)" class="deck-meta"
      th:if="${meta.averageElixir() != null or meta.averageLevel() != null or meta.copyUrl() != null}">
     <span class="deck-metric" th:if="${meta.averageElixir() != null}">
@@ -364,7 +364,7 @@
        th:title="#{deck.copy.title}" target="_blank" rel="noopener noreferrer" th:text="#{deck.copy}"></a>
 </div>
 
-<!-- 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。 -->
+<!--/* 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。 */-->
 <div th:fragment="matchupSide(side)" class="side">
     <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">
         <a th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.name()}"></bdi></a>
@@ -373,10 +373,10 @@
     <div th:text="#{battle.crowns(${side[0].crowns()})}"></div>
 </div>
 
-<!--
+<!--/*
   クランメンバー一覧のソート用ヘッダ。同じ列をクリックすると昇順/降順が反転する。
   リンク先に #members を付けるのは、ページ遷移後に先頭へ戻ると(特にスマホで)一覧が画面外に出てしまうため。
--->
+*/-->
 <th th:fragment="sortHeader(label, key, tag, sortBy, sortDir)" class="sortable"
     th:classappend="${key == 'trophies' or key == 'donations'} ? 'num'"
     th:attr="aria-sort=${sortBy == key} ? (${sortDir == 'asc'} ? 'ascending' : 'descending') : null">
@@ -385,7 +385,7 @@
        th:text="${label}"></a>
 </th>
 
-<!-- クランランキングの表。グローバル/ローカルの両タブで共用する(国の列はグローバルのみ)。 -->
+<!--/* クランランキングの表。グローバル/ローカルの両タブで共用する(国の列はグローバルのみ)。 */-->
 <div th:fragment="rankingTable(rows, showLocation)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
@@ -415,7 +415,7 @@
     </div>
 </div>
 
-<!-- 個人ランキングの表。トップページの概要(detailed=false)と詳細画面(detailed=true)で共用する。 -->
+<!--/* 個人ランキングの表。トップページの概要(detailed=false)と詳細画面(detailed=true)で共用する。 */-->
 <div th:fragment="playerRankingTable(rows, detailed)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
@@ -439,7 +439,7 @@
                         th:text="#{battle.level(${row.expLevel()})}"></td>
                     <td class="num" th:attr="data-label=#{playerRanking.col.rating}"
                         th:text="${#numbers.formatInteger(row.eloRating(), 1, 'DEFAULT')}"></td>
-                    <!-- クラン未所属の人は、スマホのカード表示で「クラン」の見出しだけが空で残らないよう is-empty を付ける。 -->
+                    <!--/* クラン未所属の人は、スマホのカード表示で「クラン」の見出しだけが空で残らないよう is-empty を付ける。 */-->
                     <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.clan}"
                         th:classappend="${row.clanName() == null} ? 'is-empty'">
                         <a th:if="${row.clanName() != null}" th:href="@{/clan/{tag}(tag=${row.clanPathTag()})}">
@@ -451,11 +451,11 @@
     </div>
 </div>
 
-<!--
+<!--/*
   グローバル/国別のタブ。クランランキングと個人ランキングで共用するため、中身の表は呼び出し側から
   フラグメント式で受け取る。選択中の国(selectedCountry等)はモデルから直接参照する。
   切り替えは表示/非表示の入れ替えだけで、サーバーへの再取得は行わない。
--->
+*/-->
 <div th:fragment="rankingTabs(globalPanel, localPanel, formAction, lazyUrl)" class="ranking-tabs"
      th:attr="data-loading-text=#{ranking.loading},data-error-text=#{ranking.unavailable}">
     <div class="tabs" role="tablist" th:aria-label="#{ranking.tabs.label}">
@@ -500,10 +500,10 @@
             </div>
         </div>
     </th:block>
-    <!--
+    <!--/*
       対象はこのフラグメント内のタブだけに限る(ページ全体の .tabs を拾うと、将来1画面に2つ置いたときに干渉するため)。
       左右キーでの移動と tabindex の切り替えは、ARIAのタブパターンに合わせている。
-    -->
+    */-->
     <script>
         (function (root) {
             var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));

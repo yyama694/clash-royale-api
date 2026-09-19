@@ -21,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
@@ -174,6 +175,9 @@ public class ClashRoyaleApiClient {
         } catch (ResourceAccessException e) {
             // 接続タイムアウト・読み取りタイムアウト・名前解決失敗。未捕捉だと500の白画面に落ちる。
             throw new ApiUnavailableException("clash royale api not reachable", e);
+        } catch (RestClientException e) {
+            // 本文の読み取り中に接続が切れた(EOF)場合などは、ResourceAccessExceptionではなくこの例外で届く。
+            throw new ApiUnavailableException("failed to read clash royale api response", e);
         }
     }
 
