@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.Deck;
@@ -22,6 +23,7 @@ import com.example.clashroyaleapi.web.view.BattleStatsView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCatalogItemView;
+import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
 import com.example.clashroyaleapi.web.view.CardView;
@@ -111,6 +113,24 @@ public class ViewMapper {
                 card.elixirCost(),
                 CardLevel.inGame(1, card.maxLevel()),
                 CardLevel.inGame(card.maxLevel(), card.maxLevel()));
+    }
+
+    public CardCollectionView toCardCollection(CardCollection collection, Locale locale) {
+        return new CardCollectionView(
+                collection.totalCards(),
+                collection.maxedCards(),
+                percentOf(collection.maxedCards(), collection.totalCards()),
+                collection.rarities().stream()
+                        .map(r -> new CardCollectionView.RaritySummaryView(
+                                labels.rarity(r.rarity(), locale),
+                                r.totalCards(),
+                                r.maxedCards(),
+                                percentOf(r.maxedCards(), r.totalCards())))
+                        .toList());
+    }
+
+    private static int percentOf(int part, int total) {
+        return total == 0 ? 0 : Math.round(part * 100f / total);
     }
 
     public List<CardCatalogGroupView> toCardCatalog(List<CardService.CardGroup> groups, Locale locale) {

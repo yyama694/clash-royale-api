@@ -23,7 +23,8 @@ public record PlayerResponse(
         List<BattleLogEntry.Card> currentDeckSupportCards,
         Integer currentWinLoseStreak,
         RankedSeasonResult currentPathOfLegendSeasonResult,
-        RankedSeasonResult bestPathOfLegendSeasonResult
+        RankedSeasonResult bestPathOfLegendSeasonResult,
+        List<OwnedCard> cards
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ClanRef(String tag, String name) {
@@ -35,5 +36,14 @@ public record PlayerResponse(
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record RankedSeasonResult(Integer leagueNumber, Integer trophies, Integer rank) {
+    }
+
+    /**
+     * 所持カード。公式APIはレアリティを問わずほぼ全カードを含み、countが0でも
+     * level==maxLevelのことがある(手持ちを使い切って最大レベルにした場合)。
+     * そのため「所持しているか」の判定にはcountを使わず、level/maxLevelだけを見る(CardCollection参照)。
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record OwnedCard(int id, String name, int level, int maxLevel, int count, String rarity) {
     }
 }

@@ -1,7 +1,10 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.PlayerResponse;
+import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
+import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
@@ -32,7 +35,25 @@ class ViewMapperTest {
         LabelResolver labels = mock(LabelResolver.class);
         when(labels.gameMode(anyString(), anyString(), any())).thenAnswer(invocation -> invocation.getArgument(1));
         when(labels.cardName(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(labels.rarity(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
         viewMapper = new ViewMapper(labels, mock(CountryNames.class), mock(TimeFormatter.class));
+    }
+
+    @Test
+    void カードコレクションは最大レベルの割合を四捨五入して求める() {
+        CardCollection collection = CardCollection.of(List.of(
+                new PlayerResponse.OwnedCard(1, "Knight", 16, 16, 1, "common"),
+                new PlayerResponse.OwnedCard(2, "Skeletons", 10, 16, 1, "common"),
+                new PlayerResponse.OwnedCard(3, "Archers", 16, 16, 1, "common")));
+
+        CardCollectionView view = viewMapper.toCardCollection(collection, Locale.JAPANESE);
+
+        assertEquals(3, view.totalCards());
+        assertEquals(2, view.maxedCards());
+        assertEquals(67, view.maxedPercent());
+        assertEquals(1, view.rarities().size());
+        assertEquals("common", view.rarities().get(0).rarityLabel());
+        assertEquals(67, view.rarities().get(0).maxedPercent());
     }
 
     @Test
