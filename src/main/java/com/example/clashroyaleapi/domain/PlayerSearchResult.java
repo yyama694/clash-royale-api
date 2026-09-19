@@ -1,7 +1,5 @@
 package com.example.clashroyaleapi.domain;
 
-import java.util.List;
-
 /** プレイヤー検索の結果。タグで特定・名前の候補・該当なしの3通り(クラン検索の ClanSearchResult と同じ考え方)。 */
 public sealed interface PlayerSearchResult {
 
@@ -9,8 +7,8 @@ public sealed interface PlayerSearchResult {
     record Found(String tag) implements PlayerSearchResult {
     }
 
-    /** 名前が一致した候補。totalは絞り込み前の件数。 */
-    record Candidates(List<PlayerNameMatch> players, int total) implements PlayerSearchResult {
+    /** 名前が一致した候補。 */
+    record Candidates(PlayerNameSearch search) implements PlayerSearchResult {
     }
 
     /** タグ・名前のどちらとしても一致しなかった。 */

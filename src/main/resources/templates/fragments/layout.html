@@ -264,6 +264,19 @@
     </form>
 </div>
 
+<!-- プレイヤー名検索結果の1人分。 -->
+<li th:fragment="playerNameItem(p)">
+    <div class="result-main">
+        <span class="name"><bdi th:text="${p.name()}"></bdi></span>
+        <span class="tag-pill" th:text="${p.tag()}"></span>
+    </div>
+    <div class="result-meta" th:if="${p.lastSeen() != null}">
+        <span><span th:text="#{playerSearch.lastSeen}"></span>
+            <time th:replace="~{fragments/layout :: localTime(${p.lastSeen()})}"></time></span>
+    </div>
+    <a class="btn btn-secondary" th:href="@{/player/{tag}(tag=${p.pathTag()})}" th:text="#{action.view}"></a>
+</li>
+
 <div th:fragment="clanSearchForm(value)" class="card">
     <h2 th:text="#{home.clan.heading}"></h2>
     <form class="search-form" th:action="@{/clan/search}" method="get">

@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.GameText;
+import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.PlayerService;
@@ -35,17 +36,27 @@ public class PlayerController {
 
     /** 検索フォームの受け口。タグで特定できたら正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
     @GetMapping("/search")
-    public String search(@RequestParam(required = false) String q, Model model, Locale locale) {
+    public String search(@RequestParam(required = false) String q,
+            @RequestParam(required = false, defaultValue = "1") int page, Model model, Locale locale) {
         if (q == null || q.isBlank()) {
             return "redirect:/";
         }
-        return switch (playerService.search(q)) {
+        return switch (playerService.search(q, page)) {
             case PlayerSearchResult.Found found -> "redirect:/player/"
                     + UriUtils.encodePathSegment(Tags.toPathSegment(found.tag()), StandardCharsets.UTF_8);
             case PlayerSearchResult.Candidates candidates -> {
+                PlayerNameSearch result = candidates.search();
+                int shownTo = result.offset() + result.exact().size();
+                int currentPage = result.offset() / PlayerService.SEARCH_PAGE_SIZE + 1;
                 model.addAttribute("query", q.strip());
-                model.addAttribute("candidates", viewMapper.toPlayerNameMatches(candidates.players(), locale));
-                model.addAttribute("total", candidates.total());
+                model.addAttribute("exact", viewMapper.toPlayerNameMatches(result.exact(), locale));
+                model.addAttribute("exactTotal", result.exactTotal());
+                model.addAttribute("exactFrom", result.offset() + 1);
+                model.addAttribute("exactTo", shownTo);
+                model.addAttribute("prevPage", currentPage > 1 ? currentPage - 1 : null);
+                model.addAttribute("nextPage", shownTo < result.exactTotal() ? currentPage + 1 : null);
+                model.addAttribute("prefix", viewMapper.toPlayerNameMatches(result.prefix(), locale));
+                model.addAttribute("morePrefix", result.morePrefix());
                 yield "player-search";
             }
             case PlayerSearchResult.NotFound notFound -> {

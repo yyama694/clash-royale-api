@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -32,11 +33,11 @@ import java.util.stream.Stream;
  * (「プレイヤー名検索（検討中）.md」参照)。
  * <ul>
  *   <li>by-tag/NNNN.tsv … tag \t name \t 最終確認日時(タグ順)。タグのハッシュ値で1024個に分ける</li>
- *   <li>by-name/NNNN.tsv … {@link PlayerNameIndex} を参照</li>
+ *   <li>by-name/ … {@link PlayerNameIndex} を参照</li>
  * </ul>
  * by-name には、by-tag で変わった行だけを差分(旧名の削除・新名の追加)として反映する。
  * 旧名を消さないと、名前を変えた人が旧名で検索しても見つかり続けるため。
- * 常に1ファイル分ずつ処理するので、全体が数十GBになってもメモリは1ファイル分(最大でも数十MB)で済む。
+ * 常に1ファイル分ずつ(by-nameは外部ソートで一定行数ずつ)処理するので、全体が数十GBになってもメモリは数十MBで済む。
  * 同じinboxを2度取り込んでも結果は変わらないため、途中で落ちた場合は次回そのままやり直せばよい。
  */
 @Component
@@ -46,9 +47,8 @@ public class PlayerIndexCompactor {
 
     // 変えると全件の振り分け直しになるので固定する。
     static final int TAG_SHARDS = 1024;
-    // 振り分け先ごとにメモリに溜める上限。by-nameは振り分け先が4倍あるので小さくし、溜める量の合計を揃える。
+    // 振り分け先ごとにメモリに溜める上限。
     private static final int TAG_FLUSH_CHARS = 16 * 1024;
-    private static final int NAME_FLUSH_CHARS = 4 * 1024;
 
     private static final DateTimeFormatter CURRENT_HOUR =
             DateTimeFormatter.ofPattern("yyyyMMdd-HH").withZone(ZoneOffset.UTC);
@@ -58,6 +58,7 @@ public class PlayerIndexCompactor {
     private final Path byNameDir;
     private final Path nameRebuildMarker;
     private final Path workDir;
+    private final PlayerNameIndexWriter nameIndexWriter;
     private final Clock clock;
 
     @Autowired
@@ -66,11 +67,16 @@ public class PlayerIndexCompactor {
     }
 
     PlayerIndexCompactor(Path dir, Clock clock) {
+        this(dir, clock, PlayerNameIndexWriter.DEFAULT_CHUNK_LINES);
+    }
+
+    PlayerIndexCompactor(Path dir, Clock clock, int nameChunkLines) {
         this.inboxDir = dir.resolve("inbox");
         this.byTagDir = dir.resolve("by-tag");
         this.byNameDir = dir.resolve("by-name");
         this.nameRebuildMarker = dir.resolve("by-name.rebuild");
         this.workDir = dir.resolve("work-compact");
+        this.nameIndexWriter = new PlayerNameIndexWriter(byNameDir, nameChunkLines);
         this.clock = clock;
     }
 
@@ -87,10 +93,25 @@ public class PlayerIndexCompactor {
         }
     }
 
+    /**
+     * by-nameが使えない状態(初回、以前の形式、前回の反映途中で落ちた)なら、定時を待たずに起動の1分後に作り直す。
+     * 待つと、それまで名前検索が0件になるため。起動直後の混み合う時間を避けて1分置く。
+     */
+    @Scheduled(initialDelay = 1, timeUnit = TimeUnit.MINUTES)
+    public void rebuildNamesIfNeeded() {
+        if (needsNameRebuild()) {
+            compactOnSchedule();
+        }
+    }
+
+    // by-nameが無い(初回、または目次の無い以前の形式)か、前回by-nameに反映し終える前に落ちた場合は、差分では直せない。
+    private boolean needsNameRebuild() {
+        return !Files.exists(byNameDir.resolve(PlayerNameIndex.INDEX_FILE)) || Files.exists(nameRebuildMarker);
+    }
+
     synchronized void compact() throws IOException {
         List<Path> inbox = closedInboxFiles();
-        // by-nameが無い(初回)か、前回by-nameに反映し終える前に落ちた場合は、差分では直せないので全件から作り直す。
-        boolean rebuildNames = !Files.isDirectory(byNameDir) || Files.exists(nameRebuildMarker);
+        boolean rebuildNames = needsNameRebuild();
         if (inbox.isEmpty() && (!rebuildNames || !Files.isDirectory(byTagDir))) {
             return;
         }
@@ -106,17 +127,18 @@ public class PlayerIndexCompactor {
 
         ShardWriter tagSplit = new ShardWriter(workDir.resolve("tags"), TAG_SHARDS, TAG_FLUSH_CHARS);
         long lines = split(inbox, tagSplit);
-        ShardWriter nameDiffs = new ShardWriter(workDir.resolve("names"), PlayerNameIndex.NAME_SHARDS,
-                NAME_FLUSH_CHARS);
+        Path nameDiffFile = workDir.resolve("name-diffs.tsv");
         long players = 0;
-        for (int shard = 0; shard < TAG_SHARDS; shard++) {
-            players += merge(shard, tagSplit, rebuildNames ? null : nameDiffs);
+        try (Writer nameDiffs = Files.newBufferedWriter(nameDiffFile, StandardCharsets.UTF_8)) {
+            for (int shard = 0; shard < TAG_SHARDS; shard++) {
+                players += merge(shard, tagSplit, rebuildNames ? null : nameDiffs);
+            }
+            if (rebuildNames) {
+                addAllNames(nameDiffs);
+            }
         }
-        if (rebuildNames) {
-            addAllNames(nameDiffs);
-        }
-        nameDiffs.flush();
-        int nameFiles = applyNameDiffs(nameDiffs, rebuildNames);
+        int nameFiles = nameIndexWriter.apply(nameDiffFile, workDir.resolve("name-sort"), rebuildNames,
+                Long.toString(clock.millis()));
         Files.delete(nameRebuildMarker);
 
         for (Path file : inbox) {
@@ -171,7 +193,7 @@ public class PlayerIndexCompactor {
      * by-tagの1ファイルに、振り分けたinboxの行を反映する。同じタグは最後に確認された名前を残す。反映後の件数を返す。
      * nameDiffsを渡すと、変わった行をby-nameへの差分として書き出す。
      */
-    private int merge(int shard, ShardWriter tagSplit, ShardWriter nameDiffs) throws IOException {
+    private int merge(int shard, ShardWriter tagSplit, Writer nameDiffs) throws IOException {
         Path target = byTagFile(shard);
         Path split = tagSplit.file(shard);
         if (!Files.exists(split)) {
@@ -196,63 +218,22 @@ public class PlayerIndexCompactor {
         return rows.size();
     }
 
-    /** 差分の形式は「+ \t 索引の1行」(追加・更新)と「- \t 正規化名 \t tag」(削除)。 */
-    private static void writeNameDiff(ShardWriter nameDiffs, String[] old, String[] row) throws IOException {
+    /** 差分の形式は {@link PlayerNameIndexWriter#apply} を参照。 */
+    private static void writeNameDiff(Writer nameDiffs, String[] old, String[] row) throws IOException {
         String key = PlayerNameIndex.normalize(row[1]);
         if (old != null) {
             String oldKey = PlayerNameIndex.normalize(old[1]);
             if (!oldKey.equals(key)) {
-                nameDiffs.append(PlayerNameIndex.shardOf(oldKey), "-\t" + oldKey + "\t" + old[0]);
+                nameDiffs.write(oldKey + "\t" + old[0] + "\t-\n");
             }
         }
-        nameDiffs.append(PlayerNameIndex.shardOf(key), "+\t" + key + "\t" + row[0] + "\t" + row[1] + "\t" + row[2]);
+        nameDiffs.write(key + "\t" + row[0] + "\t+\t" + row[1] + "\t" + row[2] + "\n");
     }
 
-    private void addAllNames(ShardWriter nameDiffs) throws IOException {
+    private void addAllNames(Writer nameDiffs) throws IOException {
         for (int shard = 0; shard < TAG_SHARDS; shard++) {
             readByTagRows(byTagFile(shard), row -> writeNameDiff(nameDiffs, null, row));
         }
-    }
-
-    /** 差分をby-nameの各ファイルに反映する。fromScratchなら既存の内容を捨てて差分だけで作る。書き換えたファイル数を返す。 */
-    private int applyNameDiffs(ShardWriter nameDiffs, boolean fromScratch) throws IOException {
-        int written = 0;
-        for (int shard = 0; shard < PlayerNameIndex.NAME_SHARDS; shard++) {
-            Path target = PlayerNameIndex.shardFile(byNameDir, shard);
-            Path diff = nameDiffs.file(shard);
-            if (!Files.exists(diff)) {
-                if (fromScratch) {
-                    Files.deleteIfExists(target);
-                }
-                continue;
-            }
-            // キーは「正規化名 \t tag」。同じ名前の別人は別の行として残す。
-            Map<String, String> rows = new HashMap<>();
-            if (!fromScratch && Files.exists(target)) {
-                for (String line : Files.readAllLines(target, StandardCharsets.UTF_8)) {
-                    rows.put(nameKeyOf(line), line);
-                }
-            }
-            for (String line : Files.readAllLines(diff, StandardCharsets.UTF_8)) {
-                String body = line.substring(2);
-                if (line.charAt(0) == '-') {
-                    rows.remove(body);
-                } else {
-                    rows.put(nameKeyOf(body), body);
-                }
-            }
-            if (rows.isEmpty()) {
-                Files.deleteIfExists(target);
-            } else {
-                replace(target, rows.values().stream().sorted().toList());
-            }
-            written++;
-        }
-        return written;
-    }
-
-    private static String nameKeyOf(String indexLine) {
-        return indexLine.substring(0, indexLine.indexOf('\t', indexLine.indexOf('\t') + 1));
     }
 
     private Path byTagFile(int shard) {
@@ -292,7 +273,7 @@ public class PlayerIndexCompactor {
 
     /**
      * 振り分け先ごとにメモリに溜めてまとめて追記する。
-     * 振り分け先のファイル(1024個・4096個)を同時に開くと、OSの上限(既定1024)に掛かり得るため。
+     * 振り分け先のファイル(1024個)を同時に開くと、OSの上限(既定1024)に掛かり得るため。
      */
     private static final class ShardWriter {
         private final Path dir;

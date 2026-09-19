@@ -8,7 +8,7 @@ import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
-import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.PlayerSighting;
 import com.example.clashroyaleapi.store.PlayerNameIndex;
@@ -24,8 +24,8 @@ import java.util.stream.Stream;
 @Service
 public class PlayerService {
 
-    // よくある名前は数百人以上が一致し得るため、最近確認した人から絞って表示する。
-    private static final int SEARCH_RESULT_LIMIT = 50;
+    // 名前検索の1ページの人数。よくある名前は完全一致だけで数百人以上になるため、ページ送りにする。
+    public static final int SEARCH_PAGE_SIZE = 50;
 
     private final ClashRoyaleApiClient apiClient;
     private final PlayerSightingLog sightingLog;
@@ -44,8 +44,9 @@ public class PlayerService {
      * プレイヤータグ・名前のどちらでも検索できるようにする。
      * 「#」付きはタグとしか読めないので、存在確認はプレイヤー情報画面に任せる(無ければそこで見つからない旨を出す)。
      * タグの文字だけでできた入力は名前の可能性もあるため、タグで見つからなければ名前として探し直す。
+     * page は名前が完全一致した人のページ番号(1始まり)。範囲外なら最後のページにする。
      */
-    public PlayerSearchResult search(String query) {
+    public PlayerSearchResult search(String query, int page) {
         String trimmed = query == null ? "" : query.strip();
         if (trimmed.isEmpty()) {
             return new PlayerSearchResult.NotFound("");
@@ -60,12 +61,16 @@ public class PlayerService {
                 // 名前として探し直す。
             }
         }
-        List<PlayerNameMatch> matches = nameIndex.find(trimmed);
-        if (matches.isEmpty()) {
+        int offset = (Math.max(page, 1) - 1) * SEARCH_PAGE_SIZE;
+        PlayerNameSearch result = nameIndex.search(trimmed, offset, SEARCH_PAGE_SIZE);
+        if (offset > 0 && result.exact().isEmpty()) {
+            int lastPageOffset = Math.max(result.exactTotal() - 1, 0) / SEARCH_PAGE_SIZE * SEARCH_PAGE_SIZE;
+            result = nameIndex.search(trimmed, lastPageOffset, SEARCH_PAGE_SIZE);
+        }
+        if (result.isEmpty()) {
             return new PlayerSearchResult.NotFound(trimmed);
         }
-        return new PlayerSearchResult.Candidates(
-                matches.stream().limit(SEARCH_RESULT_LIMIT).toList(), matches.size());
+        return new PlayerSearchResult.Candidates(result);
     }
 
     public PlayerResponse findPlayer(String tag) {

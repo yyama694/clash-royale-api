@@ -638,6 +638,24 @@ td.cell-action {
     grid-row: 1 / span 2;
 }
 
+.search-section + .search-section {
+    margin-top: 1.75rem;
+}
+
+.pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.pager-range {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
 .empty-state {
     background: var(--color-bg);
     border-radius: 8px;

@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.PlayerSighting;
 import com.example.clashroyaleapi.store.PlayerNameIndex;
@@ -17,10 +18,10 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -44,10 +45,10 @@ class PlayerServiceTest {
 
     @Test
     void 井桁付きはタグとして扱い公式APIにも索引にも問い合わせない() {
-        assertEquals(new PlayerSearchResult.Found("#2ABC"), playerService.search(" #2abc "));
+        assertEquals(new PlayerSearchResult.Found("#2ABC"), playerService.search(" #2abc ", 1));
 
         verify(apiClient, never()).getPlayer(anyString());
-        verify(nameIndex, never()).find(anyString());
+        verify(nameIndex, never()).search(anyString(), anyInt(), anyInt());
     }
 
     @Test
@@ -56,38 +57,37 @@ class PlayerServiceTest {
         when(player.tag()).thenReturn("#PYL");
         when(apiClient.getPlayer("PYL")).thenReturn(player);
 
-        assertEquals(new PlayerSearchResult.Found("#PYL"), playerService.search("PYL"));
-        verify(nameIndex, never()).find(anyString());
+        assertEquals(new PlayerSearchResult.Found("#PYL"), playerService.search("PYL", 1));
+        verify(nameIndex, never()).search(anyString(), anyInt(), anyInt());
     }
 
     @Test
     void タグで見つからなければ名前として探し直す() {
         when(apiClient.getPlayer("PYL")).thenThrow(new ResourceNotFoundException("PYL", null));
-        List<PlayerNameMatch> matches = List.of(new PlayerNameMatch("#AAA", "pyl", Instant.EPOCH));
-        when(nameIndex.find("PYL")).thenReturn(matches);
+        PlayerNameSearch found = new PlayerNameSearch(
+                List.of(new PlayerNameMatch("#AAA", "pyl", Instant.EPOCH)), 1, 0, List.of(), false);
+        when(nameIndex.search("PYL", 0, 50)).thenReturn(found);
 
-        assertEquals(new PlayerSearchResult.Candidates(matches, 1), playerService.search("PYL"));
+        assertEquals(new PlayerSearchResult.Candidates(found), playerService.search("PYL", 1));
     }
 
     @Test
     void タグに使われない文字を含む入力は公式APIに問い合わせず名前で探す() {
-        when(nameIndex.find("bob")).thenReturn(List.of());
+        when(nameIndex.search("bob", 0, 50)).thenReturn(new PlayerNameSearch(List.of(), 0, 0, List.of(), false));
 
-        assertEquals(new PlayerSearchResult.NotFound("bob"), playerService.search("bob"));
+        assertEquals(new PlayerSearchResult.NotFound("bob"), playerService.search("bob", 1));
         verify(apiClient, never()).getPlayer(anyString());
     }
 
     @Test
-    void 名前の候補は上限までに絞り件数は絞る前の数を返す() {
-        List<PlayerNameMatch> matches = IntStream.range(0, 60)
-                .mapToObj(i -> new PlayerNameMatch("#T" + i, "bob", Instant.EPOCH))
-                .toList();
-        when(nameIndex.find("bob")).thenReturn(matches);
+    void ページ番号から読み始める位置を決め_範囲外なら最後のページにする() {
+        PlayerNameSearch empty = new PlayerNameSearch(List.of(), 120, 500, List.of(), false);
+        PlayerNameSearch last = new PlayerNameSearch(
+                List.of(new PlayerNameMatch("#T", "bob", Instant.EPOCH)), 120, 100, List.of(), false);
+        when(nameIndex.search("bob", 500, 50)).thenReturn(empty);
+        when(nameIndex.search("bob", 100, 50)).thenReturn(last);
 
-        PlayerSearchResult.Candidates result = (PlayerSearchResult.Candidates) playerService.search("bob");
-
-        assertEquals(50, result.players().size());
-        assertEquals(60, result.total());
+        assertEquals(new PlayerSearchResult.Candidates(last), playerService.search("bob", 11));
     }
 
     @Test
@@ -95,8 +95,8 @@ class PlayerServiceTest {
         PlayerService disabled = new PlayerService(apiClient, sightingLog, nameIndex,
                 new PlayerIndexProperties("data", false));
 
-        assertEquals(new PlayerSearchResult.Found("#B0B"), disabled.search("bob"));
-        verify(nameIndex, never()).find(anyString());
+        assertEquals(new PlayerSearchResult.Found("#B0B"), disabled.search("bob", 1));
+        verify(nameIndex, never()).search(anyString(), anyInt(), anyInt());
     }
 
     @Test

@@ -105,7 +105,7 @@ class PlayerIndexCompactorTest {
 
         assertEquals(List.of("#BBB"), tagsFound("old name"));
         assertEquals(List.of(new PlayerNameMatch("#AAA", "New Name", Instant.parse("2026-09-19T11:00:00Z"))),
-                new PlayerNameIndex(dir).find("new name"));
+                new PlayerNameIndex(dir).search("new name", 0, 50).exact());
     }
 
     @Test
@@ -119,6 +119,34 @@ class PlayerIndexCompactorTest {
 
         assertEquals(List.of("#AAA"), tagsFound("alice"));
         assertFalse(Files.exists(dir.resolve("by-name.rebuild")));
+    }
+
+    @Test
+    void 目次の無い以前の形式の索引は作り直して古いファイルを消す() throws IOException {
+        inbox("20260919-10.tsv", "#AAA\tAlice\t2026-09-19T10:00:00Z");
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+        deleteRecursively(dir.resolve("by-name"));
+        Files.createDirectories(dir.resolve("by-name"));
+        Files.write(dir.resolve("by-name/0123.tsv"), List.of("alice\t#AAA\tAlice\t2026-09-19T10:00:00Z"),
+                StandardCharsets.UTF_8);
+
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+
+        assertEquals(List.of("#AAA"), tagsFound("alice"));
+        assertFalse(Files.exists(dir.resolve("by-name/0123.tsv")));
+    }
+
+    @Test
+    void 名前の索引は複数のファイルに分かれても引ける() throws IOException {
+        inbox("20260919-10.tsv", "#AAA\tAlice\t2026-09-19T10:00:00Z", "#BBB\tAlicia\t2026-09-19T10:00:00Z",
+                "#CCC\tBob\t2026-09-19T10:00:00Z", "#DDD\tCarol\t2026-09-19T10:00:00Z",
+                "#EEE\tDave\t2026-09-19T10:00:00Z");
+
+        new PlayerIndexCompactor(dir, CLOCK, 2).compact();
+
+        assertEquals(List.of("#EEE"), tagsFound("dave"));
+        assertEquals(List.of("#AAA", "#BBB"),
+                new PlayerNameIndex(dir).search("ali", 0, 50).prefix().stream().map(PlayerNameMatch::tag).toList());
     }
 
     @Test
@@ -137,7 +165,7 @@ class PlayerIndexCompactorTest {
     }
 
     private List<String> tagsFound(String name) {
-        return new PlayerNameIndex(dir).find(name).stream().map(PlayerNameMatch::tag).toList();
+        return new PlayerNameIndex(dir).search(name, 0, 50).exact().stream().map(PlayerNameMatch::tag).toList();
     }
 
     private static void deleteRecursively(Path path) throws IOException {
