@@ -78,6 +78,7 @@
 - **プレイヤー名の蓄積先(2026-09-18に追加)**: `/var/lib/clash-royale-api/player-index/`(opc所有)。`/etc/clash-royale-api/env`の`PLAYER_INDEX_DIR`で指定している(未指定時はWorkingDirectory配下の`data/player-index`)。jarを差し替えても消えないよう、jar置き場とは分けている。詳細は`プレイヤー名検索（検討中）.md`。
 - **APIキーの供給(2026-09-15に変更)**: `/etc/clash-royale-api/env`(root:root 600、`CLASHROYALE_API_TOKEN=...`)をsystemdの`EnvironmentFile`で読み込む。以前あった`/opt/clash-royale-api/application-prod.yml`は`.removed`にリネームして退避済み。jar側にも秘密情報は入っていない。
 - **VMがフリーズしやすい点に注意**: Always Free枠の低スペック機のため、デプロイ・再起動の前後でSSH/HTTPともに無応答になることがある(2026-09-15に2回発生)。数分待って復帰しなければOCIコンソールからの再起動をユーザーに依頼する。再起動後のアプリ起動は40秒前後かかるため、`curl`は数回リトライする前提で確認する。
+  - 2026-09-19にメモリ不足対策を実施: kdumpを無効化し起動オプションから`crashkernel`を削除(448MBの予約を解放し、使えるメモリが約500MB→945MBに)、`dnf-makecache.timer`を無効化(1回で約330MB使いOOMを起こしていた)。**パッケージ情報の自動更新は止まっているので、更新は`sudo dnf update`を手動で行う**。VM全体の再起動からHTTP 200までは約7分かかった。
 - SSH鍵: ローカルの `C:\Users\Norio Fukuchi\.ssh\oci_clash_royale_api`。接続先ユーザーは`opc`(Oracle Linux標準)。
 - **2026-09-15にロールバック対応のため手順を変更**(`TODO.md`のデプロイ課題対応): 新jarで上書きする前に現行jarをリネームしてバックアップする運用にした。失敗時は`.bak`を戻せば切り戻せる。
 
