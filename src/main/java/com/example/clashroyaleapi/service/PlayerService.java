@@ -52,7 +52,11 @@ public class PlayerService {
             return new PlayerSearchResult.NotFound("");
         }
         if (!nameSearchEnabled || trimmed.startsWith("#")) {
-            return new PlayerSearchResult.Found(Tags.normalize(trimmed));
+            // "/"などタグに無い文字を含むまま転送すると、Tomcatがエンコード済みの"/"を含むパスを拒否し、
+            // サイトのデザインが無い素の400画面になる。
+            return Tags.looksLikeTag(trimmed)
+                    ? new PlayerSearchResult.Found(Tags.normalize(trimmed))
+                    : new PlayerSearchResult.NotFound(trimmed);
         }
         if (Tags.usesOnlyTagCharacters(trimmed)) {
             try {

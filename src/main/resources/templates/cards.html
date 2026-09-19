@@ -33,12 +33,12 @@
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 
-    <!--
+    <!--/*
       日本語名はひらがなで打っても当たるよう、カタカナに寄せてから比べる(「ないと」→「ナイト」)。
       全角・半角の揺れはNFKCで、英字の大小は小文字化で吸収する。
       スペイン語・ポルトガル語名はアクセント記号を省いて打っても当たるようにする(「valquiria」→「Valquíria」)。
       外すのはラテン文字用の結合記号(U+0300〜U+036F)だけなので、濁点(U+3099)は残る。
-    -->
+    */-->
     <script>
         (function () {
             var input = document.getElementById('card-filter');
