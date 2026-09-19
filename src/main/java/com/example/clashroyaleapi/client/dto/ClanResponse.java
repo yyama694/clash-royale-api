@@ -10,6 +10,7 @@ public record ClanResponse(
         String name,
         String description,
         int clanScore,
+        int clanWarTrophies,
         int members,
         List<Member> memberList
 ) {

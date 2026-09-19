@@ -188,7 +188,7 @@ class ClanServiceTest {
     }
 
     private static ClanResponse clan(String tag, String name) {
-        return new ClanResponse(tag, name, "", 100, 1, List.of());
+        return new ClanResponse(tag, name, "", 100, 0, 1, List.of());
     }
 
     private static ClanSearchResponse.ClanSummary summary(String tag, String name, int score, int members) {

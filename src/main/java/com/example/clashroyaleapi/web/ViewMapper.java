@@ -45,6 +45,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -167,11 +168,12 @@ public class ViewMapper {
                 .toList();
     }
 
-    public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans, Locale locale) {
+    public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans,
+            Map<String, Integer> warTrophiesByTag, Locale locale) {
         return clans.stream()
                 .map(clan -> new ClanRankingRowView(clan.rank(), Tags.toPathSegment(clan.tag()), clan.tag(),
                         GameText.stripFormatting(clan.name()), clan.clanScore(), clan.members(),
-                        locationName(clan.location(), locale)))
+                        locationName(clan.location(), locale), warTrophiesByTag.get(clan.tag())))
                 .toList();
     }
 

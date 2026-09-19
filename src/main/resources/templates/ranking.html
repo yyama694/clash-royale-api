@@ -14,6 +14,7 @@
                      ~{fragments/layout :: rankingTable(${localRanking}, false)},
                      '/ranking', '/ranking/table')}"></div>
             <p th:replace="~{fragments/layout :: notice(#{ranking.notice(${clanRankingSize})})}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{ranking.warTrophies.notice(${warTrophiesRankLimit})})}"></p>
             <a class="btn btn-secondary" th:href="@{/ranking/players}" th:text="#{playerRanking.viewAll}"></a>
         </div>
     </main>
