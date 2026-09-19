@@ -396,6 +396,7 @@
                     <th th:text="#{ranking.col.clan}"></th>
                     <th th:if="${showLocation}" th:text="#{ranking.col.location}"></th>
                     <th class="num" th:text="#{ranking.col.score}"></th>
+                    <th class="num" th:text="#{ranking.col.warTrophies}"></th>
                     <th class="num" th:text="#{ranking.col.members}"></th>
                 </tr>
             </thead>
@@ -408,6 +409,9 @@
                     <td th:if="${showLocation}" th:attr="data-label=#{ranking.col.location}" th:text="${row.locationName()}"></td>
                     <td class="num" th:attr="data-label=#{ranking.col.score}"
                         th:text="${#numbers.formatInteger(row.clanScore(), 1, 'DEFAULT')}"></td>
+                    <!--/* 上位クランだけ個別取得しているため、対象外の行はnull(「―」で表す)。 */-->
+                    <td class="num" th:attr="data-label=#{ranking.col.warTrophies}"
+                        th:text="${row.clanWarTrophies() != null} ? ${#numbers.formatInteger(row.clanWarTrophies(), 1, 'DEFAULT')} : '―'"></td>
                     <td class="num" th:attr="data-label=#{ranking.col.members}" th:text="${row.members()}"></td>
                 </tr>
             </tbody>

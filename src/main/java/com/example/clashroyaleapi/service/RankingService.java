@@ -11,7 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Service
 public class RankingService {
@@ -24,6 +30,10 @@ public class RankingService {
     // 個人ランキングと同じく、公式APIが返せる上限(実測で1000件確認)まで取得する。
     // 画面の注記にも件数を出すため公開している(文言と実際の件数がずれないようにするため)。
     public static final int CLAN_RANKING_SIZE = 1000;
+
+    // クラン対戦トロフィーは、上位が軒並みクランスコアの上限(140000)で並ぶ状況(同点)を見分けるための補助指標。
+    // クランごとに専用APIを叩く必要があるため(一覧APIには含まれない)、対象を上位だけに絞っている。
+    public static final int WAR_TROPHIES_RANK_LIMIT = 20;
 
     // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIが返せる上限と同じ。
     public static final int MAX_PLAYER_RANKING_SIZE = 1000;
@@ -71,5 +81,32 @@ public class RankingService {
             log.warn("player ranking unavailable for location {}: {}", locationId, e.toString());
             return List.of();
         }
+    }
+
+    /**
+     * 上位{@value WAR_TROPHIES_RANK_LIMIT}クランのクラン対戦トロフィーを、クランタグをキーに返す。
+     * 1クランずつ専用APIを叩く必要があるため、仮想スレッドで並行に取得して待ち時間を抑える
+     * (getClanは2分キャッシュ済みなので、同じクランへの2回目以降の呼び出しは実質API通信が発生しない)。
+     * 個別のクランで取得に失敗しても他のクランの表示に影響させないよう、そのクランだけ結果から除く。
+     */
+    public Map<String, Integer> warTrophiesOfTopClans(List<ClanRankingResponse.RankedClan> clans) {
+        List<ClanRankingResponse.RankedClan> targets = clans.stream().limit(WAR_TROPHIES_RANK_LIMIT).toList();
+        Map<String, Future<Integer>> futures = new LinkedHashMap<>();
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (ClanRankingResponse.RankedClan clan : targets) {
+                futures.put(clan.tag(), executor.submit(() -> apiClient.getClan(clan.tag()).clanWarTrophies()));
+            }
+        }
+        Map<String, Integer> result = new LinkedHashMap<>();
+        futures.forEach((tag, future) -> {
+            try {
+                result.put(tag, future.get());
+            } catch (ExecutionException e) {
+                log.warn("clan war trophies unavailable for {}: {}", tag, String.valueOf(e.getCause()));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        return result;
     }
 }

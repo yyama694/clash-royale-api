@@ -1,10 +1,12 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
+import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -134,6 +137,20 @@ class ViewMapperTest {
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
         assertTrue(summary.opponents().stream().allMatch(o -> o.averageLevel() == null));
+    }
+
+    @Test
+    void クランランキングは対象クランだけ対戦トロフィーを持つ() {
+        ClanRankingResponse.RankedClan withTrophies = new ClanRankingResponse.RankedClan("#A", "ClanA", 1, 140000, 50,
+                null);
+        ClanRankingResponse.RankedClan withoutTrophies = new ClanRankingResponse.RankedClan("#B", "ClanB", 2, 140000,
+                50, null);
+
+        List<ClanRankingRowView> rows = viewMapper.toClanRankingRows(List.of(withTrophies, withoutTrophies),
+                Map.of("#A", 2196), Locale.JAPANESE);
+
+        assertEquals(2196, rows.get(0).clanWarTrophies());
+        assertNull(rows.get(1).clanWarTrophies());
     }
 
     private static BattleLogEntry.Card card(int level, int maxLevel) {

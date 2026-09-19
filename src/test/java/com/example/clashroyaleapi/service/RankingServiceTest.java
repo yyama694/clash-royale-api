@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
+import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
 import com.example.clashroyaleapi.store.PlayerSightingLog;
@@ -10,8 +11,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -89,6 +93,38 @@ class RankingServiceTest {
                 .thenThrow(new ApiUnavailableException("boom", null));
 
         assertTrue(rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, 3).isEmpty());
+    }
+
+    @Test
+    void クラン対戦トロフィーは上位クランだけタグをキーに取得する() {
+        List<ClanRankingResponse.RankedClan> clans = IntStream.rangeClosed(1, RankingService.WAR_TROPHIES_RANK_LIMIT + 1)
+                .mapToObj(rank -> rankedClan(rank, "#C" + rank))
+                .toList();
+        for (ClanRankingResponse.RankedClan clan : clans) {
+            when(apiClient.getClan(clan.tag())).thenReturn(clanDetail(clan.rank() * 100));
+        }
+
+        Map<String, Integer> warTrophies = rankingService.warTrophiesOfTopClans(clans);
+
+        assertEquals(RankingService.WAR_TROPHIES_RANK_LIMIT, warTrophies.size());
+        assertEquals(100, warTrophies.get("#C1"));
+        assertFalse(warTrophies.containsKey("#C" + (RankingService.WAR_TROPHIES_RANK_LIMIT + 1)));
+    }
+
+    @Test
+    void クラン対戦トロフィーは個別のクランで失敗しても他のクランに影響しない() {
+        when(apiClient.getClan("#OK")).thenReturn(clanDetail(500));
+        when(apiClient.getClan("#NG")).thenThrow(new ApiUnavailableException("boom", null));
+
+        Map<String, Integer> warTrophies = rankingService
+                .warTrophiesOfTopClans(List.of(rankedClan(1, "#OK"), rankedClan(2, "#NG")));
+
+        assertEquals(500, warTrophies.get("#OK"));
+        assertFalse(warTrophies.containsKey("#NG"));
+    }
+
+    private static ClanResponse clanDetail(int warTrophies) {
+        return new ClanResponse("#TAG", "clan", "", 140000, warTrophies, 50, List.of());
     }
 
     private static PlayerRankingResponse.RankedPlayer rankedPlayer(int rank, String tag) {

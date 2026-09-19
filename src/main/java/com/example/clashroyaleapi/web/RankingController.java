@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.service.LocationService;
 import com.example.clashroyaleapi.service.RankingService;
+import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -42,21 +43,22 @@ public class RankingController {
         // 1000件×2タブを最初から描くとHTMLが大きくなるため、個人ランキング画面と同じく
         // 最初は開いているタブだけを描き、もう一方は切り替えたときに下の table で取りに来る。
         model.addAttribute("globalRanking", scope.localTabActive() ? List.of()
-                : viewMapper.toClanRankingRows(rankingService.topClans(RankingService.GLOBAL_LOCATION_ID), locale));
+                : toClanRankingRows(rankingService.topClans(RankingService.GLOBAL_LOCATION_ID), locale));
         model.addAttribute("localRanking", scope.localTabActive()
                 ? scope.country()
-                        .map(c -> viewMapper.toClanRankingRows(rankingService.topClans(c.locationId()), locale))
+                        .map(c -> toClanRankingRows(rankingService.topClans(c.locationId()), locale))
                         .orElseGet(List::of)
                 : List.of());
         // 注記の「上位n件」を文言に直書きすると定数を変えたときにずれるため、件数も渡す。
         model.addAttribute("clanRankingSize", RankingService.CLAN_RANKING_SIZE);
+        model.addAttribute("warTrophiesRankLimit", RankingService.WAR_TROPHIES_RANK_LIMIT);
         return "ranking";
     }
 
     /** タブを切り替えたときに、その国(未指定ならグローバル)の表だけを返す。画面のHTMLは返さない。 */
     @GetMapping("/ranking/table")
     public String rankingTable(@RequestParam(required = false) String country, Model model, Locale locale) {
-        model.addAttribute("rows", viewMapper.toClanRankingRows(clanRankingRowsFor(country), locale));
+        model.addAttribute("rows", toClanRankingRows(clanRankingRowsFor(country), locale));
         // 国別タブはすでにその国に絞っているため、グローバルタブだけ「国・地域」列を出す。
         model.addAttribute("showLocation", country == null || country.isBlank());
         return "fragments/layout :: rankingTable(rows=${rows}, showLocation=${showLocation})";
@@ -69,6 +71,11 @@ public class RankingController {
         return locationService.byCountryCode(locationService.countries(), country)
                 .map(c -> rankingService.topClans(c.locationId()))
                 .orElseGet(List::of);
+    }
+
+    /** クランスコアが上限で並ぶ上位クランを見分けられるよう、上位だけクラン対戦トロフィーを添える。 */
+    private List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans, Locale locale) {
+        return viewMapper.toClanRankingRows(clans, rankingService.warTrophiesOfTopClans(clans), locale);
     }
 
     @GetMapping("/ranking/players")
