@@ -34,8 +34,9 @@ server:
 # 本番は環境変数 PLAYER_INDEX_DIR で /var/lib/clash-royale-api/player-index を指定する。
 player-index:
   dir: ${PLAYER_INDEX_DIR:data/player-index}
-  # inbox を by-tag・by-name にまとめる時刻(UTC)。18:30 UTC = 日本時間 3:30。"-" にすると動かさない。
-  compact-cron: ${PLAYER_INDEX_COMPACT_CRON:0 30 18 * * *}
+  # inbox を by-tag・by-name にまとめる時刻(UTC)。inbox は1時間ごとのファイルで、書き込み中の時間帯は対象外なので、
+  # 毎時の少し後に動かすと、見かけてから名前検索に出るまでが最大2時間ほどになる。"-" にすると動かさない。
+  compact-cron: ${PLAYER_INDEX_COMPACT_CRON:0 5 * * * *}
   # プレイヤー検索で名前も受け付けるか。本番は /etc/clash-royale-api/env で有効にしている。
   name-search-enabled: ${PLAYER_NAME_SEARCH_ENABLED:false}
 
