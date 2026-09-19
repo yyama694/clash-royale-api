@@ -249,7 +249,8 @@ a {
     flex: 1 1 220px;
 }
 
-.search-form input[type="text"] {
+.search-form input[type="text"],
+.search-form input[type="search"] {
     padding: 0.6rem 0.75rem;
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -328,10 +329,6 @@ button:hover, .btn:hover {
 .stats-summary {
     font-size: 1.05rem;
     font-weight: 600;
-}
-
-.deck-source {
-    font-size: 0.9rem;
 }
 
 /*
@@ -578,6 +575,11 @@ td.cell-action {
     height: auto;
     display: block;
     margin: 0 auto 0.35rem;
+}
+
+/* 絞り込みで数枚だけ残ったとき、auto-fit だと空いた列が詰められて1枚が横幅いっぱいに伸びるため、列を残す auto-fill にする。 */
+.card-catalog {
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
 }
 
 /* カード画像は詳細画面へのリンク。押せることが分かるよう、重ねたときだけ少し拡大する。 */

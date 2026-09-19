@@ -55,6 +55,7 @@
                 clanSearch: /*[[#{action.backToClanSearch}]]*/ '',
                 clan: /*[[#{action.backToClan}]]*/ '',
                 card: /*[[#{action.backToCard}]]*/ '',
+                cards: /*[[#{action.backToCards}]]*/ '',
                 other: /*[[#{action.back}]]*/ ''
             };
             // 上から順に判定する(/player/{tag} より /player/{tag}/battles/{time} を先に)。
@@ -67,7 +68,8 @@
                 {pattern: /^\/player\/[^/]+$/, screen: 'player'},
                 {pattern: /^\/clan\/search$/, screen: 'clanSearch'},
                 {pattern: /^\/clan\/[^/]+$/, screen: 'clan'},
-                {pattern: /^\/card\/[^/]+$/, screen: 'card'}
+                {pattern: /^\/card\/[^/]+$/, screen: 'card'},
+                {pattern: /^\/cards$/, screen: 'cards'}
             ];
             var storageKey = 'backFrom:' + location.pathname;
 
@@ -195,6 +197,7 @@
         <a th:href="@{/}" th:text="#{nav.search}"></a>
         <a th:href="@{/ranking/players}" th:text="#{nav.playerRanking}"></a>
         <a th:href="@{/ranking}" th:text="#{nav.clanRanking}"></a>
+        <a th:href="@{/cards}" th:text="#{nav.cards}"></a>
     </nav>
     <nav class="lang-switch" th:aria-label="#{nav.language}">
         <!--/* リンク文字列は常にその言語自身の表記なので、読み上げが正しい言語になるようlangを付ける。 */-->

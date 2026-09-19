@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.GameText;
+import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.PlayerService;
 
 import org.springframework.stereotype.Controller;
@@ -50,13 +51,13 @@ public class PlayerController {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
         }
+        WinLoseStreak.of(player.currentWinLoseStreak()).ifPresent(streak -> model.addAttribute("streak", streak));
+        viewMapper.toCurrentDeck(player, locale).ifPresent(deck -> model.addAttribute("currentDeck", deck));
 
         // 戦績の取得に失敗してもプレイヤー情報自体は表示したいので、ここだけは個別に握る。
         try {
             List<BattleLogEntry> battleLog = playerService.findBattleLog(tag);
             model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, player.tag(), locale));
-            playerService.latestOneOnOne(battleLog)
-                    .ifPresent(battle -> model.addAttribute("currentDeck", viewMapper.toCurrentDeck(battle, locale)));
             if (!battleLog.isEmpty()) {
                 model.addAttribute("battleStats", viewMapper.toStats(playerService.statsOf(battleLog), locale));
             }

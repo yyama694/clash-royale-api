@@ -24,7 +24,6 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 @Component
 public class ClashRoyaleApiClient {
@@ -90,18 +89,17 @@ public class ClashRoyaleApiClient {
      * 公式APIは説明文やステータスを返さないため、名前・画像・レアリティ・エリクサー・最大レベル・進化の有無だけが取れる。
      */
     @Cacheable("cards")
-    public List<CardsResponse.Card> getCards() {
+    public CardsResponse getCards() {
         CardsResponse response = call(() -> restClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/cards").build())
                 .retrieve()
                 .body(CardsResponse.class));
         if (response == null) {
-            return List.of();
+            return new CardsResponse(List.of(), List.of());
         }
-        return Stream.concat(
-                        response.items() == null ? Stream.of() : response.items().stream(),
-                        response.supportItems() == null ? Stream.of() : response.supportItems().stream())
-                .toList();
+        return new CardsResponse(
+                response.items() == null ? List.of() : response.items(),
+                response.supportItems() == null ? List.of() : response.supportItems());
     }
 
     /**

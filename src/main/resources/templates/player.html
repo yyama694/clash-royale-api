@@ -18,19 +18,20 @@
                 <li><span class="label"><span aria-hidden="true">✅</span> <span th:text="#{player.wins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.wins(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">❌</span> <span th:text="#{player.losses}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.losses(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">👑</span> <span th:text="#{player.threeCrownWins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.threeCrownWins(), 1, 'DEFAULT')}"></span></li>
+                <li th:if="${streak}"><span class="label"><span aria-hidden="true">🔥</span> <span th:text="#{player.streak}"></span></span><span class="value" th:text="${streak.winning()} ? #{player.streak.win(${streak.count()})} : #{player.streak.lose(${streak.count()})}"></span></li>
+                <!--/* ランク戦の成績は、上位の順位に入ったプレイヤーにしか意味のある値が無い(それ以外は順位なし・レーティング0) */-->
+                <th:block th:with="r=${player.currentPathOfLegendSeasonResult()}"><li th:if="${r != null and r.rank() != null}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.current}"></span></span><span class="value" th:text="#{player.ranked.value(${r.rank()}, ${#numbers.formatInteger(r.trophies(), 1, 'DEFAULT')})}"></span></li></th:block>
+                <th:block th:with="r=${player.bestPathOfLegendSeasonResult()}"><li th:if="${r != null and r.rank() != null}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.best}"></span></span><span class="value" th:text="#{player.ranked.value(${r.rank()}, ${#numbers.formatInteger(r.trophies(), 1, 'DEFAULT')})}"></span></li></th:block>
                 <li th:if="${player.clan()}"><span class="label"><span aria-hidden="true">🛡️</span> <span th:text="#{player.clan}"></span></span><span class="value"><a th:href="@{/clan/{tag}(tag=${clanPathTag})}"><bdi th:text="${clanName}"></bdi></a></span></li>
             </ul>
+            <th:block th:if="${streak}">
+                <p th:replace="~{fragments/layout :: notice(#{player.streak.notice})}"></p>
+            </th:block>
         </div>
 
-        <div th:if="${battles != null}" class="card current-deck">
+        <div class="card current-deck">
             <h2 th:text="#{deck.heading}"></h2>
-            <p th:replace="~{fragments/layout :: notice(#{deck.notice})}"></p>
             <th:block th:if="${currentDeck}">
-                <p class="deck-source">
-                    <span th:text="#{deck.source}"></span>
-                    <a th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${currentDeck.battleTime()})}"><span th:text="${currentDeck.gameMode()}"></span>
-                        <time th:replace="~{fragments/layout :: localTime(${currentDeck.time()})}"></time></a>
-                </p>
                 <div th:replace="~{fragments/layout :: deckGrid(${currentDeck.cards()})}"></div>
                 <th:block th:if="${not #lists.isEmpty(currentDeck.supportCards())}">
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${currentDeck.supportCards()})}"></div>

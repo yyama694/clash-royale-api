@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{cards.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{cards.pageTitle}"></h1>
+            <p th:text="#{cards.lead}"></p>
+            <!--/* 絞り込みはブラウザ内で行う(全カードを一度に出しているので、サーバーへ問い合わせ直す必要が無い)。スクリプトが動かなければ全件表示のまま。 */-->
+            <form class="search-form card-filter" role="search" onsubmit="return false;">
+                <label>
+                    <span th:text="#{cards.filter.label}"></span>
+                    <input type="search" id="card-filter" autocomplete="off" th:placeholder="#{cards.filter.placeholder}">
+                </label>
+            </form>
+            <p class="empty-state" id="card-filter-empty" hidden th:text="#{cards.filter.empty}"></p>
+        </div>
+
+        <section class="card card-group" th:each="group : ${groups}">
+            <h2 th:text="${group.heading()}"></h2>
+            <div class="deck-grid card-catalog">
+                <div class="deck-card" th:each="c : ${group.cards()}" th:attr="data-search=${c.name() + ' ' + c.englishName()}">
+                    <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
+                    <div class="card-name" th:text="${c.name()}"></div>
+                    <div class="card-sub" th:if="${c.elixirCost() != null}" th:text="#{cards.elixir(${c.elixirCost()})}"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!--
+      日本語名はひらがなで打っても当たるよう、カタカナに寄せてから比べる(「ないと」→「ナイト」)。
+      全角・半角の揺れはNFKCで、英字の大小は小文字化で吸収する。
+    -->
+    <script>
+        (function () {
+            var input = document.getElementById('card-filter');
+            var empty = document.getElementById('card-filter-empty');
+            var cards = Array.prototype.slice.call(document.querySelectorAll('.card-catalog .deck-card'));
+            var groups = Array.prototype.slice.call(document.querySelectorAll('.card-group'));
+            function normalize(text) {
+                return text.normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g, function (ch) {
+                    return String.fromCharCode(ch.charCodeAt(0) + 0x60);
+                }).replace(/[\s・.\-]/g, '');
+            }
+            cards.forEach(function (card) {
+                card.dataset.normalized = normalize(card.dataset.search || '');
+            });
+            input.addEventListener('input', function () {
+                var query = normalize(input.value);
+                cards.forEach(function (card) {
+                    card.hidden = query !== '' && card.dataset.normalized.indexOf(query) < 0;
+                });
+                var anyVisible = false;
+                groups.forEach(function (group) {
+                    var visible = group.querySelector('.deck-card:not([hidden])') !== null;
+                    group.hidden = !visible;
+                    anyVisible = anyVisible || visible;
+                });
+                empty.hidden = anyVisible;
+            });
+        })();
+    </script>
+</body>
+</html>

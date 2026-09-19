@@ -5,7 +5,8 @@
     <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+        <!--/* 直接開かれたとき(戻る履歴が無いとき)の戻り先は、トップページよりカード一覧の方が自然 */-->
+        <a class="back-link" th:href="@{/cards}">&laquo; <span th:text="#{action.backToCards}"></span></a>
 
         <div class="card">
             <h1><bdi th:text="${card.name()}"></bdi></h1>

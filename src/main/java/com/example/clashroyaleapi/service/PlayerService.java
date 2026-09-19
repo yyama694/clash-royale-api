@@ -18,8 +18,6 @@ import java.util.stream.Stream;
 @Service
 public class PlayerService {
 
-    private static final int DECK_SIZE = 8;
-
     private final ClashRoyaleApiClient apiClient;
     private final PlayerSightingLog sightingLog;
 
@@ -51,22 +49,6 @@ public class PlayerService {
 
     public PlayerBattleStats statsOf(List<BattleLogEntry> battleLog) {
         return PlayerBattleStats.from(battleLog);
-    }
-
-    /**
-     * 使用中のデッキの代わりに、直近の1vs1で使ったデッキを返すための対戦を選ぶ(battlelogは新しい順)。
-     * 2v2と、デッキが8枚そろっていない対戦(ボートバトルの防衛側など)は、普段のデッキとは言えないので除く。
-     */
-    public Optional<BattleLogEntry> latestOneOnOne(List<BattleLogEntry> battleLog) {
-        return battleLog.stream()
-                .filter(PlayerService::isOneOnOneWithFullDeck)
-                .findFirst();
-    }
-
-    private static boolean isOneOnOneWithFullDeck(BattleLogEntry battle) {
-        return battle.team() != null && battle.team().size() == 1
-                && battle.opponent() != null && battle.opponent().size() == 1
-                && battle.team().get(0).cards() != null && battle.team().get(0).cards().size() == DECK_SIZE;
     }
 
     /**

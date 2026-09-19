@@ -20,6 +20,12 @@ public class CardController {
         this.viewMapper = viewMapper;
     }
 
+    @GetMapping("/cards")
+    public String cards(Model model, Locale locale) {
+        model.addAttribute("groups", viewMapper.toCardCatalog(cardService.catalog(), locale));
+        return "cards";
+    }
+
     @GetMapping("/card/{id}")
     public String card(@PathVariable int id, Model model, Locale locale) {
         model.addAttribute("card", viewMapper.toCardDetail(cardService.byId(id), locale));

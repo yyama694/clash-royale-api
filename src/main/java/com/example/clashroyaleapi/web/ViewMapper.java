@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
+import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.Country;
@@ -14,9 +15,12 @@ import com.example.clashroyaleapi.domain.Deck;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
+import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
+import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
+import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
 import com.example.clashroyaleapi.web.view.CardView;
@@ -36,6 +40,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
@@ -76,16 +81,15 @@ public class ViewMapper {
                 toParticipants(battle.opponent(), invert(teamResult), viewerTag, locale));
     }
 
-    /** 1vs1の対戦を渡す前提なので、teamの先頭が見ているプレイヤー本人になる。 */
-    public CurrentDeckView toCurrentDeck(BattleLogEntry battle, Locale locale) {
-        BattleLogEntry.Participant self = battle.team().get(0);
-        return new CurrentDeckView(
-                battle.battleTime(),
-                timeFormatter.apiTimestamp(battle.battleTime(), locale),
-                gameModeOf(battle, locale),
-                toCards(self.cards(), locale),
-                toCards(self.supportCards(), locale),
-                toDeckMeta(self));
+    /** デッキが空(公式APIが返さなかった)の場合は、画面に案内文を出すため空を返す。 */
+    public Optional<CurrentDeckView> toCurrentDeck(PlayerResponse player, Locale locale) {
+        if (player.currentDeck() == null || player.currentDeck().isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new CurrentDeckView(
+                toCards(player.currentDeck(), locale),
+                toCards(player.currentDeckSupportCards(), locale),
+                toDeckMeta(player.currentDeck(), player.currentDeckSupportCards())));
     }
 
     /**
@@ -104,6 +108,20 @@ public class ViewMapper {
                 card.elixirCost(),
                 CardLevel.inGame(1, card.maxLevel()),
                 CardLevel.inGame(card.maxLevel(), card.maxLevel()));
+    }
+
+    public List<CardCatalogGroupView> toCardCatalog(List<CardService.CardGroup> groups, Locale locale) {
+        return groups.stream()
+                .map(group -> new CardCatalogGroupView(
+                        group.rarity() == null
+                                ? labels.message("cards.group.tower", locale)
+                                : labels.rarity(group.rarity(), locale),
+                        group.cards().stream()
+                                .map(card -> new CardCatalogItemView(card.id(), labels.cardName(card.name(), locale),
+                                        card.name(), card.iconUrls() == null ? null : card.iconUrls().medium(),
+                                        card.elixirCost()))
+                                .toList()))
+                .toList();
     }
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
@@ -206,17 +224,16 @@ public class ViewMapper {
                         result,
                         toCards(participant.cards(), locale),
                         toCards(participant.supportCards(), locale),
-                        toDeckMeta(participant),
+                        toDeckMeta(participant.cards(), participant.supportCards()),
                         isViewer(participant, viewerTag)))
                 .toList();
     }
 
-    static DeckMetaView toDeckMeta(BattleLogEntry.Participant participant) {
-        List<BattleLogEntry.Card> cards = participant.cards() == null ? List.of() : participant.cards();
+    static DeckMetaView toDeckMeta(List<BattleLogEntry.Card> deck, List<BattleLogEntry.Card> supportCards) {
+        List<BattleLogEntry.Card> cards = deck == null ? List.of() : deck;
         List<Integer> elixirCosts = cards.stream().map(BattleLogEntry.Card::elixirCost).toList();
         List<Integer> cardIds = cards.stream().map(BattleLogEntry.Card::id).toList();
-        Integer towerTroopId = participant.supportCards() == null || participant.supportCards().isEmpty()
-                ? null : participant.supportCards().get(0).id();
+        Integer towerTroopId = supportCards == null || supportCards.isEmpty() ? null : supportCards.get(0).id();
         OptionalDouble average = Deck.averageElixir(elixirCosts);
         OptionalInt cycle = Deck.fourCardCycle(elixirCosts);
         return new DeckMetaView(
