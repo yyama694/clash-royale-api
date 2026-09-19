@@ -35,6 +35,15 @@ server:
 player-index:
   dir: ${PLAYER_INDEX_DIR:data/player-index}
 
+# 名前検索用にクラン対戦の履歴とプレイヤーの対戦履歴を巡回してプレイヤーを集める(Crawler)。既定では動かさない。
+# 本番では /etc/clash-royale-api/env の環境変数で有効化・間隔を変える(ビルドし直さずに止められるように)。
+crawler:
+  enabled: ${CRAWLER_ENABLED:false}
+  interval: ${CRAWLER_INTERVAL:2s}
+  races-per-clan: ${CRAWLER_RACES_PER_CLAN:1}
+  # 5回に1回をプレイヤーの対戦履歴の巡回にする(クランに入っていない人を拾うため)。
+  battle-log-every: ${CRAWLER_BATTLE_LOG_EVERY:5}
+
 clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1

@@ -8,6 +8,7 @@ import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.LocationsResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
+import com.example.clashroyaleapi.client.dto.RiverRaceLogResponse;
 import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
@@ -134,12 +135,35 @@ public class ClashRoyaleApiClient {
     // battlelogはAPI仕様上、直近の対戦を返すのみで件数指定やページネーションはできない。返却件数は変動する(上限は保証されない)。
     @Cacheable("battleLogs")
     public List<BattleLogEntry> getBattleLog(String tag) {
+        return fetchBattleLog(tag);
+    }
+
+    /** 巡回用。getRiverRaceLog と同じ理由でキャッシュしない。 */
+    public List<BattleLogEntry> getBattleLogUncached(String tag) {
+        return fetchBattleLog(tag);
+    }
+
+    private List<BattleLogEntry> fetchBattleLog(String tag) {
         List<BattleLogEntry> log = call(() -> restClient.get()
                 .uri("/players/{tag}/battlelog", Tags.normalize(tag))
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<BattleLogEntry>>() {
                 }));
         return log == null ? List.of() : log;
+    }
+
+    /**
+     * クラン対戦の履歴。巡回専用なので、意図的に @Cacheable を付けていない。
+     * 巡回の結果をキャッシュに載せると、2度は使わないデータでメモリが埋まり、利用者の分が追い出されるため。
+     */
+    public RiverRaceLogResponse getRiverRaceLog(String clanTag, int limit) {
+        RiverRaceLogResponse response = call(() -> restClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/clans/{tag}/riverracelog")
+                        .queryParam("limit", limit)
+                        .build(Tags.normalize(clanTag)))
+                .retrieve()
+                .body(RiverRaceLogResponse.class));
+        return response == null || response.items() == null ? new RiverRaceLogResponse(List.of()) : response;
     }
 
     private <T> T call(Supplier<T> request) {

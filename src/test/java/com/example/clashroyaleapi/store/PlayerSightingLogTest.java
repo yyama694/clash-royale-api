@@ -63,6 +63,18 @@ class PlayerSightingLogTest {
     }
 
     @Test
+    void 巡回で集めた分は別のファイルに重複を除かずに書く() throws IOException {
+        PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
+        sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
+
+        sightingLog.recordCrawled(List.of(new PlayerSighting("#ABC", "Yamada")));
+        sightingLog.recordCrawled(List.of(new PlayerSighting("#ABC", "Yamada")));
+
+        assertEquals(List.of("#ABC	Yamada	2026-09-18T10:15:30Z", "#ABC	Yamada	2026-09-18T10:15:30Z"),
+                lines("crawl-20260918-10.tsv"));
+    }
+
+    @Test
     void タグか名前が空のものは書かない() {
         PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
 

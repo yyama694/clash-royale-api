@@ -64,33 +64,51 @@ public class PlayerSightingLog {
 
     /** 蓄積は付加的な機能なので、書き込みに失敗しても画面表示を妨げないよう例外は投げずにログだけ残す。 */
     public synchronized void record(Collection<PlayerSighting> sightings) {
+        Set<String> keys = keysOf(sightings);
+        keys.removeIf(key -> recent.getIfPresent(key) != null);
+        if (append("", keys)) {
+            // 書けたものだけ「最近書いた」扱いにする(失敗したものは次に見かけたときに再度書く)。
+            keys.forEach(key -> recent.put(key, Boolean.TRUE));
+        }
+    }
+
+    /**
+     * 巡回で集めた分を crawl-yyyyMMdd-HH.tsv に書く。巡回は件数が桁違いに多く、「最近書いた組」を使うと
+     * 閲覧由来の分がすぐ追い出されて役に立たなくなるため、ここでは重複を除かず後段の整理に任せる。
+     */
+    public synchronized void recordCrawled(Collection<PlayerSighting> sightings) {
+        append("crawl-", keysOf(sightings));
+    }
+
+    private static Set<String> keysOf(Collection<PlayerSighting> sightings) {
         Set<String> keys = new LinkedHashSet<>();
         for (PlayerSighting sighting : sightings) {
             if (sighting.tag() == null || sighting.tag().isBlank()
                     || sighting.name() == null || sighting.name().isBlank()) {
                 continue;
             }
-            String key = Tags.normalize(sighting.tag()) + "\t" + sanitize(sighting.name());
-            if (recent.getIfPresent(key) == null) {
-                keys.add(key);
-            }
+            keys.add(Tags.normalize(sighting.tag()) + "\t" + sanitize(sighting.name()));
         }
+        return keys;
+    }
+
+    private boolean append(String filePrefix, Set<String> keys) {
         if (keys.isEmpty()) {
-            return;
+            return false;
         }
         Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
         try {
             Files.createDirectories(inboxDir);
-            try (Writer writer = Files.newBufferedWriter(inboxDir.resolve(FILE_NAME.format(now)),
+            try (Writer writer = Files.newBufferedWriter(inboxDir.resolve(filePrefix + FILE_NAME.format(now)),
                     StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
                 for (String key : keys) {
                     writer.write(key + "\t" + now + "\n");
                 }
             }
-            // 書けたものだけ「最近書いた」扱いにする(失敗したものは次に見かけたときに再度書く)。
-            keys.forEach(key -> recent.put(key, Boolean.TRUE));
+            return true;
         } catch (IOException e) {
             log.warn("failed to record {} player sightings: {}", keys.size(), e.toString());
+            return false;
         }
     }
 
