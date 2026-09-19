@@ -418,9 +418,10 @@ button:hover, .btn:hover {
 /*
   ゲーム内と同じ4列×2行にする(auto-fitだとスマホで3・3・2に折り返す)。
   8列にするとPC幅でもカード名が折り返し、4列のまま全幅に広げると間延びするため、幅に上限を設ける。
+  列は1frではなくminmax(0, 1fr)にする。1frだと列が中身の単語より縮まず、幅320pxでは「Esqueletos」などで4列が画面外にはみ出した。
 */
 .current-deck .deck-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.5rem;
     max-width: 560px;
 }
@@ -693,10 +694,13 @@ td.cell-action {
     }
 }
 
+/* 列幅より長い単語は途中で折り返す。ハイフネーションに対応した環境では単語の区切りにハイフンが入る。 */
 .deck-card .card-name {
     font-size: 0.78rem;
     font-weight: 600;
     line-height: 1.3;
+    overflow-wrap: anywhere;
+    hyphens: auto;
 }
 
 .deck-card .card-sub {
@@ -1061,16 +1065,20 @@ td.cell-action {
         gap: 0.75rem;
         padding: 0.15rem 0;
         border-top: none;
+        /* 区切りの無い長い名前(キリル文字の1語など)が値の列から画面外へはみ出すため、途中で折り返させる。 */
+        overflow-wrap: anywhere;
     }
 
     td.num {
         text-align: left;
     }
 
+    /* 値の側の折り返し指定(anywhere)を引き継ぐと「oponent/e」のように項目名まで単語の途中で切れるため戻す。 */
     tbody td::before {
         content: attr(data-label);
         color: var(--color-text-muted);
         font-size: 0.8rem;
+        overflow-wrap: normal;
     }
 
     td.cell-action {
@@ -1129,12 +1137,18 @@ td.cell-action {
         overflow-wrap: anywhere;
     }
 
-    /* 4列固定で1枚が60px前後になるため、カード名を小さくして折り返し行数を減らす。 */
-    .deck-panel .deck-card {
+    /* 4列固定で1枚が60px前後になるため、カード名を小さくして折り返し行数を減らす(対戦詳細と使用中のデッキ)。 */
+    .deck-panel .deck-card,
+    .current-deck .deck-card {
         padding: 0.4rem 0.2rem;
     }
 
-    .deck-panel .deck-card .card-name {
+    .current-deck .deck-grid {
+        gap: 0.35rem;
+    }
+
+    .deck-panel .deck-card .card-name,
+    .current-deck .deck-card .card-name {
         font-size: 0.68rem;
         letter-spacing: -0.02em;
     }
@@ -1148,6 +1162,12 @@ td.cell-action {
 
     .card, .decks .card {
         padding: 1.1rem;
+    }
+
+    /* 項目名の列が7.5remのままだと、幅320pxでは値の列が84pxしか残らず「Ranqueado」も途中で折り返した。 */
+    tbody td {
+        grid-template-columns: 5.5rem minmax(0, 1fr);
+        gap: 0.5rem;
     }
 
     /* ボタンを右端に置くと名前の領域が狭くなるため、下段に回して全幅にする。 */
