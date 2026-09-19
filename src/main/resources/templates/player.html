@@ -41,6 +41,17 @@
             <p th:unless="${currentDeck}" class="empty-state" th:text="#{deck.empty}"></p>
         </div>
 
+        <div th:if="${cardCollection}" class="card">
+            <h2 th:text="#{cardCollection.heading}"></h2>
+            <p th:replace="~{fragments/layout :: notice(#{cardCollection.notice(${cardCollection.maxedPercent()})})}"></p>
+            <ul class="stat-grid">
+                <li th:each="r : ${cardCollection.rarities()}">
+                    <span class="label" th:text="${r.rarityLabel()}"></span>
+                    <span class="value" th:text="#{cardCollection.rarity.value(${r.maxedCards()}, ${r.totalCards()}, ${r.maxedPercent()})}"></span>
+                </li>
+            </ul>
+        </div>
+
         <div th:if="${battleStats}" class="card">
             <h2 th:text="#{stats.heading}"></h2>
             <p th:replace="~{fragments/layout :: notice(#{stats.notice})}"></p>

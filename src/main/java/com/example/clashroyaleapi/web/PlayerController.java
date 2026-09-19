@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
@@ -78,6 +79,9 @@ public class PlayerController {
         }
         WinLoseStreak.of(player.currentWinLoseStreak()).ifPresent(streak -> model.addAttribute("streak", streak));
         viewMapper.toCurrentDeck(player, locale).ifPresent(deck -> model.addAttribute("currentDeck", deck));
+        if (player.cards() != null && !player.cards().isEmpty()) {
+            model.addAttribute("cardCollection", viewMapper.toCardCollection(CardCollection.of(player.cards()), locale));
+        }
 
         // 戦績の取得に失敗してもプレイヤー情報自体は表示したいので、ここだけは個別に握る。
         try {
