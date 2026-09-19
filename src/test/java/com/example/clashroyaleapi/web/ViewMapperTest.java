@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
+import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 
@@ -14,6 +15,7 @@ import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -54,7 +56,7 @@ class ViewMapperTest {
 
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(duel), "#VIEWER", Locale.JAPANESE).get(0);
 
-        assertEquals(List.of("Opp1", "Opp2"), summary.opponents().stream().map(PlayerLinkView::name).toList());
+        assertEquals(List.of("Opp1", "Opp2"), summary.opponents().stream().map(OpponentView::name).toList());
         assertEquals(List.of("Mate"), summary.teammates().stream().map(PlayerLinkView::name).toList());
     }
 
@@ -68,6 +70,34 @@ class ViewMapperTest {
 
         assertEquals("Ale :D", summary.opponents().get(0).name());
         assertTrue(summary.teammates().isEmpty());
+    }
+
+    /** APIのlevelはレアリティごとに数え直した値なので、ゲーム内表記に直してから平均する。 */
+    @Test
+    void 対戦相手の平均レベルはゲーム内表記で求める() {
+        List<BattleLogEntry.Card> deck = List.of(
+                card(14, 16), card(14, 16), card(14, 16), card(14, 16),
+                card(12, 14), card(12, 14), card(9, 11), card(5, 8));
+        BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
+                new BattleLogEntry.GameMode("Ladder"), List.of(participant("#VIEWER", "Viewer")),
+                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of())));
+
+        BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
+
+        // ゲーム内表記ではコモン14・レア14・エピック14・レジェンダリー13。生値の平均(11.75)にならないこと。
+        assertEquals(13.875, summary.opponents().get(0).averageLevel());
+    }
+
+    @Test
+    void 八枚そろっていないデッキの相手は平均レベルを出さない() {
+        BattleSummaryView summary = viewMapper.toBattleSummaries(
+                List.of(duel(List.of(participant("#VIEWER", "Viewer")))), "#VIEWER", Locale.JAPANESE).get(0);
+
+        assertNull(summary.opponents().get(0).averageLevel());
+    }
+
+    private static BattleLogEntry.Card card(int level, int maxLevel) {
+        return new BattleLogEntry.Card(1, "Card", level, maxLevel, 3, null);
     }
 
     private static BattleLogEntry duel(List<BattleLogEntry.Participant> team) {

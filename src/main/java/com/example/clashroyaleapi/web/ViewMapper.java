@@ -30,6 +30,7 @@ import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
 import com.example.clashroyaleapi.web.view.DeckMetaView;
+import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
@@ -191,13 +192,20 @@ public class ViewMapper {
                 resultOf(battle),
                 crownsOf(battle.team()),
                 crownsOf(battle.opponent()),
-                toLinks(battle.opponent()),
+                toOpponents(battle.opponent()),
                 toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()));
     }
 
     private static List<PlayerLinkView> toLinks(List<BattleLogEntry.Participant> participants) {
         return participants.stream()
                 .map(p -> new PlayerLinkView(GameText.stripFormatting(p.name()), Tags.toPathSegment(p.tag())))
+                .toList();
+    }
+
+    private static List<OpponentView> toOpponents(List<BattleLogEntry.Participant> participants) {
+        return participants.stream()
+                .map(p -> new OpponentView(GameText.stripFormatting(p.name()), Tags.toPathSegment(p.tag()),
+                        toNullable(Deck.averageLevel(inGameLevels(p.cards())))))
                 .toList();
     }
 
@@ -234,12 +242,23 @@ public class ViewMapper {
         List<Integer> elixirCosts = cards.stream().map(BattleLogEntry.Card::elixirCost).toList();
         List<Integer> cardIds = cards.stream().map(BattleLogEntry.Card::id).toList();
         Integer towerTroopId = supportCards == null || supportCards.isEmpty() ? null : supportCards.get(0).id();
-        OptionalDouble average = Deck.averageElixir(elixirCosts);
         OptionalInt cycle = Deck.fourCardCycle(elixirCosts);
         return new DeckMetaView(
-                average.isPresent() ? average.getAsDouble() : null,
+                toNullable(Deck.averageElixir(elixirCosts)),
                 cycle.isPresent() ? cycle.getAsInt() : null,
+                toNullable(Deck.averageLevel(inGameLevels(cards))),
                 Deck.copyUrl(cardIds, towerTroopId).orElse(null));
+    }
+
+    private static List<Integer> inGameLevels(List<BattleLogEntry.Card> cards) {
+        if (cards == null) {
+            return List.of();
+        }
+        return cards.stream().map(card -> CardLevel.inGame(card.level(), card.maxLevel())).toList();
+    }
+
+    private static Double toNullable(OptionalDouble value) {
+        return value.isPresent() ? value.getAsDouble() : null;
     }
 
     private List<CardView> toCards(List<BattleLogEntry.Card> cards, Locale locale) {

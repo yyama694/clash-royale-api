@@ -89,7 +89,9 @@
                             <!--/* 2v2では相手が2人いて味方もいるため、全員を出す(相手の1人目だけだと対戦の半分しか分からない) */-->
                             <td th:attr="data-label=#{battlelog.col.opponent}">
                                 <span class="name-list">
-                                    <a th:each="o : ${b.opponents()}" th:href="@{/player/{tag}(tag=${o.pathTag()})}"><bdi th:text="${o.name()}"></bdi></a>
+                                    <span th:each="o : ${b.opponents()}"><a th:href="@{/player/{tag}(tag=${o.pathTag()})}"><bdi th:text="${o.name()}"></bdi></a>
+                                        <span th:if="${o.averageLevel() != null}" class="opponent-level"
+                                              th:text="#{battlelog.averageLevel(${#numbers.formatDecimal(o.averageLevel(), 1, 1)})}"></span></span>
                                 </span>
                                 <span th:unless="${#lists.isEmpty(b.teammates())}" class="teammates">
                                     <span th:text="#{battlelog.teammate}"></span>

@@ -28,6 +28,18 @@ public final class Deck {
         return elixirCosts.stream().mapToInt(Integer::intValue).average();
     }
 
+    /**
+     * 8枚のカードレベルの平均。levels はゲーム内表記に直した値(CardLevel.inGame)で渡すこと。
+     * APIの生値はレアリティごとに数え直しているため、そのまま平均すると意味のない数字になる。
+     * タワーユニットはレベルの体系がカードと別なので含めない。
+     */
+    public static OptionalDouble averageLevel(List<Integer> levels) {
+        if (!isComplete(levels)) {
+            return OptionalDouble.empty();
+        }
+        return levels.stream().mapToInt(Integer::intValue).average();
+    }
+
     /** 4枚サイクル: 最も軽い4枚のエリクサーの合計。デッキが一巡して同じカードに戻るまでの速さの目安。 */
     public static OptionalInt fourCardCycle(List<Integer> elixirCosts) {
         if (!isComplete(elixirCosts)) {
@@ -51,7 +63,7 @@ public final class Deck {
         return Optional.of("https://link.clashroyale.com/en?clashroyale://copyDeck?deck=" + deck + tower + "&l=Royals");
     }
 
-    private static boolean isComplete(List<Integer> elixirCosts) {
-        return elixirCosts != null && elixirCosts.size() == SIZE && elixirCosts.stream().allMatch(Objects::nonNull);
+    private static boolean isComplete(List<Integer> values) {
+        return values != null && values.size() == SIZE && values.stream().allMatch(Objects::nonNull);
     }
 }

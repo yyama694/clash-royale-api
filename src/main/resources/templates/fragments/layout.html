@@ -284,11 +284,11 @@
 </div>
 
 <!--
-  デッキの平均エリクサー・4枚サイクルとコピーボタン。求められない項目はViewMapperでnullにしてあり、その項目だけ出さない。
+  デッキの平均エリクサー・4枚サイクル・平均カードレベルとコピーボタン。求められない項目はViewMapperでnullにしてあり、その項目だけ出さない。
   コピーのリンクはゲームを起動するため、今のページを残せるよう別タブで開く。
 -->
 <div th:fragment="deckMeta(meta)" class="deck-meta"
-     th:if="${meta.averageElixir() != null or meta.copyUrl() != null}">
+     th:if="${meta.averageElixir() != null or meta.averageLevel() != null or meta.copyUrl() != null}">
     <span class="deck-metric" th:if="${meta.averageElixir() != null}">
         <span class="deck-metric-label" th:text="#{deck.averageElixir}"></span>
         <span class="deck-metric-value" th:text="${#numbers.formatDecimal(meta.averageElixir(), 1, 1)}"></span>
@@ -296,6 +296,10 @@
     <span class="deck-metric" th:if="${meta.fourCardCycle() != null}">
         <span class="deck-metric-label" th:text="#{deck.fourCardCycle}"></span>
         <span class="deck-metric-value" th:text="${meta.fourCardCycle()}"></span>
+    </span>
+    <span class="deck-metric" th:if="${meta.averageLevel() != null}">
+        <span class="deck-metric-label" th:text="#{deck.averageLevel}"></span>
+        <span class="deck-metric-value" th:text="${#numbers.formatDecimal(meta.averageLevel(), 1, 1)}"></span>
     </span>
     <a th:if="${meta.copyUrl() != null}" class="btn btn-secondary btn-small deck-copy" th:href="${meta.copyUrl()}"
        th:title="#{deck.copy.title}" target="_blank" rel="noopener noreferrer" th:text="#{deck.copy}"></a>

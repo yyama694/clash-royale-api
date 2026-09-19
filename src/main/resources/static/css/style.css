@@ -428,10 +428,17 @@ td.cell-action {
     text-align: right;
 }
 
-.name-list a + a::before {
+/* 対戦相手は名前と平均レベルを1組のspanで包んでいるため、aに限らず隣り合う要素の間に区切りを入れる。 */
+.name-list > * + *::before {
     content: " / ";
     color: var(--color-text-muted);
     font-weight: 400;
+}
+
+.opponent-level {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
 }
 
 .teammates {

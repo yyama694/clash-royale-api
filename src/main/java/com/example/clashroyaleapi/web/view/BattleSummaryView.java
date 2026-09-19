@@ -9,5 +9,5 @@ import java.util.List;
  * 2v2では相手が2人になり味方もいるため、どちらもリストで持つ(1v1ではteammatesは空)。
  */
 public record BattleSummaryView(String battleTime, TimeView time, String gameMode, BattleResult result, int selfCrowns,
-        int opponentCrowns, List<PlayerLinkView> opponents, List<PlayerLinkView> teammates) {
+        int opponentCrowns, List<OpponentView> opponents, List<PlayerLinkView> teammates) {
 }

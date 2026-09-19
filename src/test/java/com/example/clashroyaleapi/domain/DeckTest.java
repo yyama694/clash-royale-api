@@ -20,6 +20,11 @@ class DeckTest {
     }
 
     @Test
+    void 平均レベルは8枚の平均() {
+        assertEquals(13.5, Deck.averageLevel(List.of(14, 14, 14, 14, 13, 13, 13, 13)).getAsDouble());
+    }
+
+    @Test
     void 四枚サイクルは軽い順に4枚の合計() {
         assertEquals(10, Deck.fourCardCycle(COSTS).getAsInt());
     }
@@ -36,6 +41,7 @@ class DeckTest {
     void 八枚でないデッキは指標もリンクも出さない() {
         assertEquals(OptionalDouble.empty(), Deck.averageElixir(List.of(3, 3, 3)));
         assertEquals(OptionalInt.empty(), Deck.fourCardCycle(List.of(3, 3, 3)));
+        assertEquals(OptionalDouble.empty(), Deck.averageLevel(List.of(14, 14, 14)));
         assertEquals(Optional.empty(), Deck.copyUrl(List.of(26000000, 26000001), null));
     }
 
