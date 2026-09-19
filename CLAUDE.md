@@ -50,7 +50,7 @@
 - ビルドツール: Maven
 - 画面: Thymeleaf(サーバーサイドレンダリング。hello-worldと同じ方針)
   - 表示用ラベルはすべて`messages.properties`(英語) / `messages_ja.properties` / `messages_es.properties` / `messages_pt.properties`に集約。テンプレートからの`T(...)`によるstaticメソッド呼び出しは使わない。
-  - 表示言語は`?lang=ja` / `en` / `es` / `pt`で切替(Cookie保持)。未指定時はAccept-Language、それも無ければ日本語。対応言語の一覧は`SupportedLanguages.SUPPORTED`の1か所だけで、言語切替リンク・hreflang・テストはそこから作る。
+  - 表示言語は`?lang=ja` / `en` / `es` / `pt`で切替(Cookie保持)。未指定時はAccept-Language、それも無い・対応言語が無ければ英語(2026-09-19に全世界向けへの方針変更に合わせ、無指定時の既定を日本語から英語に変更)。対応言語の一覧は`SupportedLanguages.SUPPORTED`の1か所だけで、言語切替リンク・hreflang・テストはそこから作る。
   - 言語を足すときは、カード名などゲーム内の用語を公式の表記で裏付ける(西・葡での方法は`進捗ログ.md`のフェーズ1.20)。
 - DB: **当面なし**。まずはClash Royale APIの呼び出し結果をそのまま画面に表示する構成で開始し、キャッシュやクイズデータの保存が必要になった段階でPostgreSQL導入を検討する(2026-09-13時点でユーザーが決定)。
 - Webサーバー: Spring Boot組み込みTomcatを直接公開(hello-worldと同様、当面リバースプロキシなし)。

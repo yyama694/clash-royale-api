@@ -14,10 +14,8 @@ import java.util.Optional;
  */
 public final class SupportedLanguages {
 
-    // 主な利用者が日本のプレイヤーのため、言語の希望が一切無いとき(curl等)は日本語にする。
-    public static final Locale DEFAULT = Locale.JAPANESE;
-
-    // 希望はあるが対応していない言語(fr等)の訪問者には、日本語より読める可能性が高い英語を出す。
+    // 対応していない言語(fr等)の訪問者と、言語の希望が無い訪問者(検索エンジンのクローラー等)に出す言語。
+    // 全世界向けのサービスなので、最も多くの人が読める英語にする。
     public static final Locale INTERNATIONAL = Locale.ENGLISH;
 
     // ポルトガル語の訳はブラジル向け(ゲーム内と同じ)だが、pt-PTの訪問者にも英語より読みやすいので言語だけで照合する。
@@ -49,7 +47,7 @@ public final class SupportedLanguages {
     public static Locale fromAcceptLanguage(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.ACCEPT_LANGUAGE);
         if (header == null || header.isBlank()) {
-            return DEFAULT;
+            return INTERNATIONAL;
         }
         try {
             return Locale.LanguageRange.parse(header).stream()
@@ -59,7 +57,7 @@ public final class SupportedLanguages {
                     .orElse(INTERNATIONAL);
         } catch (IllegalArgumentException e) {
             // 壊れたAccept-Languageは「希望なし」と同じ扱いにする。
-            return DEFAULT;
+            return INTERNATIONAL;
         }
     }
 

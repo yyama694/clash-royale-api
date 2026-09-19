@@ -82,12 +82,22 @@ class CountryPreferenceTest {
     }
 
     @Test
-    void 表示言語の国もランキングの対象外なら日本にフォールバックする() {
+    void 表示言語の国もランキングの対象外なら既定言語の国にフォールバックする() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "*");
-        List<Country> withoutUs = List.of(COUNTRIES.get(0), COUNTRIES.get(2));
+        List<Country> withoutJapan = List.of(COUNTRIES.get(1), COUNTRIES.get(2));
 
-        assertEquals("JP", countryPreference.resolve(null, request, withoutUs, Locale.ENGLISH).orElseThrow().countryCode());
+        assertEquals("US", countryPreference.resolve(null, request, withoutJapan, Locale.JAPANESE).orElseThrow().countryCode());
+    }
+
+    @Test
+    void 既定言語の国も対象外なら国一覧の先頭にする() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "*");
+        List<Country> withoutUs = List.of(COUNTRIES.get(2), COUNTRIES.get(0));
+
+        assertEquals(COUNTRIES.get(2).countryCode(),
+                countryPreference.resolve(null, request, withoutUs, Locale.ENGLISH).orElseThrow().countryCode());
     }
 
     @Test

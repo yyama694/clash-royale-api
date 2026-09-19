@@ -18,13 +18,11 @@ import java.util.Optional;
 /**
  * 「自分の国」のランキングを、訪問者ごとに決める。
  * 明示選択(クエリ) &gt; 前回の選択(Cookie) &gt; Accept-Languageの国 の順で解決し、
- * どれも当てはまらない場合だけ既定国にフォールバックする。表示言語の切り替え(lang)と同じ考え方。
+ * どれも当てはまらない場合だけ既定言語(英語)の代表的な国にフォールバックする。表示言語の切り替え(lang)と同じ考え方。
  */
 @Component
 public class CountryPreference {
 
-    // 表示言語からも国を決められなかったときの最後の砦。主な利用者が日本のプレイヤーのため日本にする。
-    private static final String FALLBACK_COUNTRY_CODE = "JP";
     private static final Duration COOKIE_MAX_AGE = Duration.ofDays(365);
 
     public Optional<Country> resolve(String requested, HttpServletRequest request, List<Country> countries,
@@ -39,7 +37,9 @@ public class CountryPreference {
                         .flatMap(Optional::stream)
                         .findFirst())
                 .or(() -> find(countries, displayLanguageCountry(displayLocale)))
-                .or(() -> find(countries, FALLBACK_COUNTRY_CODE));
+                .or(() -> find(countries, displayLanguageCountry(SupportedLanguages.INTERNATIONAL)))
+                // 選択なしにすると国別タブ自体が消え、国を選び直す手段が無くなるため、必ずどれかの国にする。
+                .or(() -> Optional.of(countries.get(0)));
     }
 
     public void remember(String countryCode, HttpServletResponse response) {

@@ -45,15 +45,15 @@ class SupportedLanguagesTest {
     }
 
     @Test
-    void 希望が無ければ日本語_対応言語が一つも無ければ英語() {
-        assertEquals(Locale.JAPANESE, fromHeader(null));
-        assertEquals(Locale.JAPANESE, fromHeader(" "));
+    void 希望が無い場合も対応言語が一つも無い場合も英語() {
+        assertEquals(Locale.ENGLISH, fromHeader(null));
+        assertEquals(Locale.ENGLISH, fromHeader(" "));
         assertEquals(Locale.ENGLISH, fromHeader("fr"));
     }
 
     @Test
     void 壊れたヘッダは希望なしとして扱う() {
-        assertEquals(Locale.JAPANESE, fromHeader("ja;q=abc"));
+        assertEquals(Locale.ENGLISH, fromHeader("ja;q=abc"));
     }
 
     @Test
