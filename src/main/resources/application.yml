@@ -3,7 +3,7 @@ spring:
     name: clash-royale-api
   # メッセージリソースの設定(basename等)は MessageSourceConfig にある。ICUの書式を使うため自前で定義している。
   cache:
-    cache-names: players,clans,battleLogs,clanSearches,clanRankings,playerRankings,locations,cards
+    cache-names: players,clans,battleLogs,clanSearches,clanRankings,playerRankings,locations,cards,clanWarTrophies
     caffeine:
       spec: maximumSize=500,expireAfterWrite=2m
   http:

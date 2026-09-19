@@ -104,7 +104,7 @@ class RankingServiceTest {
             when(apiClient.getClan(clan.tag())).thenReturn(clanDetail(clan.rank() * 100));
         }
 
-        Map<String, Integer> warTrophies = rankingService.warTrophiesOfTopClans(clans);
+        Map<String, Integer> warTrophies = rankingService.warTrophiesOfTopClans("global", clans);
 
         assertEquals(RankingService.WAR_TROPHIES_RANK_LIMIT, warTrophies.size());
         assertEquals(100, warTrophies.get("#C1"));
@@ -117,7 +117,7 @@ class RankingServiceTest {
         when(apiClient.getClan("#NG")).thenThrow(new ApiUnavailableException("boom", null));
 
         Map<String, Integer> warTrophies = rankingService
-                .warTrophiesOfTopClans(List.of(rankedClan(1, "#OK"), rankedClan(2, "#NG")));
+                .warTrophiesOfTopClans("global", List.of(rankedClan(1, "#OK"), rankedClan(2, "#NG")));
 
         assertEquals(500, warTrophies.get("#OK"));
         assertFalse(warTrophies.containsKey("#NG"));
