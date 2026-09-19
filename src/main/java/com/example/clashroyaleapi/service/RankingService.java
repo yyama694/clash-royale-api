@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -88,8 +89,13 @@ public class RankingService {
      * 1クランずつ専用APIを叩く必要があるため、仮想スレッドで並行に取得して待ち時間を抑える
      * (getClanは2分キャッシュ済みなので、同じクランへの2回目以降の呼び出しは実質API通信が発生しない)。
      * 個別のクランで取得に失敗しても他のクランの表示に影響させないよう、そのクランだけ結果から除く。
+     *
+     * 集計結果自体もlocationIdをキーにキャッシュする。getClanは個々のクランについては2分キャッシュ済みだが、
+     * それでも「20並行で取得する」処理自体を毎リクエスト実行すると、低スペックVM(1/8 OCPU)では
+     * 仮想スレッドの起動コストだけで数秒かかることを本番で確認した(2026-09-19)。
      */
-    public Map<String, Integer> warTrophiesOfTopClans(List<ClanRankingResponse.RankedClan> clans) {
+    @Cacheable(value = "clanWarTrophies", key = "#locationId")
+    public Map<String, Integer> warTrophiesOfTopClans(String locationId, List<ClanRankingResponse.RankedClan> clans) {
         List<ClanRankingResponse.RankedClan> targets = clans.stream().limit(WAR_TROPHIES_RANK_LIMIT).toList();
         Map<String, Future<Integer>> futures = new LinkedHashMap<>();
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
