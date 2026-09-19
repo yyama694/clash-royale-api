@@ -448,6 +448,8 @@ thead th {
     color: var(--color-text-muted);
     font-weight: 600;
     padding: 0.6rem 0.7rem;
+    /* 列幅が狭いと見出しが縦に折り返してしまうため、折り返さず横スクロール(.table-scroll)側に委ねる。 */
+    white-space: nowrap;
 }
 
 /* 桁の違いを見比べやすいよう、数値の列は右揃え・等幅数字にする。 */
@@ -538,6 +540,7 @@ td.cell-action {
     border-radius: 999px;
     font-size: 0.82rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .badge-win {
@@ -677,6 +680,9 @@ td.cell-action {
     border-radius: 8px;
     padding: 0.5rem;
     text-align: center;
+    /* カード名が1行/2行のどちらでも、その下のエリクサー・レベル表示が同じ行の隣カードと揃うよう、下端に寄せる。 */
+    display: flex;
+    flex-direction: column;
 }
 
 .deck-card img {
@@ -724,6 +730,7 @@ td.cell-action {
 .deck-card .card-sub {
     font-size: 0.72rem;
     color: var(--color-text-muted);
+    margin-top: auto;
 }
 
 /* 得意(good)は勝ち色、苦手(bad)は負け色。見出しを読まなくても強弱が伝わるようにする。 */
