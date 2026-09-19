@@ -16,3 +16,6 @@ application-*.properties
 # プレイヤー名検索用に蓄積したデータ(ローカル実行時の既定の置き場所)。
 /data/
 .DS_Store
+
+# Claude CodeのEnterWorktreeが作るセッションごとの作業フォルダ。
+/.claude/worktrees/
