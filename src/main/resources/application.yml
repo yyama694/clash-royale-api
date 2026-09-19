@@ -34,13 +34,16 @@ server:
 # 本番は環境変数 PLAYER_INDEX_DIR で /var/lib/clash-royale-api/player-index を指定する。
 player-index:
   dir: ${PLAYER_INDEX_DIR:data/player-index}
+  # inbox を by-tag にまとめる時刻(UTC)。18:30 UTC = 日本時間 3:30。"-" にすると動かさない。
+  compact-cron: ${PLAYER_INDEX_COMPACT_CRON:0 30 18 * * *}
 
 # 名前検索用にクラン対戦の履歴とプレイヤーの対戦履歴を巡回してプレイヤーを集める(Crawler)。既定では動かさない。
 # 本番では /etc/clash-royale-api/env の環境変数で有効化・間隔を変える(ビルドし直さずに止められるように)。
 crawler:
   enabled: ${CRAWLER_ENABLED:false}
   interval: ${CRAWLER_INTERVAL:2s}
-  races-per-clan: ${CRAWLER_RACES_PER_CLAN:1}
+  # 1だと、対戦相手として見つけたクランの直近の対戦が既に取得済みの対戦と同じになり、新規が0人になる(実測)。
+  races-per-clan: ${CRAWLER_RACES_PER_CLAN:10}
   # 5回に1回をプレイヤーの対戦履歴の巡回にする(クランに入っていない人を拾うため)。
   battle-log-every: ${CRAWLER_BATTLE_LOG_EVERY:5}
 

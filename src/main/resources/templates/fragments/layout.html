@@ -19,6 +19,27 @@
         <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
     </th:block>
     <!--
+      言語メニュー(details)は標準では外側を押しても閉じないため、外側のクリックとEscキーで閉じる。
+    -->
+    <script>
+        document.addEventListener('click', function (event) {
+            document.querySelectorAll('.lang-menu details[open]').forEach(function (menu) {
+                if (!menu.contains(event.target)) {
+                    menu.open = false;
+                }
+            });
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape') {
+                return;
+            }
+            document.querySelectorAll('.lang-menu details[open]').forEach(function (menu) {
+                menu.open = false;
+                menu.querySelector('summary').focus();
+            });
+        });
+    </script>
+    <!--
       公式APIの日時は常にUTCで、閲覧者のタイムゾーンはサーバーからは分からない。そのため変換はブラウザに任せる。
       スクリプトが動かない場合は、サーバーが入れたUTC表記がそのまま残る。
     -->
@@ -199,10 +220,26 @@
         <a th:href="@{/ranking}" th:text="#{nav.clanRanking}"></a>
         <a th:href="@{/cards}" th:text="#{nav.cards}"></a>
     </nav>
-    <nav class="lang-switch" th:aria-label="#{nav.language}">
-        <!--/* リンク文字列は常にその言語自身の表記なので、読み上げが正しい言語になるようlangを付ける。 */-->
-        <a th:each="code : ${languageCodes}" th:href="@{${currentUri}(lang=${code})}" th:text="#{'lang.' + ${code}}"
-           th:lang="${code}" th:hreflang="${code}" th:classappend="${#locale.language == code} ? 'is-active'"></a>
+    <!--/*
+      言語が増えてもヘッダーの幅が変わらないよう、現在の言語だけを出して一覧は開いたときに見せる。
+      今の言語が読めない人でも言語の切替だと分かるよう、地球儀のアイコンを付ける。
+      details/summary なのでスクリプトが無くても開閉できる(閉じる操作の補助はheadのスクリプト)。
+    */-->
+    <nav class="lang-menu" th:aria-label="#{nav.language}">
+        <details>
+            <summary>
+                <span class="lang-menu-icon" aria-hidden="true"></span>
+                <span th:text="#{'lang.' + ${#locale.language}}" th:lang="${#locale.language}"></span>
+            </summary>
+            <ul>
+                <!--/* リンク文字列は常にその言語自身の表記なので、読み上げが正しい言語になるようlangを付ける。 */-->
+                <li th:each="code : ${languageCodes}">
+                    <a th:href="@{${currentUri}(lang=${code})}" th:text="#{'lang.' + ${code}}"
+                       th:lang="${code}" th:hreflang="${code}"
+                       th:attr="aria-current=${#locale.language == code} ? 'true' : null"></a>
+                </li>
+            </ul>
+        </details>
     </nav>
 </header>
 

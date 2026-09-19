@@ -7,7 +7,6 @@ import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
@@ -19,7 +18,6 @@ import java.time.Clock;
  * 別のJVMにしないのは、今のVM(使えるメモリ約340MB)では2つ目のJVMを載せる余裕が無いため。
  */
 @Configuration
-@EnableScheduling
 @ConditionalOnProperty(name = "crawler.enabled", havingValue = "true")
 class CrawlerConfig implements SchedulingConfigurer {
 
