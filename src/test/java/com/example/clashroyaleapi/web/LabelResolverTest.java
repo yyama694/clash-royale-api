@@ -87,7 +87,7 @@ class LabelResolverTest {
         assertEquals("サブリーダー", labels.role("coLeader", Locale.JAPANESE));
         assertEquals("Co-leader", labels.role("coLeader", Locale.ENGLISH));
         // 未整備の言語はデフォルト(英語)にフォールバックする。
-        assertEquals("Co-leader", labels.role("coLeader", Locale.FRENCH));
+        assertEquals("Co-leader", labels.role("coLeader", Locale.KOREAN));
     }
 
     @Test

@@ -29,7 +29,7 @@ class CountryNamesTest {
 
     @Test
     void 対応していない表示言語の国名は英語にする() {
-        assertEquals("Germany", countryNames.countryName("DE", "Germany", Locale.GERMAN));
+        assertEquals("Germany", countryNames.countryName("DE", "Germany", Locale.KOREAN));
     }
 
     @Test

@@ -19,8 +19,10 @@ public final class SupportedLanguages {
     public static final Locale INTERNATIONAL = Locale.ENGLISH;
 
     // ポルトガル語の訳はブラジル向け(ゲーム内と同じ)だが、pt-PTの訪問者にも英語より読みやすいので言語だけで照合する。
+    // 独・仏・伊・露は2026-09-19に追加(巡回データの国別集計で上位だった言語、TODO.mdの「対応言語の追加」参照)。
     public static final List<Locale> SUPPORTED = List.of(Locale.JAPANESE, Locale.ENGLISH,
-            Locale.forLanguageTag("es"), Locale.forLanguageTag("pt"));
+            Locale.forLanguageTag("es"), Locale.forLanguageTag("pt"), Locale.forLanguageTag("de"),
+            Locale.forLanguageTag("fr"), Locale.forLanguageTag("it"), Locale.forLanguageTag("ru"));
 
     /** 言語切替リンクとhreflangに使う言語コードの一覧。 */
     public static List<String> languageCodes() {
