@@ -21,9 +21,9 @@ public class RankingService {
 
     private static final Logger log = LoggerFactory.getLogger(RankingService.class);
 
-    // クランランキング画面の表示量と、低スペックVMでの描画コストのバランスで上位10件にしている。
+    // 個人ランキングと同じく、公式APIが返せる上限(実測で1000件確認)まで取得する。
     // 画面の注記にも件数を出すため公開している(文言と実際の件数がずれないようにするため)。
-    public static final int CLAN_RANKING_SIZE = 10;
+    public static final int CLAN_RANKING_SIZE = 1000;
 
     // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIが返せる上限と同じ。
     public static final int MAX_PLAYER_RANKING_SIZE = 1000;

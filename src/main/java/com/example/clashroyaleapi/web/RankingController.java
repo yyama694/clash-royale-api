@@ -1,7 +1,7 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
-import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.service.LocationService;
 import com.example.clashroyaleapi.service.RankingService;
 
@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 @Controller
 public class RankingController {
@@ -38,17 +37,38 @@ public class RankingController {
     @GetMapping("/ranking")
     public String ranking(@RequestParam(required = false) String country, HttpServletRequest request,
             HttpServletResponse response, Model model, Locale locale) {
-        Optional<Country> selected = rankingScope.resolve(country, request, response, model, locale).country();
+        RankingScope.Scope scope = rankingScope.resolve(country, request, response, model, locale);
 
-        // タブ切り替えはブラウザ側で行うため、両方のランキングをここで取得しておく(切り替え時に再通信しない)。
-        model.addAttribute("globalRanking",
-                viewMapper.toClanRankingRows(rankingService.topClans(RankingService.GLOBAL_LOCATION_ID), locale));
-        model.addAttribute("localRanking", selected
-                .map(c -> viewMapper.toClanRankingRows(rankingService.topClans(c.locationId()), locale))
-                .orElseGet(List::of));
+        // 1000件×2タブを最初から描くとHTMLが大きくなるため、個人ランキング画面と同じく
+        // 最初は開いているタブだけを描き、もう一方は切り替えたときに下の table で取りに来る。
+        model.addAttribute("globalRanking", scope.localTabActive() ? List.of()
+                : viewMapper.toClanRankingRows(rankingService.topClans(RankingService.GLOBAL_LOCATION_ID), locale));
+        model.addAttribute("localRanking", scope.localTabActive()
+                ? scope.country()
+                        .map(c -> viewMapper.toClanRankingRows(rankingService.topClans(c.locationId()), locale))
+                        .orElseGet(List::of)
+                : List.of());
         // 注記の「上位n件」を文言に直書きすると定数を変えたときにずれるため、件数も渡す。
         model.addAttribute("clanRankingSize", RankingService.CLAN_RANKING_SIZE);
         return "ranking";
+    }
+
+    /** タブを切り替えたときに、その国(未指定ならグローバル)の表だけを返す。画面のHTMLは返さない。 */
+    @GetMapping("/ranking/table")
+    public String rankingTable(@RequestParam(required = false) String country, Model model, Locale locale) {
+        model.addAttribute("rows", viewMapper.toClanRankingRows(clanRankingRowsFor(country), locale));
+        // 国別タブはすでにその国に絞っているため、グローバルタブだけ「国・地域」列を出す。
+        model.addAttribute("showLocation", country == null || country.isBlank());
+        return "fragments/layout :: rankingTable(rows=${rows}, showLocation=${showLocation})";
+    }
+
+    private List<ClanRankingResponse.RankedClan> clanRankingRowsFor(String country) {
+        if (country == null || country.isBlank()) {
+            return rankingService.topClans(RankingService.GLOBAL_LOCATION_ID);
+        }
+        return locationService.byCountryCode(locationService.countries(), country)
+                .map(c -> rankingService.topClans(c.locationId()))
+                .orElseGet(List::of);
     }
 
     @GetMapping("/ranking/players")
