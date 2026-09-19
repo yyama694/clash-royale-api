@@ -5,8 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * @param nameSearchEnabled プレイヤー検索で名前も受け付けるか。検索結果からの削除依頼の窓口を用意するまでは公開しないため、
- *                          既定は無効(無効の間はこれまでどおり入力をタグとして扱う)
+ * @param nameSearchEnabled プレイヤー検索で名前も受け付けるか。既定は無効(無効の間は入力をすべてタグとして扱う)。
+ *                          本番は環境変数で有効にしている
  */
 @Validated
 @ConfigurationProperties(prefix = "player-index")
