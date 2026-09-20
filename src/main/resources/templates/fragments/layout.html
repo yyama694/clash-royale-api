@@ -77,6 +77,7 @@
                 clan: /*[[#{action.backToClan}]]*/ '',
                 card: /*[[#{action.backToCard}]]*/ '',
                 cards: /*[[#{action.backToCards}]]*/ '',
+                favorites: /*[[#{action.backToFavorites}]]*/ '',
                 other: /*[[#{action.back}]]*/ ''
             };
             // 上から順に判定する(/player/{tag} より /player/{tag}/battles/{time} を先に)。
@@ -91,7 +92,8 @@
                 {pattern: /^\/clan\/search$/, screen: 'search'},
                 {pattern: /^\/clan\/[^/]+$/, screen: 'clan'},
                 {pattern: /^\/card\/[^/]+$/, screen: 'card'},
-                {pattern: /^\/cards$/, screen: 'cards'}
+                {pattern: /^\/cards$/, screen: 'cards'},
+                {pattern: /^\/favorites$/, screen: 'favorites'}
             ];
             var storageKey = 'backFrom:' + location.pathname;
 
@@ -311,6 +313,7 @@
         <a th:href="@{/ranking/players}" th:text="#{nav.playerRanking}"></a>
         <a th:href="@{/ranking}" th:text="#{nav.clanRanking}"></a>
         <a th:href="@{/cards}" th:text="#{nav.cards}"></a>
+        <a th:href="@{/favorites}" th:text="#{nav.favorites}"></a>
     </nav>
     <!--/*
       言語が増えてもヘッダーの幅が変わらないよう、現在の言語だけを出して一覧は開いたときに見せる。
