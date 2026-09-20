@@ -24,9 +24,11 @@
             <h2 th:text="${group.heading()}"></h2>
             <div class="deck-grid card-catalog">
                 <div class="deck-card" th:each="c : ${group.cards()}" th:attr="data-search=${c.name() + ' ' + c.englishName()}">
-                    <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
+                    <div class="card-thumb">
+                        <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
+                        <span th:replace="~{fragments/layout :: elixirBadge(${c.elixirCost()})}"></span>
+                    </div>
                     <div class="card-name" th:text="${c.name()}"></div>
-                    <div class="card-sub" th:if="${c.elixirCost() != null}" th:text="#{cards.elixir(${c.elixirCost()})}"></div>
                 </div>
             </div>
         </section>

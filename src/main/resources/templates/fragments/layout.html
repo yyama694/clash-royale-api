@@ -312,6 +312,18 @@
 </a>
 
 <!--/*
+  エリクサーコスト。数字だけ載せた水滴で示し、単位は読み上げ用の aria-label だけに残す(全カードに「エリクサー」と並べると読みにくいため)。
+  水滴の縁を背景色で描き、下に重なるカード画像の絵柄に紛れないようにする。
+*/-->
+<span th:fragment="elixirBadge(cost)" th:if="${cost != null}" class="elixir-badge" role="img"
+      th:aria-label="#{cards.elixir(${cost})}">
+    <svg viewBox="0 0 20 24" aria-hidden="true" focusable="false">
+        <path d="M10 1C10 1 2 10.6 2 15.4a8 8 0 0 0 16 0C18 10.6 10 1 10 1Z"/>
+    </svg>
+    <span class="elixir-value" th:text="${cost}"></span>
+</span>
+
+<!--/*
   カード画像は width/height を指定し、読み込み前から枠の大きさを確保する(遅延読み込みの間に配置がガタつくため)。
   公式APIのカード画像は 285x420 で統一されている。
 */-->
