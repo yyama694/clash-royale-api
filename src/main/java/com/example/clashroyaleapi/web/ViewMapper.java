@@ -13,6 +13,7 @@ import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.Deck;
+import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
@@ -34,6 +35,9 @@ import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
 import com.example.clashroyaleapi.web.view.DeckMetaView;
 import com.example.clashroyaleapi.web.view.ElixirBadgeView;
+import com.example.clashroyaleapi.web.view.FavoriteClanView;
+import com.example.clashroyaleapi.web.view.FavoritePlayerView;
+import com.example.clashroyaleapi.web.view.FavoriteRowStatus;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
@@ -204,6 +208,44 @@ public class ViewMapper {
                         player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
                         player.clan() == null ? null : Tags.toPathSegment(player.clan().tag())))
                 .toList();
+    }
+
+    public List<FavoritePlayerView> toFavoritePlayerRows(List<FavoriteFetch<PlayerResponse>> results) {
+        return results.stream().map(this::toFavoritePlayerRow).toList();
+    }
+
+    private FavoritePlayerView toFavoritePlayerRow(FavoriteFetch<PlayerResponse> result) {
+        String pathTag = result.tag();
+        String tag = Tags.normalize(pathTag);
+        if (result instanceof FavoriteFetch.Found<PlayerResponse> found) {
+            PlayerResponse player = found.value();
+            PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
+            Integer rating = ranked != null && ranked.rank() != null ? ranked.trophies() : null;
+            return new FavoritePlayerView(FavoriteRowStatus.FOUND, pathTag, tag,
+                    GameText.stripFormatting(player.name()), player.trophies(), rating,
+                    player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
+                    player.clan() == null ? null : Tags.toPathSegment(player.clan().tag()));
+        }
+        FavoriteRowStatus status = result instanceof FavoriteFetch.NotFound<PlayerResponse>
+                ? FavoriteRowStatus.NOT_FOUND : FavoriteRowStatus.UNAVAILABLE;
+        return new FavoritePlayerView(status, pathTag, tag, result.name(), null, null, null, null);
+    }
+
+    public List<FavoriteClanView> toFavoriteClanRows(List<FavoriteFetch<ClanResponse>> results) {
+        return results.stream().map(this::toFavoriteClanRow).toList();
+    }
+
+    private FavoriteClanView toFavoriteClanRow(FavoriteFetch<ClanResponse> result) {
+        String pathTag = result.tag();
+        String tag = Tags.normalize(pathTag);
+        if (result instanceof FavoriteFetch.Found<ClanResponse> found) {
+            ClanResponse clan = found.value();
+            return new FavoriteClanView(FavoriteRowStatus.FOUND, pathTag, tag,
+                    GameText.stripFormatting(clan.name()), clan.clanScore(), clan.members());
+        }
+        FavoriteRowStatus status = result instanceof FavoriteFetch.NotFound<ClanResponse>
+                ? FavoriteRowStatus.NOT_FOUND : FavoriteRowStatus.UNAVAILABLE;
+        return new FavoriteClanView(status, pathTag, tag, result.name(), null, null);
     }
 
     public List<CountryOptionView> toCountryOptions(List<Country> countries, Locale locale) {

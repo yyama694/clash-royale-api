@@ -3,14 +3,18 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
+import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.CardCollection;
+import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
+import com.example.clashroyaleapi.web.view.FavoriteClanView;
+import com.example.clashroyaleapi.web.view.FavoritePlayerView;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
@@ -170,6 +174,47 @@ class ViewMapperTest {
         assertNull(groups.get(0).cards().get(0).elixirCost());
         assertEquals("5", groups.get(0).cards().get(1).elixir().text());
         assertNull(groups.get(1).cards().get(0).elixir());
+    }
+
+    @Test
+    void お気に入りプレイヤーは見つかった順位無し見つからない取得できないを区別する() {
+        PlayerResponse.RankedSeasonResult ranked = new PlayerResponse.RankedSeasonResult(1, 4500, 12);
+        PlayerResponse found = new PlayerResponse("#AAA", "太郎", 10, 5000, 5000, 1, 0, 0,
+                new PlayerResponse.ClanRef("#CLAN", "償い"), List.of(), List.of(), null, ranked, null, List.of());
+        PlayerResponse noRank = new PlayerResponse("#BBB", "次郎", 5, 1000, 1000, 0, 0, 0, null, List.of(), List.of(),
+                null, new PlayerResponse.RankedSeasonResult(null, 0, null), null, List.of());
+
+        List<FavoritePlayerView> rows = viewMapper.toFavoritePlayerRows(List.of(
+                new FavoriteFetch.Found<>("AAA", "太郎(旧)", found),
+                new FavoriteFetch.Found<>("BBB", "次郎", noRank),
+                new FavoriteFetch.NotFound<>("CCC", "三郎"),
+                new FavoriteFetch.Unavailable<>("DDD", "四郎")));
+
+        assertTrue(rows.get(0).found());
+        assertEquals(4500, rows.get(0).rankedRating());
+        assertEquals("償い", rows.get(0).clanName());
+        assertTrue(rows.get(1).found());
+        assertNull(rows.get(1).rankedRating());
+        assertFalse(rows.get(2).found());
+        assertTrue(rows.get(2).notFound());
+        assertEquals("三郎", rows.get(2).name());
+        assertFalse(rows.get(3).found());
+        assertFalse(rows.get(3).notFound());
+    }
+
+    @Test
+    void お気に入りクランは見つかった取得できないを区別する() {
+        ClanResponse found = new ClanResponse("#XXX", "償い", "", 120000, 0, 40, List.of());
+
+        List<FavoriteClanView> rows = viewMapper.toFavoriteClanRows(List.of(
+                new FavoriteFetch.Found<>("XXX", "償い", found),
+                new FavoriteFetch.Unavailable<>("YYY", "不明")));
+
+        assertTrue(rows.get(0).found());
+        assertEquals(120000, rows.get(0).clanScore());
+        assertEquals(40, rows.get(0).members());
+        assertFalse(rows.get(1).found());
+        assertEquals("不明", rows.get(1).name());
     }
 
     private static BattleLogEntry.Card card(int level, int maxLevel) {

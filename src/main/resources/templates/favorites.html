@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{favorites.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container" data-favorites-tracked>
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <!--/* 1件も無いときは、登録方法の案内とプレイヤー・クラン検索フォームを出す */-->
+        <th:block th:if="${#lists.isEmpty(favoritePlayers) and #lists.isEmpty(favoriteClans)}">
+            <div class="notice-box" th:text="#{favorites.empty}"></div>
+            <div th:replace="~{fragments/layout :: playerSearchForm(null)}"></div>
+            <div th:replace="~{fragments/layout :: clanSearchForm(null)}"></div>
+        </th:block>
+
+        <div class="card" th:unless="${#lists.isEmpty(favoritePlayers)}">
+            <h2 th:text="#{favorites.players}"></h2>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th th:text="#{favorites.col.name}"></th>
+                            <th th:text="#{favorites.col.tag}"></th>
+                            <th class="num" th:text="#{player.trophies}"></th>
+                            <th class="num" th:text="#{favorites.col.rating}"></th>
+                            <th th:text="#{player.clan}"></th>
+                            <th><span class="visually-hidden" th:text="#{action.remove}"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="p : ${favoritePlayers}">
+                            <td th:attr="data-label=#{favorites.col.name}">
+                                <a th:if="${p.found()}" th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.name()}"></bdi></a>
+                                <span th:unless="${p.found()}">
+                                    <bdi th:text="${p.name()}"></bdi>
+                                    <span class="inactive-badge" th:text="${p.notFound()} ? #{favorites.notFound} : #{favorites.unavailable}"></span>
+                                </span>
+                            </td>
+                            <td th:attr="data-label=#{favorites.col.tag}" th:text="${p.tag()}"></td>
+                            <td class="num" th:attr="data-label=#{player.trophies}"
+                                th:text="${p.trophies() != null} ? ${#numbers.formatInteger(p.trophies(), 1, 'DEFAULT')} : '―'"></td>
+                            <td class="num" th:attr="data-label=#{favorites.col.rating}"
+                                th:text="${p.rankedRating() != null} ? ${#numbers.formatInteger(p.rankedRating(), 1, 'DEFAULT')} : '―'"></td>
+                            <td th:attr="data-label=#{player.clan}" th:classappend="${p.clanName() == null} ? 'is-empty'">
+                                <a th:if="${p.clanName() != null}" th:href="@{/clan/{tag}(tag=${p.clanPathTag()})}"><bdi th:text="${p.clanName()}"></bdi></a>
+                            </td>
+                            <td class="cell-action">
+                                <form method="post" th:action="@{/favorites/players/{tag}/remove(tag=${p.pathTag()})}">
+                                    <input type="hidden" name="back" value="favorites">
+                                    <button type="submit" class="btn btn-secondary btn-small" th:text="#{action.remove}"></button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" th:unless="${#lists.isEmpty(favoriteClans)}">
+            <h2 th:text="#{favorites.clans}"></h2>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th th:text="#{favorites.col.name}"></th>
+                            <th th:text="#{favorites.col.tag}"></th>
+                            <th class="num" th:text="#{clan.score}"></th>
+                            <th class="num" th:text="#{clan.memberCount}"></th>
+                            <th><span class="visually-hidden" th:text="#{action.remove}"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="c : ${favoriteClans}">
+                            <td th:attr="data-label=#{favorites.col.name}">
+                                <a th:if="${c.found()}" th:href="@{/clan/{tag}(tag=${c.pathTag()})}"><bdi th:text="${c.name()}"></bdi></a>
+                                <span th:unless="${c.found()}">
+                                    <bdi th:text="${c.name()}"></bdi>
+                                    <span class="inactive-badge" th:text="${c.notFound()} ? #{favorites.notFound} : #{favorites.unavailable}"></span>
+                                </span>
+                            </td>
+                            <td th:attr="data-label=#{favorites.col.tag}" th:text="${c.tag()}"></td>
+                            <td class="num" th:attr="data-label=#{clan.score}"
+                                th:text="${c.clanScore() != null} ? ${#numbers.formatInteger(c.clanScore(), 1, 'DEFAULT')} : '―'"></td>
+                            <td class="num" th:attr="data-label=#{clan.memberCount}"
+                                th:text="${c.members() != null} ? #{favorites.clans.members(${c.members()})} : '―'"></td>
+                            <td class="cell-action">
+                                <form method="post" th:action="@{/favorites/clans/{tag}/remove(tag=${c.pathTag()})}">
+                                    <input type="hidden" name="back" value="favorites">
+                                    <button type="submit" class="btn btn-secondary btn-small" th:text="#{action.remove}"></button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <p class="notice" th:unless="${#lists.isEmpty(favoritePlayers) and #lists.isEmpty(favoriteClans)}"
+           th:text="#{favorites.cookieNotice}"></p>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
