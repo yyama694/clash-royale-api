@@ -210,6 +210,57 @@
             });
         })();
     </script>
+    <!--/*
+      お気に入りの☆ボタン。JSが動けばfetchで送って画面遷移せずにボタンだけ切り替える(お気に入りの見出しがある画面が
+      404への遷移を挟まないようにするため)。上限(10件)なら409が返るので、ボタンの近くの案内文を出す。
+      JSが動かない場合はフォーム送信のまま(初期状態のth:actionが対象画面へ303で戻す)なので、何もしない。
+    */-->
+    <script>
+        document.addEventListener('submit', function (event) {
+            var form = event.target;
+            if (!form.classList.contains('favorite-form')) {
+                return;
+            }
+            var button = form.querySelector('.favorite-toggle');
+            if (!button) {
+                return;
+            }
+            event.preventDefault();
+            var isFavorite = button.getAttribute('aria-pressed') === 'true';
+            var url = isFavorite ? button.dataset.removeUrl : button.dataset.addUrl;
+            var notice = form.nextElementSibling;
+            fetch(url, {method: 'POST', headers: {'Accept': 'application/json'}})
+                .then(function (response) {
+                    if (response.status === 409) {
+                        if (notice) {
+                            notice.classList.remove('is-hidden');
+                        }
+                        return null;
+                    }
+                    if (!response.ok) {
+                        throw new Error(String(response.status));
+                    }
+                    if (notice) {
+                        notice.classList.add('is-hidden');
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (!data) {
+                        return;
+                    }
+                    var favorite = !!data.favorite;
+                    button.classList.toggle('is-favorite', favorite);
+                    button.setAttribute('aria-pressed', String(favorite));
+                    var label = favorite ? button.dataset.labelRemove : button.dataset.labelAdd;
+                    button.setAttribute('aria-label', label);
+                    button.setAttribute('title', label);
+                })
+                .catch(function () {
+                    // 通信エラー時はボタンの状態をサーバー側の実際の状態(=変更前のまま)と揃えておく。何もしない。
+                });
+        });
+    </script>
 </head>
 
 <!--/* ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 */-->
@@ -243,6 +294,26 @@
         </details>
     </nav>
 </header>
+
+<!--/*
+  お気に入りの☆ボタン。プレイヤー情報画面・クラン情報画面の見出し横に置く。
+  kindは"players"/"clans"(登録・解除エンドポイントのURLセグメントと一致)、tagは"#"なしのパス用タグ。
+*/-->
+<span th:fragment="favoriteButton(kind, tag, favorite, favoriteLimit)" class="favorite"
+      th:with="addUrl=@{'/favorites/' + ${kind} + '/' + ${tag}}, removeUrl=@{'/favorites/' + ${kind} + '/' + ${tag} + '/remove'}">
+    <form class="favorite-form" method="post" th:action="${favorite} ? removeUrl : addUrl">
+        <button type="submit" class="favorite-toggle" th:classappend="${favorite} ? 'is-favorite'"
+                th:attr="aria-pressed=${favorite},data-add-url=${addUrl},data-remove-url=${removeUrl},data-label-add=#{favorite.add},data-label-remove=#{favorite.remove}"
+                th:aria-label="${favorite} ? #{favorite.remove} : #{favorite.add}"
+                th:title="${favorite} ? #{favorite.remove} : #{favorite.add}">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 2.5l2.97 6.28 6.78.78-5.02 4.73 1.33 6.71L12 17.77l-6.06 3.23 1.33-6.71-5.02-4.73 6.78-.78Z"/>
+            </svg>
+        </button>
+    </form>
+    <p class="favorite-limit-notice notice" th:classappend="${favoriteLimit} ? '' : 'is-hidden'"
+       th:text="#{favorite.limit}"></p>
+</span>
 
 <!--/* Supercellのファンコンテンツポリシーで必須の、非公式である旨の表示。全画面の末尾に置く。 */-->
 <footer class="site-footer" th:fragment="footer">

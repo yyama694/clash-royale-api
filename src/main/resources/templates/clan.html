@@ -8,7 +8,10 @@
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <div class="card">
-            <h1><bdi th:text="${clanName}"></bdi></h1>
+            <div class="page-heading">
+                <h1><bdi th:text="${clanName}"></bdi></h1>
+                <span th:replace="~{fragments/layout :: favoriteButton('clans', ${clanPathTag}, ${favorite}, ${favoriteLimit})}"></span>
+            </div>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
             <p class="clan-description" th:if="${clan.description()}" th:text="${clan.description()}"></p>
             <ul class="stat-grid">

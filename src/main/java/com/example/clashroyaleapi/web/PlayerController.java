@@ -11,6 +11,8 @@ import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.PlayerService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,10 +31,12 @@ public class PlayerController {
 
     private final PlayerService playerService;
     private final ViewMapper viewMapper;
+    private final FavoriteCookies favoriteCookies;
 
-    public PlayerController(PlayerService playerService, ViewMapper viewMapper) {
+    public PlayerController(PlayerService playerService, ViewMapper viewMapper, FavoriteCookies favoriteCookies) {
         this.playerService = playerService;
         this.viewMapper = viewMapper;
+        this.favoriteCookies = favoriteCookies;
     }
 
     /** 検索フォームの受け口。タグで特定できたら正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
@@ -68,11 +72,18 @@ public class PlayerController {
     }
 
     @GetMapping("/{tag}")
-    public String player(@PathVariable String tag, Model model, Locale locale) {
+    public String player(@PathVariable String tag, @RequestParam(required = false) String favoriteLimit,
+            Model model, Locale locale, HttpServletRequest request, HttpServletResponse response) {
         PlayerResponse player = playerService.findPlayer(tag);
+        String playerName = GameText.stripFormatting(player.name());
+        String playerPathTag = Tags.toPathSegment(player.tag());
         model.addAttribute("player", player);
-        model.addAttribute("playerName", GameText.stripFormatting(player.name()));
-        model.addAttribute("playerPathTag", Tags.toPathSegment(player.tag()));
+        model.addAttribute("playerName", playerName);
+        model.addAttribute("playerPathTag", playerPathTag);
+        model.addAttribute("favorite",
+                favoriteCookies.refreshName(request, response, FavoriteKind.PLAYER, playerPathTag, playerName)
+                        .contains(playerPathTag));
+        model.addAttribute("favoriteLimit", favoriteLimit != null);
         if (player.clan() != null) {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
