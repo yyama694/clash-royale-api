@@ -18,6 +18,7 @@
 
         <div th:if="${exact != null}" class="card">
             <h1 th:text="#{playerSearch.heading(${query})}"></h1>
+            <div th:replace="~{fragments/layout :: playerSearchFormInline(${query})}"></div>
             <p th:replace="~{fragments/layout :: notice(#{playerSearch.caveat})}"></p>
             <p class="notice-box" th:if="${morePrefix}" th:text="#{playerSearch.tooMany(${query})}"></p>
 

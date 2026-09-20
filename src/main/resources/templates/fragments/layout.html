@@ -392,6 +392,15 @@
     </form>
 </div>
 
+<!--/* 検索結果が見つかった画面の上部に置く、見出しなしの再検索フォーム。 */-->
+<form th:fragment="playerSearchFormInline(value)" class="search-form search-form-requery" th:action="@{/player/search}" method="get">
+    <label>
+        <span th:text="${nameSearchEnabled} ? #{home.player.labelWithName} : #{home.player.label}"></span>
+        <input type="text" name="q" required th:value="${value}" th:placeholder="#{home.player.placeholder}">
+    </label>
+    <button type="submit" th:text="#{action.search}"></button>
+</form>
+
 <!--/* プレイヤー名検索結果の1人分。 */-->
 <li th:fragment="playerNameItem(p)">
     <div class="result-main">
@@ -415,6 +424,15 @@
         <button type="submit" th:text="#{action.search}"></button>
     </form>
 </div>
+
+<!--/* 検索結果が見つかった画面の上部に置く、見出しなしの再検索フォーム。 */-->
+<form th:fragment="clanSearchFormInline(value)" class="search-form search-form-requery" th:action="@{/clan/search}" method="get">
+    <label>
+        <span th:text="#{home.clan.label}"></span>
+        <input type="text" name="q" required th:value="${value}" th:placeholder="#{home.clan.placeholder}">
+    </label>
+    <button type="submit" th:text="#{action.search}"></button>
+</form>
 
 <!--/*
   日時。datetime にはUTCのISO形式を入れ、表示文字列はブラウザ側で閲覧者の時刻に書き換わる。
