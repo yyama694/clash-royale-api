@@ -38,7 +38,7 @@ Always Free枠のAmpere A1.Flex(ARM、4 OCPU・24GBまで)への乗り換えを�
 
 ## プレイヤー名検索の残タスク
 
-- **巡回間隔を詰める**: 2026-09-19に10s→5sにした。問題が無ければ次は2sへ(`/etc/clash-royale-api/env`の`CRAWLER_INTERVAL`)。画面の応答が遅くならないかも見る
+- **巡回間隔を詰める**: 2026-09-19に10s→5s、2026-09-20に5s→3sにした(`/etc/clash-royale-api/env`の`CRAWLER_INTERVAL`)。429(`crawler paused`)が増えていないか、画面の応答が遅くならないかを様子見中
 - **バックアップの検討**: データが消えると集め直しに時間がかかる。無料枠のObject Storage(20GB)に`by-tag/`を置けるか
 
 ## サービスの方向性(2026-09-19確定、参考情報)
