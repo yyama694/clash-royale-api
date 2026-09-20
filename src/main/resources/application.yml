@@ -29,6 +29,9 @@ server:
   # (サーバー側の描画は0.04秒で、遅さの原因はほぼ転送量)。既定では圧縮が無効なため明示的に有効にする。
   compression:
     enabled: true
+  # ApacheがX-Forwarded-Protoを付けて中継している(本番はHTTPS→内部はTomcatにHTTPで中継)。
+  # これが無いと、hreflangやOGP・sitemapで組み立てる絶対URLが常にhttpになってしまう。
+  forward-headers-strategy: framework
 
 # 名前検索のために、公式APIの応答で見かけたプレイヤーのタグと名前を蓄積する場所(「プレイヤー名検索（検討中）.md」参照)。
 # 本番は環境変数 PLAYER_INDEX_DIR で /var/lib/clash-royale-api/player-index を指定する。
