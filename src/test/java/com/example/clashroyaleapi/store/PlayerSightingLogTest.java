@@ -29,6 +29,7 @@ class PlayerSightingLogTest {
         PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
 
         sightingLog.record(List.of(new PlayerSighting("#abc", "Yamada")));
+        sightingLog.flush();
 
         assertEquals(List.of("#ABC\tYamada\t2026-09-18T10:15:30Z"), lines("20260918-10.tsv"));
     }
@@ -39,6 +40,7 @@ class PlayerSightingLogTest {
 
         sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada"), new PlayerSighting("#ABC", "Yamada")));
         sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
+        sightingLog.flush();
 
         assertEquals(1, lines("20260918-10.tsv").size());
     }
@@ -49,6 +51,7 @@ class PlayerSightingLogTest {
 
         sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
         sightingLog.record(List.of(new PlayerSighting("#ABC", "Tanaka")));
+        sightingLog.flush();
 
         assertEquals(2, lines("20260918-10.tsv").size());
     }
@@ -58,6 +61,7 @@ class PlayerSightingLogTest {
         PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
 
         sightingLog.record(List.of(new PlayerSighting("#ABC", "a\tb\nc")));
+        sightingLog.flush();
 
         assertEquals(List.of("#ABC\ta b c\t2026-09-18T10:15:30Z"), lines("20260918-10.tsv"));
     }
@@ -69,16 +73,18 @@ class PlayerSightingLogTest {
 
         sightingLog.recordCrawled(List.of(new PlayerSighting("#ABC", "Yamada")));
         sightingLog.recordCrawled(List.of(new PlayerSighting("#ABC", "Yamada")));
+        sightingLog.flush();
 
         assertEquals(List.of("#ABC	Yamada	2026-09-18T10:15:30Z", "#ABC	Yamada	2026-09-18T10:15:30Z"),
                 lines("crawl-20260918-10.tsv"));
     }
 
     @Test
-    void タグか名前が空のものは書かない() {
+    void タグか名前が空のものは書かない() throws IOException {
         PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
 
         sightingLog.record(List.of(new PlayerSighting(null, "Yamada"), new PlayerSighting("#ABC", " ")));
+        sightingLog.flush();
 
         assertFalse(Files.exists(dir.resolve("20260918-10.tsv")));
     }
@@ -91,6 +97,16 @@ class PlayerSightingLogTest {
         PlayerSightingLog sightingLog = new PlayerSightingLog(blocked, CLOCK);
 
         sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
+        sightingLog.flush();
+    }
+
+    @Test
+    void recordはディスクに書かずキューに積むだけで即座に返る() throws IOException {
+        PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
+
+        sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
+
+        assertFalse(Files.exists(dir.resolve("20260918-10.tsv")));
     }
 
     private List<String> lines(String fileName) throws IOException {
