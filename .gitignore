@@ -19,3 +19,6 @@ application-*.properties
 
 # Claude CodeのEnterWorktreeが作るセッションごとの作業フォルダ。
 /.claude/worktrees/
+
+# Claude Codeの個人用ローカル設定(パーミッションルールなど)。
+/.claude/settings.local.json
