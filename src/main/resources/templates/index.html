@@ -4,11 +4,30 @@
 <body>
     <header th:replace="~{fragments/layout :: header}"></header>
 
-    <main class="container">
+    <main class="container" data-favorites-tracked>
         <p class="notice lead" th:text="#{app.description}"></p>
 
         <div th:replace="~{fragments/layout :: playerSearchForm(null)}"></div>
         <div th:replace="~{fragments/layout :: clanSearchForm(null)}"></div>
+
+        <!--/*
+          お気に入りは名前だけ(公式APIは呼ばない)。1件も無いときはカードごと出さない
+          (初めての訪問者に空の枠を見せないため。登録方法の案内はお気に入り画面が受け持つ)。
+        */-->
+        <div class="card" id="favorites-card"
+             th:if="${not #lists.isEmpty(favoritePlayers) or not #lists.isEmpty(favoriteClans)}">
+            <h2 th:text="#{favorites.heading}"></h2>
+            <div class="favorite-chip-row" th:if="${not #lists.isEmpty(favoritePlayers)}">
+                <span class="favorite-chip-label" th:text="#{favorites.players}"></span>
+                <a class="favorite-chip" th:each="p : ${favoritePlayers}"
+                   th:href="@{/player/{tag}(tag=${p.tag()})}"><bdi th:text="${p.name()}"></bdi></a>
+            </div>
+            <div class="favorite-chip-row" th:if="${not #lists.isEmpty(favoriteClans)}">
+                <span class="favorite-chip-label" th:text="#{favorites.clans}"></span>
+                <a class="favorite-chip" th:each="c : ${favoriteClans}"
+                   th:href="@{/clan/{tag}(tag=${c.tag()})}"><bdi th:text="${c.name()}"></bdi></a>
+            </div>
+        </div>
 
         <div class="card" id="player-ranking">
             <h2 th:text="#{playerRanking.heading}"></h2>

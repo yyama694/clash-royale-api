@@ -255,11 +255,51 @@
                     var label = favorite ? button.dataset.labelRemove : button.dataset.labelAdd;
                     button.setAttribute('aria-label', label);
                     button.setAttribute('title', label);
+                    // お気に入りを表示する他の画面(トップページなど)がbfcacheから古いまま戻ってこないよう、変更時刻を残す。
+                    try {
+                        sessionStorage.setItem('favoritesChangedAt', String(Date.now()));
+                    } catch (e) {
+                        // ストレージが使えない環境ではあきらめる(その画面はブラウザの更新で最新化される)。
+                    }
                 })
                 .catch(function () {
                     // 通信エラー時はボタンの状態をサーバー側の実際の状態(=変更前のまま)と揃えておく。何もしない。
                 });
         });
+    </script>
+    <!--/*
+      お気に入りを表示する画面([data-favorites-tracked]を付けた画面。現状はトップページ)向け。
+      他の画面で☆を切り替えた後にブラウザの「戻る」でここに戻ると、bfcacheの古い表示のままになることがある
+      (お気に入りが0件→1件になった直後の「カードごと出ない→出る」の切り替わりも含む)。
+      言語切替と同じ考え方: 表示した時点のお気に入り変更時刻を覚えておき、戻ってきたときに最新の変更時刻と
+      食い違っていれば読み直す。
+    */-->
+    <script>
+        (function () {
+            if (!document.querySelector('[data-favorites-tracked]')) {
+                return;
+            }
+            function storage(action) {
+                try {
+                    return action(window.sessionStorage);
+                } catch (e) {
+                    return null;
+                }
+            }
+            var key = 'favoritesRenderedAt:' + location.pathname;
+            var changedKey = 'favoritesChangedAt';
+            storage(function (s) { s.setItem(key, s.getItem(changedKey) || ''); });
+            window.addEventListener('pageshow', function (event) {
+                if (!event.persisted) {
+                    return;
+                }
+                var rendered = storage(function (s) { return s.getItem(key); }) || '';
+                var latest = storage(function (s) { return s.getItem(changedKey); }) || '';
+                if (rendered !== latest) {
+                    location.reload();
+                }
+            });
+        })();
     </script>
 </head>
 
