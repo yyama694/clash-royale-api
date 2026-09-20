@@ -61,8 +61,11 @@
   - 表示言語は`?lang=ja` / `en` / `es` / `pt` / `de` / `fr` / `it` / `ru`で切替(Cookie保持)。未指定時はAccept-Language、それも無い・対応言語が無ければ英語(2026-09-19に全世界向けへの方針変更に合わせ、無指定時の既定を日本語から英語に変更)。対応言語の一覧は`SupportedLanguages.SUPPORTED`の1か所だけで、言語切替リンク・hreflang・テストはそこから作る。
   - 言語を足すときは、カード名などゲーム内の用語を公式の表記で裏付ける(西・葡での方法は`進捗ログ.md`のフェーズ1.20)。
 - DB: **当面なし**。まずはClash Royale APIの呼び出し結果をそのまま画面に表示する構成で開始し、キャッシュやクイズデータの保存が必要になった段階でPostgreSQL導入を検討する(2026-09-13時点でユーザーが決定)。
-- Webサーバー: **2026-09-20にApache(httpd)をリバースプロキシとして導入**(それまではhello-worldと同様、組み込みTomcatを直接公開)。Apache(80番)→Tomcat(127.0.0.1:8080)へ`mod_proxy`/`mod_proxy_http`でプロキシする構成。設定は`/etc/httpd/conf.d/clash-royale-api-proxy.conf`(`<VirtualHost *:80>`、`ServerName clashroyale-api.duckdns.org`)。8080番は外部非公開(firewalld・OCIセキュリティリストとも削除済み)で、アプリへは80番経由のみでアクセスする。詳細は`進捗ログ.md`のフェーズ1.41を参照。
-- **ドメイン名(2026-09-20に取得)**: `clashroyale-api.duckdns.org`(DuckDNSの無料サブドメイン)。本番VMの固定IP(`161.33.136.175`)を指す。DuckDNS側の更新(IPが変わった場合の反映)はユーザーがDuckDNSのサイトで行う運用。今後のHTTPS化(Let's Encrypt/certbot)はこのドメイン名を対象に行う想定。
+- Webサーバー: **2026-09-20にApache(httpd)をリバースプロキシとして導入**(それまではhello-worldと同様、組み込みTomcatを直接公開)。Apache→Tomcat(127.0.0.1:8080)へ`mod_proxy`/`mod_proxy_http`でプロキシする構成。8080番は外部非公開(firewalld・OCIセキュリティリストとも削除済み)で、アプリへはApache経由のみでアクセスする。詳細は`進捗ログ.md`のフェーズ1.41を参照。
+- **ドメイン名(2026-09-20に取得)**: `clashroyale-api.duckdns.org`(DuckDNSの無料サブドメイン)。本番VMの固定IP(`161.33.136.175`)を指す。DuckDNS側の更新(IPが変わった場合の反映)はユーザーがDuckDNSのサイトで行う運用。
+- **HTTPS化(2026-09-20にLet's Encrypt/certbotで対応)**: `mod_ssl` + `certbot`(EPEL経由。Oracle Linux 9は`oracle-epel-release-el9`を導入後、`ol9_developer_EPEL`リポジトリを有効化して`certbot`/`python3-certbot-apache`を取得)。`certbot --apache`で証明書取得とApache設定の自動編集(`/etc/httpd/conf.d/clash-royale-api-proxy-le-ssl.conf`を追加生成、HTTP→HTTPSへの302リダイレクトも設定済み)。80番はリダイレクト用に残し、443番を新たに公開(firewalld・OCIセキュリティリストとも追加)。
+  - **証明書の自動更新**: `certbot-renew.timer`(1日2回起動、期限30日前から更新)。**インストール直後は`disabled`だったため`systemctl enable --now`で有効化した**(certbotのインストーラーが有効化まではしない点に注意。次回別ドメインでHTTPS化する際も確認すること)。
+  - 証明書は`/etc/letsencrypt/live/clashroyale-api.duckdns.org/`配下(有効期限90日、2026-09-20取得分は2026-12-19まで)。
 
 ## Clash Royale API連携に関する注意点
 
