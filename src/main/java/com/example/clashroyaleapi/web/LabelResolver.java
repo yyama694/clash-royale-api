@@ -89,8 +89,8 @@ public class LabelResolver {
                 .orElse(rawRole);
     }
 
-    public String message(String key, Locale locale) {
-        return messageSource.getMessage(key, null, key, locale);
+    public String message(String key, Locale locale, Object... args) {
+        return messageSource.getMessage(key, args, key, locale);
     }
 
     /** "Challenge_AllCards_EventDeck_NoSet" → "gamemodeprefix.Challenge"。区切りが無い名前は名前全体を接頭辞とみなす。 */

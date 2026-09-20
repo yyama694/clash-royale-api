@@ -33,6 +33,7 @@ import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
 import com.example.clashroyaleapi.web.view.DeckMetaView;
+import com.example.clashroyaleapi.web.view.ElixirBadgeView;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
@@ -136,16 +137,31 @@ public class ViewMapper {
 
     public List<CardCatalogGroupView> toCardCatalog(List<CardService.CardGroup> groups, Locale locale) {
         return groups.stream()
-                .map(group -> new CardCatalogGroupView(
-                        group.rarity() == null
-                                ? labels.message("cards.group.tower", locale)
-                                : labels.rarity(group.rarity(), locale),
-                        group.cards().stream()
-                                .map(card -> new CardCatalogItemView(card.id(), labels.cardName(card.name(), locale),
-                                        card.name(), card.iconUrls() == null ? null : card.iconUrls().medium(),
-                                        card.elixirCost()))
-                                .toList()))
+                .map(group -> {
+                    boolean tower = group.rarity() == null;
+                    return new CardCatalogGroupView(
+                            tower ? labels.message("cards.group.tower", locale) : labels.rarity(group.rarity(), locale),
+                            group.cards().stream()
+                                    .map(card -> new CardCatalogItemView(card.id(), labels.cardName(card.name(), locale),
+                                            card.name(), card.iconUrls() == null ? null : card.iconUrls().medium(),
+                                            toElixirBadge(card.elixirCost(), tower, locale), card.elixirCost()))
+                                    .toList());
+                })
                 .toList();
+    }
+
+    /**
+     * タワーユニットはエリクサーを払わないのでバッジを出さない。
+     * 鏡のようにコストが固定でないカードは、ゲーム内と同じく "?" を出す(何も出さないと表示漏れに見えるため)。
+     */
+    private ElixirBadgeView toElixirBadge(Integer cost, boolean tower, Locale locale) {
+        if (tower) {
+            return null;
+        }
+        if (cost == null) {
+            return new ElixirBadgeView("?", labels.message("cards.elixir.variable", locale));
+        }
+        return new ElixirBadgeView(String.valueOf(cost), labels.message("cards.elixir", locale, cost));
     }
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {

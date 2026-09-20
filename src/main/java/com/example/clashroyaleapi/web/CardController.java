@@ -23,6 +23,7 @@ public class CardController {
     @GetMapping("/cards")
     public String cards(Model model, Locale locale) {
         model.addAttribute("groups", viewMapper.toCardCatalog(cardService.catalog(), locale));
+        model.addAttribute("elixirCosts", cardService.elixirCosts());
         return "cards";
     }
 

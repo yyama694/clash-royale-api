@@ -1,10 +1,13 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
+import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.CardCollection;
+import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
+import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
@@ -151,6 +154,22 @@ class ViewMapperTest {
 
         assertEquals(2196, rows.get(0).clanWarTrophies());
         assertNull(rows.get(1).clanWarTrophies());
+    }
+
+    @Test
+    void エリクサーバッジは鏡が疑問符タワーユニットは無し() {
+        List<CardCatalogGroupView> groups = viewMapper.toCardCatalog(List.of(
+                new CardService.CardGroup("epic", List.of(
+                        new CardsResponse.Card(1, "Mirror", 14, null, null, "epic", null),
+                        new CardsResponse.Card(2, "Giant", 14, null, 5, "epic", null))),
+                new CardService.CardGroup(null, List.of(
+                        new CardsResponse.Card(9, "Tower Princess", 14, null, null, "common", null)))),
+                Locale.JAPANESE);
+
+        assertEquals("?", groups.get(0).cards().get(0).elixir().text());
+        assertNull(groups.get(0).cards().get(0).elixirCost());
+        assertEquals("5", groups.get(0).cards().get(1).elixir().text());
+        assertNull(groups.get(1).cards().get(0).elixir());
     }
 
     private static BattleLogEntry.Card card(int level, int maxLevel) {
