@@ -8,7 +8,10 @@
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <div class="card">
-            <h1><bdi th:text="${playerName}"></bdi></h1>
+            <div class="page-heading">
+                <h1><bdi th:text="${playerName}"></bdi></h1>
+                <span th:replace="~{fragments/layout :: favoriteButton('players', ${playerPathTag}, ${favorite}, ${favoriteLimit})}"></span>
+            </div>
             <p><span class="tag-pill" th:text="${player.tag()}"></span></p>
             <!--/* 絵文字は見た目の目印なので、読み上げでは項目名だけが読まれるよう aria-hidden にする */-->
             <ul class="stat-grid">

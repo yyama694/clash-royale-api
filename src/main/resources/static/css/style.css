@@ -577,6 +577,60 @@ td.cell-action {
     color: var(--color-text-muted);
 }
 
+.is-hidden {
+    display: none;
+}
+
+.page-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.page-heading h1 {
+    margin: 0;
+}
+
+.favorite-form {
+    display: inline-flex;
+}
+
+.favorite-toggle {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    line-height: 0;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+.favorite-toggle:hover {
+    background: none;
+    color: var(--color-accent);
+}
+
+.favorite-toggle svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+}
+
+.favorite-toggle.is-favorite {
+    color: var(--color-accent);
+}
+
+.favorite-toggle.is-favorite svg {
+    fill: currentColor;
+}
+
+.favorite-limit-notice {
+    flex-basis: 100%;
+    margin: 0;
+}
+
 .error-box {
     background: var(--color-error-bg);
     color: var(--color-error);
