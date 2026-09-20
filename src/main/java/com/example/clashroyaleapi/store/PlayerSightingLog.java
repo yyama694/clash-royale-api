@@ -9,6 +9,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -23,14 +24,24 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * 見かけたプレイヤーを inbox/ に1時間ごとのTSVとして追記する(形式: tag \t name \t 確認日時)。
  * 名前検索用の索引(by-tag/by-name)への整理は後段のバッチで行う前提で、ここでは追記だけにする。
  * 詳細は「プレイヤー名検索（検討中）.md」を参照。
+ *
+ * record/recordCrawledはリクエストスレッドから同期的に呼ばれるため、ここではキューに積むだけにして
+ * ディスクI/Oはしない。実際の書き込みは{@link #flush()}でまとめて行う。
+ * (2026-09-20、AIクローラーの高頻度アクセスで、旧実装の書き込み用ロックが詰まりTomcatのスレッドプールが
+ * 枯渇してサイト全体が応答不能になった障害の対策。詳細は進捗ログ.mdフェーズ1.49)
  */
 @Component
 public class PlayerSightingLog {
@@ -51,6 +62,7 @@ public class PlayerSightingLog {
             .maximumSize(RECENT_CAPACITY)
             .expireAfterWrite(RECENT_TTL)
             .build();
+    private final ConcurrentLinkedQueue<Entry> pending = new ConcurrentLinkedQueue<>();
 
     @Autowired
     public PlayerSightingLog(PlayerIndexProperties properties) {
@@ -62,22 +74,54 @@ public class PlayerSightingLog {
         this.clock = clock;
     }
 
-    /** 蓄積は付加的な機能なので、書き込みに失敗しても画面表示を妨げないよう例外は投げずにログだけ残す。 */
-    public synchronized void record(Collection<PlayerSighting> sightings) {
+    /** キューに積むだけで即座に返る(ディスクI/Oはしない)。「最近書いた」判定はここで即時に行う。 */
+    public void record(Collection<PlayerSighting> sightings) {
         Set<String> keys = keysOf(sightings);
         keys.removeIf(key -> recent.getIfPresent(key) != null);
-        if (append("", keys)) {
-            // 書けたものだけ「最近書いた」扱いにする(失敗したものは次に見かけたときに再度書く)。
-            keys.forEach(key -> recent.put(key, Boolean.TRUE));
-        }
+        keys.forEach(key -> {
+            recent.put(key, Boolean.TRUE);
+            pending.add(new Entry("", key));
+        });
     }
 
     /**
      * 巡回で集めた分を crawl-yyyyMMdd-HH.tsv に書く。巡回は件数が桁違いに多く、「最近書いた組」を使うと
      * 閲覧由来の分がすぐ追い出されて役に立たなくなるため、ここでは重複を除かず後段の整理に任せる。
      */
-    public synchronized void recordCrawled(Collection<PlayerSighting> sightings) {
-        append("crawl-", keysOf(sightings));
+    public void recordCrawled(Collection<PlayerSighting> sightings) {
+        keysOf(sightings).forEach(key -> pending.add(new Entry("crawl-", key)));
+    }
+
+    /** 蓄積は付加的な機能なので、書き込みに失敗しても画面表示を妨げないよう例外は投げずにログだけ残す。 */
+    @Scheduled(fixedDelay = 2000)
+    public void flush() {
+        Entry entry = pending.poll();
+        if (entry == null) {
+            return;
+        }
+        Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
+        String suffix = FILE_NAME.format(now);
+        Map<String, List<String>> byFile = new LinkedHashMap<>();
+        do {
+            byFile.computeIfAbsent(entry.filePrefix() + suffix, key -> new ArrayList<>())
+                    .add(entry.key() + "\t" + now);
+        } while ((entry = pending.poll()) != null);
+        byFile.forEach(this::append);
+    }
+
+    private void append(String fileName, List<String> lines) {
+        try {
+            Files.createDirectories(inboxDir);
+            try (Writer writer = Files.newBufferedWriter(inboxDir.resolve(fileName),
+                    StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+                for (String line : lines) {
+                    writer.write(line);
+                    writer.write("\n");
+                }
+            }
+        } catch (IOException e) {
+            log.warn("failed to record {} player sightings to {}: {}", lines.size(), fileName, e.toString());
+        }
     }
 
     private static Set<String> keysOf(Collection<PlayerSighting> sightings) {
@@ -92,28 +136,11 @@ public class PlayerSightingLog {
         return keys;
     }
 
-    private boolean append(String filePrefix, Set<String> keys) {
-        if (keys.isEmpty()) {
-            return false;
-        }
-        Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
-        try {
-            Files.createDirectories(inboxDir);
-            try (Writer writer = Files.newBufferedWriter(inboxDir.resolve(filePrefix + FILE_NAME.format(now)),
-                    StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
-                for (String key : keys) {
-                    writer.write(key + "\t" + now + "\n");
-                }
-            }
-            return true;
-        } catch (IOException e) {
-            log.warn("failed to record {} player sightings: {}", keys.size(), e.toString());
-            return false;
-        }
-    }
-
     /** 区切り文字(タブ・改行)が名前に含まれていると行が壊れるため、空白に置き換える。 */
     private static String sanitize(String name) {
         return name.replaceAll("[\\t\\r\\n]", " ");
+    }
+
+    private record Entry(String filePrefix, String key) {
     }
 }
