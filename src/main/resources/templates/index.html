@@ -27,6 +27,7 @@
                 <a class="favorite-chip" th:each="c : ${favoriteClans}"
                    th:href="@{/clan/{tag}(tag=${c.tag()})}"><bdi th:text="${c.name()}"></bdi></a>
             </div>
+            <a class="btn btn-secondary card-action" th:href="@{/favorites}" th:text="#{favorites.link}"></a>
         </div>
 
         <div class="card" id="player-ranking">
