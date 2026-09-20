@@ -346,6 +346,10 @@ a {
     font-size: 1rem;
 }
 
+.search-form-requery {
+    margin-bottom: 1.5rem;
+}
+
 button, .btn {
     background: var(--color-primary);
     color: #fff;

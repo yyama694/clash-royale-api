@@ -15,6 +15,7 @@
 
         <div th:if="${candidates != null}" class="card">
             <h1 th:text="#{clanSearch.heading(${query})}"></h1>
+            <div th:replace="~{fragments/layout :: clanSearchFormInline(${query})}"></div>
             <p class="notice" th:if="${total > candidates.size()}"
                th:text="#{clanSearch.notice(${total}, ${candidates.size()})}"></p>
             <ul class="result-list">
