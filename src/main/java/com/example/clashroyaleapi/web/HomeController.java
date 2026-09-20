@@ -23,11 +23,14 @@ public class HomeController {
     private final RankingService rankingService;
     private final RankingScope rankingScope;
     private final ViewMapper viewMapper;
+    private final FavoriteCookies favoriteCookies;
 
-    public HomeController(RankingService rankingService, RankingScope rankingScope, ViewMapper viewMapper) {
+    public HomeController(RankingService rankingService, RankingScope rankingScope, ViewMapper viewMapper,
+            FavoriteCookies favoriteCookies) {
         this.rankingService = rankingService;
         this.rankingScope = rankingScope;
         this.viewMapper = viewMapper;
+        this.favoriteCookies = favoriteCookies;
     }
 
     @GetMapping("/")
@@ -45,6 +48,9 @@ public class HomeController {
         model.addAttribute("playerRankingSize", PLAYER_RANKING_SIZE);
         // トップページでは、訪問者に身近な自国のランキングを最初に見せる(国が決まらないときはグローバル)。
         model.addAttribute("localTabActive", selected.isPresent());
+        // お気に入りは名前だけCookieから出す(表示速度を落とさないよう公式APIは呼ばない)。
+        model.addAttribute("favoritePlayers", favoriteCookies.read(request, FavoriteKind.PLAYER).entries());
+        model.addAttribute("favoriteClans", favoriteCookies.read(request, FavoriteKind.CLAN).entries());
         return "index";
     }
 }

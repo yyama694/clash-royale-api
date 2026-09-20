@@ -631,6 +631,38 @@ td.cell-action {
     margin: 0;
 }
 
+.favorite-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.favorite-chip-row + .favorite-chip-row {
+    margin-top: 0.75rem;
+}
+
+.favorite-chip-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.favorite-chip {
+    display: inline-block;
+    background: var(--color-bg);
+    color: var(--color-link);
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.favorite-chip:hover {
+    background: var(--color-border);
+}
+
 .error-box {
     background: var(--color-error-bg);
     color: var(--color-error);
