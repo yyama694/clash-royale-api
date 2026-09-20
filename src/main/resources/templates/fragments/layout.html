@@ -20,6 +20,19 @@
         <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
     </th:block>
     <!--/*
+      SNSでリンクを貼ったときのカード表示用(OGP)。画面ごとの個別文言はまだ無いため、titleと説明文はページ共通のものを使う。
+      画像は正方形(630x630)なので、1.91:1を前提とするtwitter:cardは"summary"(正方形サムネイル)にする。
+    */-->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" th:content="#{app.name}">
+    <meta property="og:title" th:content="#{title.format(${title}, #{app.name})}">
+    <meta property="og:description" th:content="#{app.description}">
+    <meta property="og:url" th:if="${siteBaseUrl != null and currentUri != null}"
+          th:content="${siteBaseUrl + currentUri}">
+    <meta property="og:image" th:if="${siteBaseUrl != null}"
+          th:content="${siteBaseUrl} + @{/images/og-image.jpg}">
+    <meta name="twitter:card" content="summary">
+    <!--/*
       言語メニュー(details)は標準では外側を押しても閉じないため、外側のクリックとEscキーで閉じる。
     */-->
     <script>
