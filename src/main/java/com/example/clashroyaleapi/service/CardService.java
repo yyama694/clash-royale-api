@@ -61,6 +61,20 @@ public class CardService {
         return groups;
     }
 
+    /**
+     * エリクサーでの絞り込みに出す選択肢。
+     * 将来コストの上限が変わっても付いていけるよう、固定値ではなくカード一覧(キャッシュ済み)から拾う。
+     * 鏡とタワーユニットはコストを持たないため、ここには現れない。
+     */
+    public List<Integer> elixirCosts() {
+        return apiClient.getCards().items().stream()
+                .map(CardsResponse.Card::elixirCost)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
     private static int rarityRank(CardsResponse.Card card) {
         int index = RARITY_ORDER.indexOf(card.rarity());
         return index < 0 ? RARITY_ORDER.size() : index;

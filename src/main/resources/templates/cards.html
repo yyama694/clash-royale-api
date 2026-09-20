@@ -16,6 +16,13 @@
                     <span th:text="#{cards.filter.label}"></span>
                     <input type="search" id="card-filter" autocomplete="off" th:placeholder="#{cards.filter.placeholder}">
                 </label>
+                <!--/* 押した数字だけを残す(複数選べる)。何も押していない状態は「すべて」。 */-->
+                <fieldset class="elixir-filter" id="elixir-filter">
+                    <legend th:text="#{cards.filter.elixir}"></legend>
+                    <button type="button" class="elixir-chip" aria-pressed="false"
+                            th:each="cost : ${elixirCosts}" th:value="${cost}" th:text="${cost}"
+                            th:aria-label="#{cards.elixir(${cost})}"></button>
+                </fieldset>
             </form>
             <p class="empty-state" id="card-filter-empty" hidden th:text="#{cards.filter.empty}"></p>
         </div>
@@ -23,10 +30,11 @@
         <section class="card card-group" th:each="group : ${groups}">
             <h2 th:text="${group.heading()}"></h2>
             <div class="deck-grid card-catalog">
-                <div class="deck-card" th:each="c : ${group.cards()}" th:attr="data-search=${c.name() + ' ' + c.englishName()}">
+                <div class="deck-card" th:each="c : ${group.cards()}"
+                     th:attr="data-search=${c.name() + ' ' + c.englishName()},data-elixir=${c.elixirCost()}">
                     <div class="card-thumb">
                         <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
-                        <span th:replace="~{fragments/layout :: elixirBadge(${c.elixirCost()})}"></span>
+                        <span th:replace="~{fragments/layout :: elixirBadge(${c.elixir()})}"></span>
                     </div>
                     <div class="card-name" th:text="${c.name()}"></div>
                 </div>
@@ -45,6 +53,7 @@
         (function () {
             var input = document.getElementById('card-filter');
             var empty = document.getElementById('card-filter-empty');
+            var chips = Array.prototype.slice.call(document.querySelectorAll('#elixir-filter .elixir-chip'));
             var cards = Array.prototype.slice.call(document.querySelectorAll('.card-catalog .deck-card'));
             var groups = Array.prototype.slice.call(document.querySelectorAll('.card-group'));
             function normalize(text) {
@@ -56,10 +65,18 @@
             cards.forEach(function (card) {
                 card.dataset.normalized = normalize(card.dataset.search || '');
             });
-            input.addEventListener('input', function () {
+            function apply() {
                 var query = normalize(input.value);
+                // 数字を1つも押していないときは、エリクサーでは絞らない(鏡・タワーユニットも残す)。
+                var costs = chips.filter(function (chip) {
+                    return chip.getAttribute('aria-pressed') === 'true';
+                }).map(function (chip) {
+                    return chip.value;
+                });
                 cards.forEach(function (card) {
-                    card.hidden = query !== '' && card.dataset.normalized.indexOf(query) < 0;
+                    var byName = query === '' || card.dataset.normalized.indexOf(query) >= 0;
+                    var byCost = costs.length === 0 || costs.indexOf(card.dataset.elixir) >= 0;
+                    card.hidden = !(byName && byCost);
                 });
                 var anyVisible = false;
                 groups.forEach(function (group) {
@@ -68,6 +85,13 @@
                     anyVisible = anyVisible || visible;
                 });
                 empty.hidden = anyVisible;
+            }
+            input.addEventListener('input', apply);
+            chips.forEach(function (chip) {
+                chip.addEventListener('click', function () {
+                    chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+                    apply();
+                });
             });
         })();
     </script>

@@ -55,6 +55,12 @@ class CardServiceTest {
     }
 
     @Test
+    void 絞り込みの選択肢はコストを持つカードから重複なく昇順で作る() {
+        // 鏡(null)とタワーユニットは含めない。
+        assertEquals(List.of(1, 2, 3, 5), cardService.elixirCosts());
+    }
+
+    @Test
     void 詳細はタワーユニットも引ける() {
         assertEquals("Tower Princess", cardService.byId(9).name());
         assertThrows(CardNotFoundException.class, () -> cardService.byId(999));
