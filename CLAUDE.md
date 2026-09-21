@@ -97,6 +97,7 @@
 
 - VM上の実体: jar配置先 `/opt/clash-royale-api/clash-royale-api.jar`、systemdサービス名 `clash-royale-api.service`(`opc`ユーザーで実行、起動オプション`--spring.profiles.active=prod`)。
 - **プレイヤー名の蓄積先(2026-09-18に追加)**: `/var/lib/clash-royale-api/player-index/`(opc所有)。`/etc/clash-royale-api/env`の`PLAYER_INDEX_DIR`で指定している(未指定時はWorkingDirectory配下の`data/player-index`)。jarを差し替えても消えないよう、jar置き場とは分けている。詳細は`プレイヤー名検索（検討中）.md`。
+- **索引のバックアップ(2026-09-21に追加)**: ローカルで`powershell -ExecutionPolicy Bypass -File scripts\backup-player-index.ps1`を実行すると、VMの`by-tag`(正本)と`crawler`(巡回の進捗)をtar.gzにして`C:\dev\backup\clash-royale-api\`へ取得する(約170MB、SHA256検証あり、世代3つ)。`by-name`はアプリが起動時に作り直すためバックアップ対象外。**自動化していないので手動で実行する**。詳細は`進捗ログ.md`のフェーズ1.56。
 - **名前検索用の巡回と整理バッチ(2026-09-19に有効化)**: アプリ内でSpringの定期実行により動く。巡回は`/etc/clash-royale-api/env`の`CRAWLER_ENABLED`・`CRAWLER_INTERVAL`(現在3s。2026-09-20のVM乗り換え時に5sから短縮、2026-09-21に本番の設定値で確認済み)で制御し、止めるときは`CRAWLER_ENABLED=false`にして再起動する。整理バッチ(inbox→by-tag・by-name)は毎時5分(UTC。2026-09-19に1日1回の18:30 UTCから変更)。見かけたプレイヤーが名前検索に出るまで最大2時間ほど。詳細は`進捗ログ.md`のフェーズ1.23。
 - **プレイヤー名検索(2026-09-19に有効化)**: `/etc/clash-royale-api/env`の`PLAYER_NAME_SEARCH_ENABLED=true`で有効。やめるときは`false`にして再起動する(入力をすべてタグとして扱う従来の動作に戻る)。索引`by-name/`は整理バッチが作る。
 - **APIキーの供給(2026-09-15に変更)**: `/etc/clash-royale-api/env`(root:root 600、`CLASHROYALE_API_TOKEN=...`)をsystemdの`EnvironmentFile`で読み込む。以前あった`/opt/clash-royale-api/application-prod.yml`は`.removed`にリネームして退避済み。jar側にも秘密情報は入っていない。
@@ -134,6 +135,7 @@
 - application.properties/yml にAPIキーなどの秘密情報を平文でコミットしない。ローカル用設定と本番用設定は分離する。
 - .gitignore には target/, .idea/, *.iml, `/config/`, `application-*.yml` を含める(ファイル名の個別列挙ではなくパターンで弾く)。
   - `config`は必ず先頭に`/`を付けてリポジトリ直下に限定する。`config/`だとソースの`config`パッケージ(`src/main/java/.../config/`)まで無視され、`CacheConfig.java`・`WebConfig.java`が一度もコミットされていなかった(2026-09-17に判明・修正)。
+- **日本語を含む`.ps1`はUTF-8 BOM付きで保存する**(2026-09-21に判明)。Windows PowerShell 5.1はBOMが無い`.ps1`をANSI(CP932)として読むため、BOMなしUTF-8だと日本語が文字化けして構文エラーになる。PowerShell 7以降は既定がUTF-8なのでこの問題は起きない。
 
 ## セキュリティ上の注意
 
