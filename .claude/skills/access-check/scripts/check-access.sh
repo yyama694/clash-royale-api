@@ -55,4 +55,10 @@ grep -E ' /(player|clan|cards|ranking|favorites|card)' /tmp/access-check-clean.l
 echo
 echo "== X(Twitter)経由のリファラ =="
 grep -iE 't\.co|x\.com' /tmp/access-check-clean.log || echo "(なし)"
+
+# X等に出すURLには ?from=x を付けている(2026-09-21、フェーズ1.55)。
+# リファラが付かない流入でもこれで数えられる。
+echo
+echo "== 流入元タグ(?from=)付きのアクセス =="
+grep -oE '\?from=[A-Za-z0-9_-]+' /tmp/access-check-clean.log | sort | uniq -c | sort -rn || echo "(なし)"
 REMOTE
