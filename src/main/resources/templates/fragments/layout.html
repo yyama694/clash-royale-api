@@ -33,6 +33,29 @@
           th:content="${siteBaseUrl} + @{/images/og-image.jpg}">
     <meta name="twitter:card" content="summary">
     <!--/*
+      検索エンジン・AI検索にサイトの性格と検索窓を機械可読で伝える。SearchActionのURLは実際の
+      プレイヤー検索に合わせる。サイト全体を表す情報なのでトップページにだけ出す。
+      値の埋め込みは[(...)]でエスケープしない(HTMLエンティティになるとJSONの文字列として読めないため)。
+    */-->
+    <script type="application/ld+json" th:if="${siteBaseUrl != null and currentUri == '/'}" th:inline="text">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "[(#{app.name})]",
+      "url": "[(${siteBaseUrl})]/",
+      "description": "[(#{app.description})]",
+      "inLanguage": ["[(${#strings.listJoin(languageCodes, '","')})]"],
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "[(${siteBaseUrl})]/player/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <!--/*
       言語メニュー(details)は標準では外側を押しても閉じないため、外側のクリックとEscキーで閉じる。
     */-->
     <script>
@@ -386,17 +409,21 @@
     <form class="search-form" th:action="@{/player/search}" method="get">
         <label>
             <span th:text="${nameSearchEnabled} ? #{home.player.labelWithName} : #{home.player.label}"></span>
-            <input type="text" name="q" required th:value="${value}" th:placeholder="#{home.player.placeholder}">
+            <!--/* 名前でも引けることは、例を名前にするのが一番伝わる(タグの例だけだと名前検索に気づかれない)。 */-->
+            <input type="text" name="q" required th:value="${value}"
+                   th:placeholder="${nameSearchEnabled} ? #{home.player.placeholderWithName} : #{home.player.placeholder}">
         </label>
         <button type="submit" th:text="#{action.search}"></button>
     </form>
+    <p class="notice" th:if="${nameSearchEnabled}" th:text="#{home.player.nameHint}"></p>
 </div>
 
 <!--/* 検索結果が見つかった画面の上部に置く、見出しなしの再検索フォーム。 */-->
 <form th:fragment="playerSearchFormInline(value)" class="search-form search-form-requery" th:action="@{/player/search}" method="get">
     <label>
         <span th:text="${nameSearchEnabled} ? #{home.player.labelWithName} : #{home.player.label}"></span>
-        <input type="text" name="q" required th:value="${value}" th:placeholder="#{home.player.placeholder}">
+        <input type="text" name="q" required th:value="${value}"
+               th:placeholder="${nameSearchEnabled} ? #{home.player.placeholderWithName} : #{home.player.placeholder}">
     </label>
     <button type="submit" th:text="#{action.search}"></button>
 </form>

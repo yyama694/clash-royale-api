@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * 検索エンジン向けのsitemap.xmlとrobots.txt。ドメインは過去に何度か変わっているため、
+ * 検索エンジン向けのsitemap.xmlとrobots.txt、AI検索向けのllms.txt。ドメインは過去に何度か変わっているため、
  * 静的ファイルに焼き込まずアクセスされたホストから組み立てる(siteBaseUrlと同じ考え方)。
  * お気に入り画面はCookieで内容が閲覧者ごとに変わり、検索結果として案内する価値が無いため対象外にする。
  */
@@ -23,10 +23,12 @@ public class SitemapController {
 
     private final CardService cardService;
     private final GlobalModelAttributes modelAttributes;
+    private final LabelResolver labels;
 
-    public SitemapController(CardService cardService, GlobalModelAttributes modelAttributes) {
+    public SitemapController(CardService cardService, GlobalModelAttributes modelAttributes, LabelResolver labels) {
         this.cardService = cardService;
         this.modelAttributes = modelAttributes;
+        this.labels = labels;
     }
 
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
@@ -53,6 +55,47 @@ public class SitemapController {
 
                 Sitemap: %s/sitemap.xml
                 """.formatted(base);
+    }
+
+    /**
+     * AI検索(ChatGPT・Claude・Perplexity等)向けの要約。当サイトのトラフィックの大半はAIクローラーで、
+     * 「クラロワのプレイヤーを調べられるサイト」を聞かれたときに拾われることを狙う。
+     * サイト名はmessagesを正とし、ここに二重に持たない(改名時の直し漏れを防ぐため)。
+     */
+    @GetMapping(value = "/llms.txt", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String llms(HttpServletRequest request) {
+        String base = modelAttributes.siteBaseUrl(request);
+        String siteName = labels.message("app.name", SupportedLanguages.INTERNATIONAL);
+        String languages = String.join(", ", modelAttributes.languageCodes());
+        return """
+                # %s
+
+                > A fan-made Clash Royale player and clan lookup site. Unlike tools that only accept
+                > player tags, this site finds players by their in-game name, using an index of over
+                > 9 million players built by continuously crawling clans - so even players nobody has
+                > ever looked up are searchable.
+
+                ## What you can look up
+
+                - Player search by name or tag: current deck, average elixir, 4-card cycle,
+                  win/loss streaks, Ranked league placement, battle history, card collection
+                - Clan search by name or tag: member list with role, trophies, donations, last seen
+                - Rankings: top 1000 players and top 1000 clans, global or by country
+                - Cards: full card list and per-card detail pages, including Evolution artwork
+
+                ## Pages
+
+                - Player and clan search: %s/
+                - Player rankings: %s/ranking/players
+                - Clan rankings: %s/ranking
+                - Card list: %s/cards
+
+                ## Notes
+
+                - Data comes from the official Supercell Clash Royale API.
+                - Available languages: %s
+                - Not affiliated with or endorsed by Supercell.
+                """.formatted(siteName, base, base, base, base, languages);
     }
 
     private Stream<String> cardPaths() {
