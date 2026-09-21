@@ -7,6 +7,9 @@
     取得対象は by-tag(正本)と crawler(巡回の進捗)だけ。by-name は PlayerIndexCompactor が
     無ければ起動後に自動で作り直すため、inbox は毎時の整理バッチで消える一時ファイルのため除く。
 
+    成否は $BackupDir\backup.log に1行ずつ追記する(タスクスケジューラからの無人実行用)。
+    定期実行の登録は scripts\register-backup-task.ps1 で行う。
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\backup-player-index.ps1
 
@@ -25,12 +28,30 @@ $KeyPath        = Join-Path $env:USERPROFILE '.ssh\oci_clash_royale_api'
 $RemoteIndexDir = '/var/lib/clash-royale-api/player-index'
 $Targets        = 'by-tag crawler'
 
+function Write-Log([string]$Message) {
+    if (-not (Test-Path $BackupDir)) { New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null }
+    $line = '{0} {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Message
+    Add-Content -Path (Join-Path $BackupDir 'backup.log') -Value $line -Encoding UTF8
+    Write-Host $line
+}
+
+# タスクスケジューラからの無人実行は画面に何も残らないため、成否を必ずログに1行残す。
+trap {
+    Write-Log "NG  $($_.Exception.Message)"
+    break
+}
+
 function Invoke-Ssh([string]$Command) {
     $out = & ssh -i $KeyPath -o ConnectTimeout=20 -o BatchMode=yes $VmHost $Command
     if ($LASTEXITCODE -ne 0) { throw "SSHコマンドが失敗しました (exit $LASTEXITCODE): $Command" }
     return $out
 }
 
+foreach ($exe in 'ssh', 'scp') {
+    if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) {
+        throw "$exe が見つかりません。Windowsの OpenSSH クライアントが入っているか確認してください"
+    }
+}
 if (-not (Test-Path $KeyPath)) { throw "SSH鍵が見つかりません: $KeyPath" }
 if (-not (Test-Path $BackupDir)) { New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null }
 
@@ -83,7 +104,7 @@ foreach ($f in $old) {
 }
 
 Write-Host ""
-Write-Host "完了: $localPath"
+Write-Log ("OK  {0}  {1:N1} MB  sha256={2}" -f $fileName, ($localSize / 1MB), $localSha256)
 Get-ChildItem -Path $BackupDir -Filter 'player-index-*.tar.gz' |
     Sort-Object Name -Descending |
     Select-Object Name, @{n='Size(MB)';e={[math]::Round($_.Length / 1MB, 1)}}, LastWriteTime |
