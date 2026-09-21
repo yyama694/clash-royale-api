@@ -10,6 +10,8 @@
     <meta name="description" th:content="#{app.description}">
     <link rel="icon" type="image/png" th:href="@{/favicon.png}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!--/* カード画像は公式CDNから読む。最初の画像の手前でDNS・TLSを済ませておく。 */-->
+    <link rel="preconnect" href="https://api-assets.clashroyale.com" crossorigin>
     <!--/*
       同じURLでもCookieやAccept-Languageで返す言語が変わるため、検索エンジンには言語ごとのURLを明示する。
       hreflangは絶対URLでないと解釈されないので、アクセスされたホストを付ける。

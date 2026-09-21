@@ -28,6 +28,10 @@ public class LabelResolver {
     // 同じ値でリクエストのたびにログが出ないよう、一度報告したものを覚えておく(種類が有限なので上限は設けない)。
     private final Set<String> reportedMissing = ConcurrentHashMap.newKeySet();
 
+    // 訳の有無を調べ終えたカード名。対戦履歴のある画面では cardName が1リクエストで数百回呼ばれ、
+    // そのたびに対応言語(7つ)ぶんの辞書引きが走っていた。カード名は有限なので一度調べたら二度と調べない。
+    private final Set<String> translationChecked = ConcurrentHashMap.newKeySet();
+
     public LabelResolver(MessageSource messageSource) {
         this.messageSource = messageSource;
     }
@@ -100,6 +104,9 @@ public class LabelResolver {
     }
 
     private void reportIfUntranslated(String key) {
+        if (!translationChecked.add(key)) {
+            return;
+        }
         for (Locale supported : SupportedLanguages.SUPPORTED) {
             if (SupportedLanguages.INTERNATIONAL.getLanguage().equals(supported.getLanguage())) {
                 continue;

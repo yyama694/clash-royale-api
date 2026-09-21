@@ -2,26 +2,24 @@ spring:
   application:
     name: clash-royale-api
   # メッセージリソースの設定(basename等)は MessageSourceConfig にある。ICUの書式を使うため自前で定義している。
-  cache:
-    cache-names: players,clans,battleLogs,clanSearches,clanRankings,playerRankings,locations,cards,clanWarTrophies
-    caffeine:
-      spec: maximumSize=500,expireAfterWrite=2m
+  # キャッシュの上限件数とTTLは CacheConfig にある(1件あたりの重さが違うため、キャッシュごとに分けている)。
   http:
     client:
       connect-timeout: 3s
       read-timeout: 8s
   web:
     resources:
+      # 静的ファイルの公開先は WebConfig#addResourceHandlers で自前に登録する。
+      # 既定の `/**` は全URLを静的ファイル候補として探しに行くため使わない(理由はWebConfigのコメント)。
+      add-mappings: false
       # CSS/JSのURLに中身のハッシュを付ける(例: /css/style-1a2b3c.css)。Thymeleafの @{...} 経由のリンクに自動で反映される。
       # 既定ではCache-ControlもETagも返さないため、ブラウザが古いCSSを使い続け、デプロイしても表示が変わらないことがあった。
+      # ハッシュ付きURLを作るフィルタ(ResourceUrlEncodingFilter)はこの設定が有効なときだけ登録されるため、
+      # 自前でハンドラを登録していてもここは残す必要がある。
       chain:
         strategy:
           content:
             enabled: true
-      # URLが中身ごとに変わるので、同じURLのファイルは長期間キャッシュしてよい。
-      cache:
-        cachecontrol:
-          max-age: 365d
 
 server:
   port: 8080
