@@ -90,7 +90,7 @@
 
 - hello-worldプロジェクトで作成したOCI VM(VM.Standard.E2.1.Micro、`140.245.83.216`)は2026-09-13時点でユーザーの意向により削除し、本プロジェクト用に新規VMを作成済み(ローカルの`C:\dev\hello-world`フォルダ・GitHubリポジトリ自体は学習記録としてそのまま残す)。
 - **現行VM(2026-09-20〜)**: パブリックIP: `161.33.136.175`(2026-09-20に固定IP(予約済みパブリックIP)を取得。以前は`158.179.182.210`の一時IPで、インスタンス再起動などで変わる可能性があったが、固定IP化により今後は変わらない見込み)。**VM.Standard.A1.Flex**(ARM、Always Free枠。1 OCPU・約5.5GBメモリ)。リージョン: 東京(ap-tokyo-1)。OS: Oracle Linux Server 9.8(aarch64)。SSH鍵: `oci_clash_royale_api`(旧VMと共通)。Javaはdnfの`java-21-openjdk-headless`(aarch64、Oracle Linux 9標準リポジトリ)を使用(旧VMのAmazon Corretto x86_64から変更)。詳細な移行手順は`進捗ログ.md`のフェーズ1.40を参照。
-- **旧VM(2026-09-13〜2026-09-20)**: パブリックIP: `132.226.7.203`。x86_64の**VM.Standard.E2.1.Micro**(Always Free枠。作成時は"Out of host capacity"でAmpere A1.Flexが取れず、E2.1.Microで作成していた)。新VMへの切り替えが安定するまでの間は残し、安定後に削除予定(`TODO.md`参照)。
+- **旧VM(2026-09-13〜2026-09-20、2026-09-21に削除済み)**: パブリックIP: `132.226.7.203`。x86_64の**VM.Standard.E2.1.Micro**(Always Free枠。作成時は"Out of host capacity"でAmpere A1.Flexが取れず、E2.1.Microで作成していた)。新VMへの移行漏れが無いことを確認したうえで、2026-09-21にブートボリュームごと削除した(経緯と確認手順は`進捗ログ.md`のフェーズ1.53)。**現在OCI上に存在するインスタンスは新VM(`clash-royale-api2`)の1台のみ**。
 - ネットワーク公開・ポート開放・ファイアウォール設定はhello-worldでの手順(firewalld + OCIセキュリティリスト双方の開放が必要)を踏襲。**2026-09-20のApache導入に伴い、外部公開ポートは80番・443番のみに変更**(80番はHTTPSへのリダイレクト用、443番は同日のHTTPS化で追加。8080番はfirewalld・OCIセキュリティリストとも削除済み)。OCIセキュリティリストの追加・削除操作自体はユーザーがOCIコンソールで実施する運用。
 
 ## デプロイ手順の方針(手動、hello-worldを踏襲)
