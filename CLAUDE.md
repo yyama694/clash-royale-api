@@ -28,8 +28,8 @@
 
 - 目的: Clash Royale公式API(developer.clashroyale.com)を利用し、Clash Royaleユーザー向けにプレイヤー情報・クラン情報などを閲覧できるWebアプリを提供する。学習(Spring Boot実践)と実用を兼ねる。
 - **収益化(広告表示)も目的の一つ(2026-09-21にユーザーが明言)**: 「広告は入れる方向で進める。そのためのサイトでもある」。学習・実用に加えて**収益化が第3の目的**になった。広告導入は決定事項であり、「入れるかどうか」はもう議論しない。機能追加・宣伝の優先度を判断するときは、ページビュー・回遊・広告単価への影響も加味してよい。実行計画は`収益化考え中.md`の「広告導入ロードマップ」を参照。
-  - **ドメイン名・Xアカウント名の商標問題**: 現ドメイン`clashroyale-api.duckdns.org`とXアカウント名`@clashroyal888`(表示名「Clash Royale Search」)はSupercellの商標を含み、ファンコンテンツポリシーに抵触する(広告収入が絡むと商用利用とみなされやすく、指摘時の影響が大きい)。**改名するなら`clash`/`royale`/`supercell`を含めないこと**。
-    - ⚠ **独自ドメインの取得は必須ではない**(2026-09-21に一次情報で確認)。当初「無料サブドメインはAdSense審査で不利」としていたが**誤り**。`duckdns.org`はPublic Suffix Listに登録済みで、AdSense公式ヘルプが「サイト」として追加できると明記しているカテゴリに該当する。**商標問題はDuckDNS内での改名(0円)でも解消できる**。根拠と出典は`収益化考え中.md`の「ドメイン問題の再整理と調査結果」を参照。
+  - **ドメイン名・Xアカウント名の商標問題 → 2026-09-21に解消済み**。旧ドメイン`clashroyale-api.duckdns.org`と旧Xアカウント`@clashroyal888`(表示名「Clash Royale Search」)はSupercellの商標を含みファンコンテンツポリシーに抵触していたため、**DuckDNS内で`princess-tower.duckdns.org`に改名**(0円)、Xも表示名「princess tower」・ハンドル`@princess_tower8`に変更し、過去投稿は全削除した。詳細は`進捗ログ.md`のフェーズ1.50を参照。
+    - 独自ドメインの取得は必須ではないと判明済み(2026-09-21に一次情報で確認。`duckdns.org`はPublic Suffix List登録済みでAdSense公式ヘルプが「サイト」として追加できるカテゴリに該当)。根拠と出典は`収益化考え中.md`の「ドメイン問題の再整理と調査結果」を参照。
     - **AdSense審査の本当の関門はコンテンツ**(「ユーザーの興味を引く独自のコンテンツ」が要件)。当サイトはAPI結果を表示する機能サイトで読ませる文章がほぼ無いため、ここが唯一かつ最大の課題。
 - **サービスの方向性(2026-09-19にユーザーが変更)**: 全世界のクラロワユーザーに向けて発信する。2026-09-18に決めた「日本のユーザーに特化する」方針と、それを前提にした施策(日本語表示を差別化ポイントにする、日本語コミュニティへの告知など)は同日すべて撤回した。機能や施策を考えるときは、特定の国・言語に寄せず全世界の利用者を前提にする。RoyaleAPIのような大手のデッキ統計サイトと、データ量と基盤の規模で張り合わない点は引き続き有効。詳細と、方針変更で見直しが必要な項目は`TODO.md`の「サービスの方向性」を参照。
 - 最初のマイルストーンは最小機能(プレイヤー検索・クラン検索)とし、その後クイズ機能など追加サービスを継続的に足していく方針(2026-09-13時点でユーザーが表明)。
@@ -66,10 +66,11 @@
   - 言語を足すときは、カード名などゲーム内の用語を公式の表記で裏付ける(西・葡での方法は`進捗ログ.md`のフェーズ1.20)。
 - DB: **当面なし**。まずはClash Royale APIの呼び出し結果をそのまま画面に表示する構成で開始し、キャッシュやクイズデータの保存が必要になった段階でPostgreSQL導入を検討する(2026-09-13時点でユーザーが決定)。
 - Webサーバー: **2026-09-20にApache(httpd)をリバースプロキシとして導入**(それまではhello-worldと同様、組み込みTomcatを直接公開)。Apache→Tomcat(127.0.0.1:8080)へ`mod_proxy`/`mod_proxy_http`でプロキシする構成。8080番は外部非公開(firewalld・OCIセキュリティリストとも削除済み)で、アプリへはApache経由のみでアクセスする。詳細は`進捗ログ.md`のフェーズ1.41を参照。
-- **ドメイン名(2026-09-20に取得)**: `clashroyale-api.duckdns.org`(DuckDNSの無料サブドメイン)。本番VMの固定IP(`161.33.136.175`)を指す。DuckDNS側の更新(IPが変わった場合の反映)はユーザーがDuckDNSのサイトで行う運用。
-- **HTTPS化(2026-09-20にLet's Encrypt/certbotで対応)**: `mod_ssl` + `certbot`(EPEL経由。Oracle Linux 9は`oracle-epel-release-el9`を導入後、`ol9_developer_EPEL`リポジトリを有効化して`certbot`/`python3-certbot-apache`を取得)。`certbot --apache`で証明書取得とApache設定の自動編集(`/etc/httpd/conf.d/clash-royale-api-proxy-le-ssl.conf`を追加生成、HTTP→HTTPSへの302リダイレクトも設定済み)。80番はリダイレクト用に残し、443番を新たに公開(firewalld・OCIセキュリティリストとも追加)。
-  - **証明書の自動更新**: `certbot-renew.timer`(1日2回起動、期限30日前から更新)。**インストール直後は`disabled`だったため`systemctl enable --now`で有効化した**(certbotのインストーラーが有効化まではしない点に注意。次回別ドメインでHTTPS化する際も確認すること)。
-  - 証明書は`/etc/letsencrypt/live/clashroyale-api.duckdns.org/`配下(有効期限90日、2026-09-20取得分は2026-12-19まで)。
+- **ドメイン名**: `princess-tower.duckdns.org`(DuckDNSの無料サブドメイン。**2026-09-21に商標問題解消のため`clashroyale-api.duckdns.org`から改名**、詳細は`進捗ログ.md`のフェーズ1.50)。本番VMの固定IP(`161.33.136.175`)を指す。DuckDNS側の更新(IPが変わった場合の反映)はユーザーがDuckDNSのサイトで行う運用。旧ドメインはDuckDNS側で削除済み(301リダイレクトなし)、証明書・Apache vhostとも撤去済み。
+- **HTTPS化(2026-09-20にLet's Encrypt/certbotで対応、2026-09-21に新ドメインへ移行)**: `mod_ssl` + `certbot`(EPEL経由。Oracle Linux 9は`oracle-epel-release-el9`を導入後、`ol9_developer_EPEL`リポジトリを有効化して`certbot`/`python3-certbot-apache`を取得)。`certbot --apache`で証明書取得とApache設定の自動編集(`/etc/httpd/conf.d/princess-tower-proxy-le-ssl.conf`を生成)。80番はリダイレクト用に残し、443番を新たに公開(firewalld・OCIセキュリティリストとも追加)。
+  - ⚠ **`certbot --apache`は新規vhost生成時、直前に作ったHTTP用vhostの`RequestHeader set X-Forwarded-Proto`をそのまま複製する**(HTTPS用なのに`"http"`のままになる)。2026-09-20の初回HTTPS化時と2026-09-21のドメイン移行時の両方で発生。**証明書取得後は必ずSSL vhostの当該行を`"https"`に手動修正すること**(OGP/hreflang/sitemapの絶対URLが`http://`になるバグの原因)。
+  - **証明書の自動更新**: `certbot-renew.timer`(1日2回起動、期限30日前から更新)。**インストール直後は`disabled`だったため`systemctl enable --now`で有効化した**(certbotのインストーラーが有効化まではしない点に注意。次回別ドメインでHTTPS化する際も確認すること)。2026-09-21のドメイン移行後も`enabled`/`active`を再確認済み。
+  - 証明書は`/etc/letsencrypt/live/princess-tower.duckdns.org/`配下(有効期限90日、2026-09-21取得分は2026-12-20まで)。
 
 ## Clash Royale API連携に関する注意点
 
