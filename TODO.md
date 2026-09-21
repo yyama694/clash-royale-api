@@ -44,7 +44,7 @@
 ## プレイヤー名検索の残タスク
 
 - **巡回間隔を詰める**: 2026-09-19に10s→5s、2026-09-20に5s→3sにした(`/etc/clash-royale-api/env`の`CRAWLER_INTERVAL`)。429(`crawler paused`)が増えていないか、画面の応答が遅くならないかを様子見中
-- ~~**バックアップの検討**~~(2026-09-21に対応。`進捗ログ.md`のフェーズ1.56): `scripts\backup-player-index.ps1`をローカルで実行し、`by-tag`+`crawler`をtar.gz(約170MB)にして`C:\dev\backup\clash-royale-api\`へ取得する。SHA256で転送を検証、世代は3つ。**自動化はしていないので、思い出したときに手動で実行する**
+- ~~**バックアップの検討**~~(2026-09-21に対応。`進捗ログ.md`のフェーズ1.56・1.57): `scripts\backup-player-index.ps1`が`by-tag`+`crawler`をtar.gz(約170MB)にして`C:\dev\backup\clash-royale-api\`へ取得する。SHA256で転送を検証、世代は3つ。**タスクスケジューラで毎週日曜12:00に自動実行**(タスク名`clash-royale-api-backup`)。結果は`C:\dev\backup\clash-royale-api\backup.log`で確認する
   - 当初案の無料枠Object Storage(20GB)は見送った。PC1台なので冗長性は無いが、このデータは公式APIから再収集できる(失うのは時間だけ)ため割り切った
 
 ## VMのディスク残量(2026-09-21起票、未着手)
