@@ -52,6 +52,7 @@ public class SitemapController {
         return """
                 User-agent: *
                 Disallow: /favorites
+                Disallow: /beacon
 
                 Sitemap: %s/sitemap.xml
                 """.formatted(base);
