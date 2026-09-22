@@ -175,13 +175,18 @@ grep -ohE '[?&]from=[A-Za-z0-9_-]+' /tmp/access-check-human.log | sed -E 's/^&/?
 # ビーコン(/beacon)はブラウザがJSを実行したときだけ叩かれる(2026-09-22追加、フェーズ1.61)。
 # HTMLを取得するだけのクローラーはここに現れないため、ログのUA/IPによる推定と違って
 # 「本当にブラウザで表示された回数」を直接数えられる。
+# ユーザー本人の開発用IPや既知スキャナーの分まで数えると意味が無いので、ここでも
+# known_noise.md のIPは落とす(ビーコン自体はJSを実行した本物のブラウザからしか来ないが、
+# ユーザー本人の動作確認アクセスは「実訪問者」ではないため)。
+grep -vE "^($NOISE_REGEX) " /tmp/access-check-window.log | grep ' /beacon' > /tmp/access-check-beacon.log || true
+
 echo
 echo "== 実ブラウザ表示(ビーコン /beacon) =="
-if grep -q ' /beacon' /tmp/access-check-window.log; then
-    echo "件数: $(grep -c ' /beacon' /tmp/access-check-window.log)"
-    echo "ユニークIP数: $(grep ' /beacon' /tmp/access-check-window.log | awk '{print $1}' | sort -u | wc -l)"
+if [ -s /tmp/access-check-beacon.log ]; then
+    echo "件数: $(wc -l < /tmp/access-check-beacon.log)"
+    echo "ユニークIP数: $(awk '{print $1}' /tmp/access-check-beacon.log | sort -u | wc -l)"
     echo "-- 表示されたページ別 --"
-    grep ' /beacon' /tmp/access-check-window.log \
+    cat /tmp/access-check-beacon.log \
       | grep -ohE 'p=[^& ]+' | sed 's/^p=//' \
       | sed -E 's#%2F#/#g; s#/player/[^/?]+#/player/{tag}#; s#/clan/[^/?]+#/clan/{tag}#; s#/card/[^/?]+#/card/{id}#' \
       | sort | uniq -c | sort -rn | head -20 || true
