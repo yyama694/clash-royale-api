@@ -58,6 +58,29 @@
     }
     </script>
     <!--/*
+      実ブラウザで表示された回数を数えるビーコン(BeaconController)。アクセスログのUA・IPからでは
+      Chrome偽装のスキャナーと本物の閲覧者を見分けきれないため、JSが動いたときだけ叩く一発の
+      リクエストで「本当にブラウザで表示された」ことを記録する。
+      識別子は送らない(Cookieも使わない)ので、送るのはパスと流入元タグだけ。
+      表示を1msでも遅らせないよう、読み込み完了後にキュー(sendBeacon)へ積むだけにする。
+    */-->
+    <script>
+        window.addEventListener('load', function () {
+            // ?from= はX等に出したURLに付けている。どの宣伝から来た表示かをここでも拾う。
+            var from = new URLSearchParams(location.search).get('from');
+            var url = '/beacon?p=' + encodeURIComponent(location.pathname)
+                + (from ? '&from=' + encodeURIComponent(from.slice(0, 20)) : '');
+            try {
+                // sendBeaconはページを離れても送信が保証され、描画も妨げない。
+                if (!(navigator.sendBeacon && navigator.sendBeacon(url))) {
+                    fetch(url, {cache: 'no-store', keepalive: true});
+                }
+            } catch (e) {
+                // 計測は付随的な処理なので、失敗しても画面には影響させない。
+            }
+        });
+    </script>
+    <!--/*
       言語メニュー(details)は標準では外側を押しても閉じないため、外側のクリックとEscキーで閉じる。
     */-->
     <script>
