@@ -3,6 +3,16 @@
 `scripts/check-access.sh`が除外する、User-Agent文字列だけでは見分けられないIP一覧。
 新しいIPを追記するときは、なぜノイズと判断したか(挙動)と発見日を書く。
 
+## BOT_REGEXの見落とし(2026-09-22発見・修正)
+
+`GoogleOther`(GoogleのUA。`Googlebot`という文字列を含まないため、それまでの`BOT_REGEX`では
+除外できていなかった)からのアクセスが、192.178.4.x台のIPから2026-09-21・22の2日間だけで
+1,600件超あり、「既知のノイズ除外後」の数字のほとんどを占めていた(2026-09-22時点)。
+`scripts/check-access.sh`と本番VMの`/usr/local/bin/clash-royale-access-stats.sh`双方の
+`BOT_REGEX`に`GoogleOther`・`Google-Extended`を追加して修正済み。IPアドレス自体は
+Google側の割り当てで変わり得るため、`known_noise.md`にIPとして追記するのではなくUA文字列側で
+除外する方針とした。
+
 ## 既知のスキャナー(Chrome偽装・巡回パターンから判断、2026-09-20発見)
 
 - `158.69.55.82`
@@ -34,6 +44,7 @@
 - `144.172.105.41`
 - `31.132.90.3`
 - `47.236.93.38`
+- `103.63.101.24`(2026-09-22発見。同一パターン)
 
 `libredtail-http`というUAを名乗り、`/cgi-bin/.%2e/.%2e/...`(パストラバーサルでshell実行を試みる)、
 `auto_prepend_file=php://input`(PHPのRFI脆弱性を狙う)など、複数のPHP脆弱性を短時間で機械的に

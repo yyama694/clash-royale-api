@@ -30,7 +30,7 @@ echo "== 日次集計(UAベースの簡易ボット除外のみ) =="
 sudo grep "^$DATE " /var/log/clash-royale-api/daily-access-stats.log | tail -1
 echo "(現在時刻 UTC: $(date -u '+%Y-%m-%d %H:%M'))"
 
-BOT_REGEX='GPTBot|ClaudeBot|Googlebot|bingbot|YandexBot|Baiduspider|DuckDuckBot|facebookexternalhit|Applebot|PetalBot|MJ12bot|AhrefsBot|SemrushBot|DotBot|SeznamBot|Bytespider|CCBot|meta-externalagent|curl/|python-requests|Go-http-client|l9scan|masscan|Zgrab|libwww-perl|Wget/|okhttp|Scrapy|[Bb]ot[/ .]|/bot|[Ss]pider|[Cc]rawl'
+BOT_REGEX='GPTBot|ClaudeBot|Googlebot|GoogleOther|Google-Extended|bingbot|YandexBot|Baiduspider|DuckDuckBot|facebookexternalhit|Applebot|PetalBot|MJ12bot|AhrefsBot|SemrushBot|DotBot|SeznamBot|Bytespider|CCBot|meta-externalagent|curl/|python-requests|Go-http-client|l9scan|masscan|Zgrab|libwww-perl|Wget/|okhttp|Scrapy|[Bb]ot[/ .]|/bot|[Ss]pider|[Cc]rawl'
 
 sudo grep "\[$APACHE_DATE" /var/log/httpd/access_log \
   | grep -viE "$BOT_REGEX" \
