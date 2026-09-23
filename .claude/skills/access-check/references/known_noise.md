@@ -59,7 +59,7 @@ IPのCIDR一覧を手で持つ方式はやめ、`check-access.sh`が**逆引き(
 どれに当たったかは実行時に件数と内訳が出る。
 
 1. **逆引きがホスティング事業者・クラウド**(`DC_REGEX`): `ovh`・`your-server.de`(Hetzner)・
-   `amazonaws`・`linodeusercontent`・`contaboserver`・`googleusercontent`・`vps`・`v22025…`のような
+   `amazonaws`・`linodeusercontent`・`contaboserver`・`googleusercontent`・`hwclouds-dns.com`(Huawei Cloud)・`pfcloud.network`・`vps`・`v22025…`のような
    VPSの自動採番ホスト名など。
 2. **逆引きが素性を名乗るスキャナー**(`SCANNER_REGEX`): `censys-scanner.com`・
    `internet-measurement.com`・`scan.bufferover.run`・`security.criminalip.com`・
