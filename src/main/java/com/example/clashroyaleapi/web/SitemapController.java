@@ -73,7 +73,7 @@ public class SitemapController {
 
                 > A fan-made Clash Royale player and clan lookup site. Unlike tools that only accept
                 > player tags, this site finds players by their in-game name, using an index of over
-                > 9 million players built by continuously crawling clans - so even players nobody has
+                > 20 million players built by continuously crawling clans - so even players nobody has
                 > ever looked up are searchable.
 
                 ## What you can look up
