@@ -9,7 +9,10 @@ set -euo pipefail
 
 SSH_KEY="C:\\Users\\Norio Fukuchi\\.ssh\\oci_clash_royale_api"
 HOST="opc@161.33.136.175"
-JST_DATE="${1:-$(TZ=Asia/Tokyo date +%Y-%m-%d)}"
+# Git Bash(Windows)はtzdataを持たず`TZ=Asia/Tokyo`を黙ってUTC扱いにするため(日本時間0〜9時の分が
+# 集計から漏れていた)、tzdata不要なPOSIX形式で書く。ローカル側で計算する箇所はすべてこれを使う。
+JST_TZ="JST-9"
+JST_DATE="${1:-$(TZ=$JST_TZ date +%Y-%m-%d)}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NOISE_FILE="$SCRIPT_DIR/../references/known_noise.md"
@@ -24,8 +27,8 @@ if [ -z "$NOISE_IPS_B64" ]; then
 fi
 
 # JST日付の00:00:00〜翌日00:00:00(現在時刻がその前ならそこまで)をUTC epoch秒に変換する。
-START_EPOCH=$(TZ=Asia/Tokyo date -d "$JST_DATE 00:00:00" +%s)
-END_EPOCH_FULLDAY=$(TZ=Asia/Tokyo date -d "$JST_DATE 00:00:00 +1 day" +%s)
+START_EPOCH=$(TZ=$JST_TZ date -d "$JST_DATE 00:00:00" +%s)
+END_EPOCH_FULLDAY=$(TZ=$JST_TZ date -d "$JST_DATE 00:00:00 +1 day" +%s)
 NOW_EPOCH=$(date -u +%s)
 if [ "$END_EPOCH_FULLDAY" -gt "$NOW_EPOCH" ]; then
     END_EPOCH=$NOW_EPOCH
@@ -178,19 +181,36 @@ grep -ohE '[?&]from=[A-Za-z0-9_-]+' /tmp/access-check-human.log | sed -E 's/^&/?
 # ユーザー本人の開発用IPや既知スキャナーの分まで数えると意味が無いので、ここでも
 # known_noise.md のIPは落とす(ビーコン自体はJSを実行した本物のブラウザからしか来ないが、
 # ユーザー本人の動作確認アクセスは「実訪問者」ではないため)。
-grep -vE "^($NOISE_REGEX) " /tmp/access-check-window.log | grep ' /beacon' > /tmp/access-check-beacon.log || true
+# sendBeaconは必ずPOSTで送る。GETはクローラーがJS内のURLを拾って叩いたもの(GoogleOtherで実例あり)。
+grep '"POST /beacon' /tmp/access-check-window.log > /tmp/access-check-beacon-all.log || true
+grep -vE "^($NOISE_REGEX) " /tmp/access-check-beacon-all.log > /tmp/access-check-beacon.log || true
 
 echo
 echo "== 実ブラウザ表示(ビーコン /beacon) =="
+# 除外後が0件でも「仕組みが動いていない」のか「本人の分しか無かった」のかを見分けられるよう、除外前の件数も出す。
+echo "除外前(本人・既知ノイズ込み): $(wc -l < /tmp/access-check-beacon-all.log)件 / ユニーク$(awk '{print $1}' /tmp/access-check-beacon-all.log | sort -u | wc -l) IP"
 if [ -s /tmp/access-check-beacon.log ]; then
     echo "件数: $(wc -l < /tmp/access-check-beacon.log)"
     echo "ユニークIP数: $(awk '{print $1}' /tmp/access-check-beacon.log | sort -u | wc -l)"
+    # JSを実行するヘッドレスブラウザ型のボットもビーコンを送るため(Hetznerで実例あり)、
+    # 送信元ごとに逆引きを出し、データセンター・スキャナー由来には * を付ける。
+    echo "-- 送信元IP別(* はデータセンター・スキャナー由来) --"
+    awk '{print $1}' /tmp/access-check-beacon.log | sort | uniq -c | while read -r cnt ip; do
+        name=$(lookup "$ip") || true
+        case "$name" in *' '*|''|*in-addr.arpa.) name='-' ;; esac
+        if printf '%s' "$name" | grep -qP "$DC_REGEX|$SCANNER_REGEX"; then mark='*'; else mark=' '; fi
+        printf '%s %3d %-16s %s\n' "$mark" "$cnt" "$ip" "$name"
+    done
     echo "-- 表示されたページ別 --"
     cat /tmp/access-check-beacon.log \
       | grep -ohE 'p=[^& ]+' | sed 's/^p=//' \
       | sed -E 's#%2F#/#g; s#/player/[^/?]+#/player/{tag}#; s#/clan/[^/?]+#/clan/{tag}#; s#/card/[^/?]+#/card/{id}#' \
       | sort | uniq -c | sort -rn | head -20 || true
 else
-    echo "(なし。ビーコンを入れたjarがまだデプロイされていないか、実ブラウザからの表示が0件)"
+    if [ -s /tmp/access-check-beacon-all.log ]; then
+        echo "除外後: 0件(本人・既知ノイズのIPからのビーコンしか無かった)"
+    else
+        echo "除外後: 0件(除外前も0件。ビーコンの仕組み自体が動いているか確認すること)"
+    fi
 fi
 REMOTE
