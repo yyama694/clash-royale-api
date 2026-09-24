@@ -6,4 +6,8 @@ public class ApiUnavailableException extends ClashRoyaleApiException {
     public ApiUnavailableException(String detail, Throwable cause) {
         super("error.unavailable", detail, cause);
     }
+
+    protected ApiUnavailableException(String messageKey, String detail, Throwable cause) {
+        super(messageKey, detail, cause);
+    }
 }

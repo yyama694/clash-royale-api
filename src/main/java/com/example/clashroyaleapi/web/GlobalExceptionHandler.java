@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
+import com.example.clashroyaleapi.client.exception.ApiMaintenanceException;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
 import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
@@ -40,7 +41,10 @@ public class GlobalExceptionHandler {
     public String handleApiError(ClashRoyaleApiException e, Model model, HttpServletRequest request,
             HttpServletResponse response) {
         HttpStatus status = statusOf(e);
-        if (status.is5xxServerError()) {
+        if (e instanceof ApiMaintenanceException) {
+            // 原因が分かっている上、メンテナンス中は全リクエストが失敗するため、スタックトレースでログを埋めない。
+            log.info("Clash Royale API is in maintenance: {}", request.getRequestURI());
+        } else if (status.is5xxServerError()) {
             log.warn("Clash Royale API call failed: {}", e.getMessage(), e);
         }
         response.setStatus(status.value());

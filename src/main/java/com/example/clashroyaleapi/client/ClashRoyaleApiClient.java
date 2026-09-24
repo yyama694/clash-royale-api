@@ -10,6 +10,7 @@ import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.dto.RiverRaceLogResponse;
 import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
+import com.example.clashroyaleapi.client.exception.ApiMaintenanceException;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
@@ -181,12 +182,16 @@ public class ClashRoyaleApiClient {
         }
     }
 
-    private ClashRoyaleApiException translate(RestClientResponseException e) {
+    static ClashRoyaleApiException translate(RestClientResponseException e) {
         return switch (e.getStatusCode().value()) {
             // タグとして不正な形式の場合、公式APIは404ではなく400を返す。どちらも「見つからない」として扱う。
             case 400, 404 -> new ResourceNotFoundException(e.getStatusText(), e);
             case 403 -> new ApiAccessDeniedException(e.getStatusText(), e);
             case 429 -> new ApiRateLimitException(e.getStatusText(), e);
+            // メンテナンス中は {"reason":"inMaintenance",...} が返る(2026-09-24に本番ログで確認)。
+            case 503 -> e.getResponseBodyAsString().contains("\"inMaintenance\"")
+                    ? new ApiMaintenanceException("in maintenance", e)
+                    : new ApiUnavailableException(e.getStatusCode() + " " + e.getStatusText(), e);
             default -> new ApiUnavailableException(e.getStatusCode() + " " + e.getStatusText(), e);
         };
     }

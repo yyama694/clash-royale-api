@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.client.exception.ApiMaintenanceException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
 
@@ -31,5 +32,18 @@ class GlobalExceptionHandlerTest {
         assertEquals("error", view);
         assertEquals("/player/ZZZ", model.getAttribute("currentUri"));
         assertEquals("http://localhost", model.getAttribute("siteBaseUrl"));
+    }
+
+    @Test
+    void メンテナンス中は503でメンテナンスの文言を出す() {
+        Model model = new ExtendedModelMap();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        handler.handleApiError(new ApiMaintenanceException("in maintenance", null), model,
+                new MockHttpServletRequest("GET", "/clan/YRPY9VQV"), response);
+
+        assertEquals(503, response.getStatus());
+        assertEquals("error.maintenance", model.getAttribute("errorKey"));
+        assertEquals(false, model.getAttribute("notFound"));
     }
 }
