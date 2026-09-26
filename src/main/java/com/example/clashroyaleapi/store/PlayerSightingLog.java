@@ -6,6 +6,7 @@ import com.example.clashroyaleapi.domain.PlayerSighting;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,35 +93,54 @@ public class PlayerSightingLog {
         keysOf(sightings).forEach(key -> pending.add(new Entry("crawl-", key)));
     }
 
-    /** 蓄積は付加的な機能なので、書き込みに失敗しても画面表示を妨げないよう例外は投げずにログだけ残す。 */
+    /**
+     * 蓄積は付加的な機能なので、書き込みに失敗しても画面表示を妨げないよう例外は投げずにログだけ残す。
+     * 停止時の書き出しと定期実行が重なっても、同じファイルへの追記が混ざらないよう同期する。
+     */
     @Scheduled(fixedDelay = 2000)
-    public void flush() {
+    public synchronized void flush() {
         Entry entry = pending.poll();
         if (entry == null) {
             return;
         }
         Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
         String suffix = FILE_NAME.format(now);
-        Map<String, List<String>> byFile = new LinkedHashMap<>();
+        Map<String, List<Entry>> byFile = new LinkedHashMap<>();
         do {
-            byFile.computeIfAbsent(entry.filePrefix() + suffix, key -> new ArrayList<>())
-                    .add(entry.key() + "\t" + now);
+            byFile.computeIfAbsent(entry.filePrefix() + suffix, key -> new ArrayList<>()).add(entry);
         } while ((entry = pending.poll()) != null);
-        byFile.forEach(this::append);
+        byFile.forEach((fileName, entries) -> {
+            if (!append(fileName, entries, now)) {
+                // 「最近書いた」に残すと24時間は記録し直されないため外す。次に見かけたときにもう一度書く。
+                entries.forEach(failed -> recent.invalidate(failed.key()));
+            }
+        });
     }
 
-    private void append(String fileName, List<String> lines) {
+    /**
+     * キューはメモリ上にしか無いので、停止時にまだ書いていない分を書き出す。
+     * これが無いと、デプロイで再起動するたびに直前の書き出し以降の分が消える
+     * (整理バッチが同じスケジューラーのスレッドを使っている間は、その間の分がすべて溜まっている)。
+     */
+    @PreDestroy
+    public void flushOnShutdown() {
+        flush();
+    }
+
+    private boolean append(String fileName, List<Entry> entries, Instant now) {
         try {
             Files.createDirectories(inboxDir);
             try (Writer writer = Files.newBufferedWriter(inboxDir.resolve(fileName),
                     StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
-                for (String line : lines) {
-                    writer.write(line);
+                for (Entry entry : entries) {
+                    writer.write(entry.key() + "\t" + now);
                     writer.write("\n");
                 }
             }
+            return true;
         } catch (IOException e) {
-            log.warn("failed to record {} player sightings to {}: {}", lines.size(), fileName, e.toString());
+            log.warn("failed to record {} player sightings to {}: {}", entries.size(), fileName, e.toString());
+            return false;
         }
     }
 

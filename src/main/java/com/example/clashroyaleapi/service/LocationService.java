@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -44,10 +43,6 @@ public class LocationService {
     }
 
     public Optional<Country> byCountryCode(List<Country> countries, String countryCode) {
-        if (countryCode == null || countryCode.isBlank()) {
-            return Optional.empty();
-        }
-        String normalized = countryCode.strip().toUpperCase(Locale.ROOT);
-        return countries.stream().filter(country -> country.countryCode().equals(normalized)).findFirst();
+        return Country.find(countries, countryCode);
     }
 }

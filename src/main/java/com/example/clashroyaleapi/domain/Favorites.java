@@ -37,7 +37,12 @@ public final class Favorites {
         return entries.size() >= MAX_ENTRIES;
     }
 
-    /** 既に登録済みなら並び順を変えずそのまま返す。上限に達していて未登録なら、呼び出し側で先にisFull()を見て弾く想定で何もしない。 */
+    /** 登録済みなら(並びは変わらないが)成功扱いにする。未登録で上限に達していれば登録できない。 */
+    public boolean canAdd(String tag) {
+        return contains(tag) || !isFull();
+    }
+
+    /** 既に登録済みなら並び順を変えずそのまま返す。上限に達していて未登録なら、呼び出し側で先にcanAdd()を見て弾く想定で何もしない。 */
     public Favorites add(String tag, String name) {
         if (contains(tag) || isFull()) {
             return this;

@@ -62,6 +62,16 @@ public class GlobalExceptionHandler {
         return errorView(model, request);
     }
 
+    /** 正規の画面からは起きないため、利用者向けには「リクエストが正しくない」とだけ出す。誤判定に気づけるようログは残す。 */
+    @ExceptionHandler(CrossSiteRequestException.class)
+    public String handleCrossSiteRequest(CrossSiteRequestException e, Model model, HttpServletRequest request,
+            HttpServletResponse response) {
+        log.info("rejected cross-site request: {}", e.getMessage());
+        response.setStatus(HttpStatus.FORBIDDEN.value());
+        model.addAttribute("errorKey", "error.badRequest");
+        return errorView(model, request);
+    }
+
     private String errorView(Model model, HttpServletRequest request) {
         model.addAttribute("currentUri", modelAttributes.currentUri(request));
         model.addAttribute("siteBaseUrl", modelAttributes.siteBaseUrl(request));

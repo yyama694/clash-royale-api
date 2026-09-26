@@ -14,6 +14,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,6 +68,35 @@ class FavoriteServiceTest {
         assertEquals(1, results.size());
         assertInstanceOf(FavoriteFetch.Found.class, results.get(0));
         assertEquals("償い", ((FavoriteFetch.Found<ClanResponse>) results.get(0)).value().name());
+    }
+
+    @Test
+    void 登録するタグと名前は公式APIの応答から決める() {
+        when(playerService.findPlayer("2pyl")).thenReturn(player("#2PYL", "<c2>太郎"));
+
+        assertEquals(new Favorites.Entry("2PYL", "太郎"), favoriteService.playerEntry("2pyl"));
+    }
+
+    @Test
+    void 解除するタグは井桁を外して揃え_タグの形でなければ見つからない扱いにする() {
+        assertEquals("2PYL", favoriteService.tagToRemove("#2pyl"));
+        assertThrows(ResourceNotFoundException.class, () -> favoriteService.tagToRemove("A B"));
+        assertThrows(ResourceNotFoundException.class, () -> favoriteService.tagToRemove("%"));
+    }
+
+    @Test
+    void 取得できた分だけ最新の名前に書き直し_変わらなければ同じものを返す() {
+        Favorites favorites = Favorites.empty().add("AAA", "旧名").add("BBB", "次郎");
+        List<FavoriteFetch<PlayerResponse>> results = List.of(
+                new FavoriteFetch.Found<>("BBB", "次郎", player("#BBB", "次郎")),
+                new FavoriteFetch.Found<>("AAA", "旧名", player("#AAA", "<c1>新名")));
+
+        Favorites refreshed = favoriteService.refreshPlayerNames(favorites, results);
+
+        assertEquals(List.of(new Favorites.Entry("BBB", "次郎"), new Favorites.Entry("AAA", "新名")),
+                refreshed.entries());
+        assertSame(favorites, favoriteService.refreshPlayerNames(favorites,
+                List.of(new FavoriteFetch.Unavailable<>("AAA", "旧名"))));
     }
 
     private static PlayerResponse player(String tag, String name) {

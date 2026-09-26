@@ -14,8 +14,6 @@ import java.util.Map;
  */
 public record CardCollection(List<RaritySummary> rarities, int totalCards, int maxedCards) {
 
-    private static final List<String> RARITY_ORDER = List.of("common", "rare", "epic", "legendary", "champion");
-
     public record RaritySummary(String rarity, int totalCards, int maxedCards) {
     }
 
@@ -29,7 +27,7 @@ public record CardCollection(List<RaritySummary> rarities, int totalCards, int m
             }
         }
         List<String> order = byRarity.keySet().stream()
-                .sorted(Comparator.comparingInt(CardCollection::rarityRank))
+                .sorted(Comparator.comparingInt(Rarity::rankOf))
                 .toList();
 
         List<RaritySummary> summaries = new ArrayList<>();
@@ -42,10 +40,5 @@ public record CardCollection(List<RaritySummary> rarities, int totalCards, int m
             maxed += counts[1];
         }
         return new CardCollection(summaries, total, maxed);
-    }
-
-    private static int rarityRank(String rarity) {
-        int index = RARITY_ORDER.indexOf(rarity);
-        return index < 0 ? RARITY_ORDER.size() : index;
     }
 }

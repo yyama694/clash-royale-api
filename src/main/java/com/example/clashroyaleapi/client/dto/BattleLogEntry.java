@@ -19,6 +19,11 @@ public record BattleLogEntry(
     @JsonIgnoreProperties(ignoreUnknown = true)
     /** levelはレアリティごとに1から数え直した値。ゲーム内表記に直すにはmaxLevelが要る(CardLevel参照)。 */
     public record Card(int id, String name, int level, int maxLevel, Integer elixirCost, IconUrls iconUrls) {
+
+        /** 画像URLが返らないカードもあるため、無ければ null。 */
+        public String mediumIconUrl() {
+            return iconUrls != null ? iconUrls.medium() : null;
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

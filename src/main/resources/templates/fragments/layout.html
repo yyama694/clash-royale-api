@@ -406,7 +406,7 @@
 */-->
 <span th:fragment="favoriteButton(kind, tag, favorite, favoriteLimit)" class="favorite"
       th:with="addUrl=@{'/favorites/' + ${kind} + '/' + ${tag}}, removeUrl=@{'/favorites/' + ${kind} + '/' + ${tag} + '/remove'}">
-    <form class="favorite-form" method="post" th:action="${favorite} ? removeUrl : addUrl">
+    <form class="favorite-form" method="post" th:action="${favorite} ? ${removeUrl} : ${addUrl}">
         <button type="submit" class="favorite-toggle" th:classappend="${favorite} ? 'is-favorite'"
                 th:attr="aria-pressed=${favorite},data-add-url=${addUrl},data-remove-url=${removeUrl},data-label-add=#{favorite.add},data-label-remove=#{favorite.remove}"
                 th:aria-label="${favorite} ? #{favorite.remove} : #{favorite.add}"
