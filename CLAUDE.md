@@ -147,6 +147,7 @@
 
 - Clash Royale APIキー、OCIの認証情報(APIキー、SSH秘密鍵、config)は絶対にリポジトリにコミットしない。
 - VMのセキュリティリストは必要最小限のポートのみ開放する(現在はSSH: 22、HTTP: 80、HTTPS: 443の3つだけ。アプリの8080番はApache経由でのみ到達するため外部には開けない)。
+- **状態を変えるPOSTは`CrossSiteRequestGuard`の対象にする**(2026-09-26に追加)。Spring Securityを入れていないため、他サイトからの送信(CSRF)はこのインターセプタで拒否している(現在の対象は`/favorites/**`。`WebConfig#addInterceptors`で登録)。Cookieの`SameSite=Lax`だけでは、応答のSet-Cookieでお気に入りを消せてしまうことが分かっている(`進捗ログ.md`のフェーズ1.78)。Cookieやサーバー側の状態を変えるPOSTを新しく足すときは、パスをこの対象に加える。
 
 ## 進捗状況
 
