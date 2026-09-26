@@ -46,4 +46,17 @@ class GlobalExceptionHandlerTest {
         assertEquals("error.maintenance", model.getAttribute("errorKey"));
         assertEquals(false, model.getAttribute("notFound"));
     }
+
+    @Test
+    void 他サイトからのPOSTは403で不正なリクエストの文言を出す() {
+        Model model = new ExtendedModelMap();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        String view = handler.handleCrossSiteRequest(new CrossSiteRequestException("POST /favorites/players/AAA"),
+                model, new MockHttpServletRequest("POST", "/favorites/players/AAA"), response);
+
+        assertEquals("error", view);
+        assertEquals(403, response.getStatus());
+        assertEquals("error.badRequest", model.getAttribute("errorKey"));
+    }
 }

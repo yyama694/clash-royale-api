@@ -91,6 +91,18 @@ class PlayerServiceTest {
     }
 
     @Test
+    void 大きすぎるページ番号でも溢れずに最後のページにする() {
+        int maxOffset = Integer.MAX_VALUE - 50;
+        PlayerNameSearch empty = new PlayerNameSearch(List.of(), 120, maxOffset, List.of(), false);
+        PlayerNameSearch last = new PlayerNameSearch(
+                List.of(new PlayerNameMatch("#T", "bob", Instant.EPOCH)), 120, 100, List.of(), false);
+        when(nameIndex.search("bob", maxOffset, 50)).thenReturn(empty);
+        when(nameIndex.search("bob", 100, 50)).thenReturn(last);
+
+        assertEquals(new PlayerSearchResult.Candidates(last), playerService.search("bob", Integer.MAX_VALUE));
+    }
+
+    @Test
     void 名前検索が無効なら入力をすべてタグとして扱う() {
         PlayerService disabled = new PlayerService(apiClient, sightingLog, nameIndex,
                 new PlayerIndexProperties("data", false));
@@ -127,6 +139,16 @@ class PlayerServiceTest {
 
         assertThrows(BattleNotFoundException.class,
                 () -> playerService.findBattle("#TAG", "20250101T000000.000Z"));
+    }
+
+    @Test
+    void 片側が欠けた対戦は一覧に出さないのでbattleTimeを指定されても見つからない扱いにする() {
+        BattleLogEntry.Participant self = new BattleLogEntry.Participant("#SELF", "Self", 3, List.of(), List.of());
+        when(apiClient.getBattleLog(anyString())).thenReturn(List.of(new BattleLogEntry("PvP",
+                "20260101T000000.000Z", new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of())));
+
+        assertThrows(BattleNotFoundException.class,
+                () -> playerService.findBattle("#TAG", "20260101T000000.000Z"));
     }
 
     @Test

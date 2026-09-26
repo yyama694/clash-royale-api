@@ -101,6 +101,34 @@ class PlayerSightingLogTest {
     }
 
     @Test
+    void 書き込みに失敗した組は次に見かけたときに記録し直す() throws IOException {
+        Path blocked = dir.resolve("inbox");
+        Files.writeString(blocked, "");
+        PlayerSightingLog sightingLog = new PlayerSightingLog(blocked, CLOCK);
+        sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
+        sightingLog.flush();
+
+        Files.delete(blocked);
+        sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
+        sightingLog.flush();
+
+        assertEquals(List.of("#ABC\tYamada\t2026-09-18T10:15:30Z"),
+                Files.readAllLines(blocked.resolve("20260918-10.tsv"), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void 停止時にまだ書いていない分を書き出す() throws IOException {
+        PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
+        sightingLog.record(List.of(new PlayerSighting("#ABC", "Yamada")));
+        sightingLog.recordCrawled(List.of(new PlayerSighting("#DEF", "Tanaka")));
+
+        sightingLog.flushOnShutdown();
+
+        assertEquals(1, lines("20260918-10.tsv").size());
+        assertEquals(1, lines("crawl-20260918-10.tsv").size());
+    }
+
+    @Test
     void recordはディスクに書かずキューに積むだけで即座に返る() throws IOException {
         PlayerSightingLog sightingLog = new PlayerSightingLog(dir, CLOCK);
 

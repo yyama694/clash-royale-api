@@ -77,19 +77,20 @@ public class ViewMapper {
     public List<BattleSummaryView> toBattleSummaries(List<BattleLogEntry> battleLog, String viewerTag,
             Locale locale) {
         return battleLog.stream()
-                .filter(ViewMapper::hasBothSides)
+                .filter(BattleResult::hasBothSides)
                 .map(battle -> toBattleSummary(battle, viewerTag, locale))
                 .toList();
     }
 
+    /** battle は両側がそろったもの(PlayerService#findBattle が片側の欠けた対戦を返さない)。 */
     public BattleDetailView toBattleDetail(BattleLogEntry battle, String viewerTag, Locale locale) {
-        BattleResult teamResult = resultOf(battle);
+        BattleResult teamResult = BattleResult.of(battle);
         return new BattleDetailView(
                 battle.battleTime(),
                 timeFormatter.apiTimestamp(battle.battleTime(), locale),
                 gameModeOf(battle, locale),
                 toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, viewerTag, locale),
-                toParticipants(battle.opponent(), invert(teamResult), viewerTag, locale));
+                toParticipants(battle.opponent(), teamResult.opposite(), viewerTag, locale));
     }
 
     /** デッキが空(公式APIが返さなかった)の場合は、画面に案内文を出すため空を返す。 */
@@ -279,9 +280,9 @@ public class ViewMapper {
                 battle.battleTime(),
                 timeFormatter.apiTimestamp(battle.battleTime(), locale),
                 gameModeOf(battle, locale),
-                resultOf(battle),
-                crownsOf(battle.team()),
-                crownsOf(battle.opponent()),
+                BattleResult.of(battle),
+                BattleResult.crownsOf(battle.team()),
+                BattleResult.crownsOf(battle.opponent()),
                 toOpponents(battle.opponent()),
                 toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()));
     }
@@ -358,7 +359,7 @@ public class ViewMapper {
             return List.of();
         }
         return cards.stream()
-                .map(card -> new CardView(card.id(), labels.cardName(card.name(), locale), iconUrlOf(card),
+                .map(card -> new CardView(card.id(), labels.cardName(card.name(), locale), card.mediumIconUrl(),
                         CardLevel.inGame(card.level(), card.maxLevel())))
                 .toList();
     }
@@ -373,30 +374,5 @@ public class ViewMapper {
 
     private String gameModeOf(BattleLogEntry battle, Locale locale) {
         return labels.gameMode(battle.type(), battle.gameMode() != null ? battle.gameMode().name() : null, locale);
-    }
-
-    private BattleResult resultOf(BattleLogEntry battle) {
-        return BattleResult.of(crownsOf(battle.team()), crownsOf(battle.opponent()));
-    }
-
-    private static BattleResult invert(BattleResult result) {
-        return switch (result) {
-            case WIN -> BattleResult.LOSE;
-            case LOSE -> BattleResult.WIN;
-            case DRAW -> BattleResult.DRAW;
-        };
-    }
-
-    private static boolean hasBothSides(BattleLogEntry battle) {
-        return battle.team() != null && !battle.team().isEmpty()
-                && battle.opponent() != null && !battle.opponent().isEmpty();
-    }
-
-    private static int crownsOf(List<BattleLogEntry.Participant> side) {
-        return side.stream().mapToInt(BattleLogEntry.Participant::crowns).max().orElse(0);
-    }
-
-    private static String iconUrlOf(BattleLogEntry.Card card) {
-        return card.iconUrls() != null ? card.iconUrls().medium() : null;
     }
 }

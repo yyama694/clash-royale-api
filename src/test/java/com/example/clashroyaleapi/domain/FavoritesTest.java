@@ -35,6 +35,18 @@ class FavoritesTest {
     }
 
     @Test
+    void 上限に達していても登録済みのタグは登録できる扱いにする() {
+        Favorites full = Favorites.empty();
+        for (int i = 0; i < Favorites.MAX_ENTRIES; i++) {
+            full = full.add("TAG" + i, "name" + i);
+        }
+
+        assertTrue(full.canAdd("TAG0"));
+        assertFalse(full.canAdd("EXTRA"));
+        assertTrue(Favorites.empty().canAdd("EXTRA"));
+    }
+
+    @Test
     void 重複登録は位置を変えない() {
         Favorites favorites = Favorites.empty().add("AAA", "太郎").add("BBB", "次郎");
 

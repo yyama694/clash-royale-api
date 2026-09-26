@@ -181,6 +181,19 @@ class ClanServiceTest {
     }
 
     @Test
+    void 最終アクセスが取得できないメンバーは降順でも末尾に置く() {
+        List<ClanResponse.Member> members = List.of(
+                member("unknown", "member", 100, null),
+                member("today", "member", 100, "20260915T000000.000Z"),
+                member("old", "member", 100, "20260101T000000.000Z"));
+
+        List<ClanResponse.Member> sorted =
+                clanService.sortMembers(members, MemberSortKey.LAST_SEEN, SortDirection.DESC);
+
+        assertEquals(List.of("old", "today", "unknown"), sorted.stream().map(ClanResponse.Member::name).toList());
+    }
+
+    @Test
     void ソートキーはURL表記で解決できる() {
         assertEquals(MemberSortKey.LAST_SEEN, MemberSortKey.from("lastSeen").orElseThrow());
         assertEquals(MemberSortKey.TROPHIES, MemberSortKey.from("trophies").orElseThrow());

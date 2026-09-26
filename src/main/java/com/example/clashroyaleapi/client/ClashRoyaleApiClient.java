@@ -44,7 +44,8 @@ public class ClashRoyaleApiClient {
                 .build();
     }
 
-    @Cacheable("players")
+    // キーは正規化後のタグにする。"2pyl" と "#2PYL" のような表記違いで同じプレイヤーを取り直さないため。
+    @Cacheable(cacheNames = "players", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#tag)")
     public PlayerResponse getPlayer(String tag) {
         PlayerResponse player = call(() -> restClient.get()
                 .uri("/players/{tag}", Tags.normalize(tag))
@@ -53,7 +54,7 @@ public class ClashRoyaleApiClient {
         return requireFound(player, "player " + tag);
     }
 
-    @Cacheable("clans")
+    @Cacheable(cacheNames = "clans", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#tag)")
     public ClanResponse getClan(String tag) {
         ClanResponse clan = call(() -> restClient.get()
                 .uri("/clans/{tag}", Tags.normalize(tag))
@@ -66,7 +67,9 @@ public class ClashRoyaleApiClient {
     @Cacheable("clanSearches")
     public List<ClanSearchResponse.ClanSummary> searchClansByName(String name) {
         ClanSearchResponse response = call(() -> restClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/clans").queryParam("name", name).build())
+                // 名前はURI変数として渡す。queryParam に直接入れると "{" がURI変数として展開されて例外になり、
+                // "+" もエンコードされず公式API側で空白と解釈される。
+                .uri(uriBuilder -> uriBuilder.path("/clans").queryParam("name", "{name}").build(name))
                 .retrieve()
                 .body(ClanSearchResponse.class));
         return response == null || response.items() == null ? List.of() : response.items();
@@ -135,7 +138,7 @@ public class ClashRoyaleApiClient {
     }
 
     // battlelogはAPI仕様上、直近の対戦を返すのみで件数指定やページネーションはできない。返却件数は変動する(上限は保証されない)。
-    @Cacheable("battleLogs")
+    @Cacheable(cacheNames = "battleLogs", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#tag)")
     public List<BattleLogEntry> getBattleLog(String tag) {
         return fetchBattleLog(tag);
     }

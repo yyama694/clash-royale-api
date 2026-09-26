@@ -30,14 +30,14 @@ public class CountryPreference {
         if (countries.isEmpty()) {
             return Optional.empty();
         }
-        return find(countries, requested)
-                .or(() -> find(countries, cookieValue(request)))
+        return Country.find(countries, requested)
+                .or(() -> Country.find(countries, cookieValue(request)))
                 .or(() -> acceptLanguageCountries(request).stream()
-                        .map(countryCode -> find(countries, countryCode))
+                        .map(countryCode -> Country.find(countries, countryCode))
                         .flatMap(Optional::stream)
                         .findFirst())
-                .or(() -> find(countries, displayLanguageCountry(displayLocale)))
-                .or(() -> find(countries, displayLanguageCountry(SupportedLanguages.INTERNATIONAL)))
+                .or(() -> Country.find(countries, displayLanguageCountry(displayLocale)))
+                .or(() -> Country.find(countries, displayLanguageCountry(SupportedLanguages.INTERNATIONAL)))
                 // 選択なしにすると国別タブ自体が消え、国を選び直す手段が無くなるため、必ずどれかの国にする。
                 .or(() -> Optional.of(countries.get(0)));
     }
@@ -57,14 +57,6 @@ public class CountryPreference {
     private String displayLanguageCountry(Locale displayLocale) {
         Locale supported = SupportedLanguages.displayLocale(displayLocale);
         return ULocale.addLikelySubtags(ULocale.forLocale(supported)).getCountry();
-    }
-
-    private Optional<Country> find(List<Country> countries, String countryCode) {
-        if (countryCode == null || countryCode.isBlank()) {
-            return Optional.empty();
-        }
-        String normalized = countryCode.strip().toUpperCase(Locale.ROOT);
-        return countries.stream().filter(country -> country.countryCode().equals(normalized)).findFirst();
     }
 
     private String cookieValue(HttpServletRequest request) {
