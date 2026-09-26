@@ -26,9 +26,11 @@ if [ -z "$NOISE_IPS_B64" ]; then
     NOISE_IPS_B64=$(printf '0.0.0.0' | base64 -w0)
 fi
 
-# JST日付の00:00:00〜翌日00:00:00(現在時刻がその前ならそこまで)をUTC epoch秒に変換する。
+# JST日付の00:00:00〜23:59:59(現在時刻がその前ならそこまで)をUTC epoch秒に変換する。
 START_EPOCH=$(TZ=$JST_TZ date -d "$JST_DATE 00:00:00" +%s)
-END_EPOCH_FULLDAY=$(TZ=$JST_TZ date -d "$JST_DATE 00:00:00 +1 day" +%s)
+# `date -d "... 00:00:00 +1 day"`は"+1"を時差(UTC+1)と解釈し、終了が8時間遅れて
+# 1日が32時間になっていた(2026-09-26に判明)。秒数で足す。末尾の-1は下の範囲判定が終端を含むため。
+END_EPOCH_FULLDAY=$((START_EPOCH + 86400 - 1))
 NOW_EPOCH=$(date -u +%s)
 if [ "$END_EPOCH_FULLDAY" -gt "$NOW_EPOCH" ]; then
     END_EPOCH=$NOW_EPOCH
