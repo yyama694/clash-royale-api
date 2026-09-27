@@ -28,7 +28,7 @@ import java.util.PriorityQueue;
 import java.util.regex.Pattern;
 
 /**
- * 名前検索用の索引 by-name/ を引く(「プレイヤー名検索（検討中）.md」参照)。索引を作るのは {@link PlayerNameIndexWriter}。
+ * 名前検索用の索引 by-name/ を引く(「設計_プレイヤー名検索.md」参照)。索引を作るのは {@link PlayerNameIndexWriter}。
  * <ul>
  *   <li>行は「正規化名 \t tag \t 名前 \t 最終確認日時」。全体を行の辞書順(=正規化名の順)に並べ、数千〜2万行ずつのファイルに区切る</li>
  *   <li>index.tsv … 各ファイルの名前と先頭の行のキー(正規化名 \t tag)。前方一致で探す位置を二分探索で決めるのに使う</li>

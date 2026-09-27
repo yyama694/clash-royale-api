@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 /**
  * 見かけたプレイヤーを inbox/ に1時間ごとのTSVとして追記する(形式: tag \t name \t 確認日時)。
  * 名前検索用の索引(by-tag/by-name)への整理は後段のバッチで行う前提で、ここでは追記だけにする。
- * 詳細は「プレイヤー名検索（検討中）.md」を参照。
+ * 詳細は「設計_プレイヤー名検索.md」を参照。
  *
  * record/recordCrawledはリクエストスレッドから同期的に呼ばれるため、ここではキューに積むだけにして
  * ディスクI/Oはしない。実際の書き込みは{@link #flush()}でまとめて行う。
