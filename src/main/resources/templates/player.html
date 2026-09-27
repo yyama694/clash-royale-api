@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${playerName})}"></head>
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
 <body>
     <header th:replace="~{fragments/layout :: header}"></header>
 
@@ -13,6 +13,7 @@
                 <span th:replace="~{fragments/layout :: favoriteButton('players', ${playerPathTag}, ${favorite}, ${favoriteLimit})}"></span>
             </div>
             <p><span class="tag-pill" th:text="${player.tag()}"></span></p>
+            <p class="page-summary" th:text="${pageDescription}"></p>
             <div th:replace="~{fragments/layout :: shareButtons(#{share.player.text(${playerName})}, '/player/' + ${playerPathTag})}"></div>
             <!--/* 絵文字は見た目の目印なので、読み上げでは項目名だけが読まれるよう aria-hidden にする */-->
             <ul class="stat-grid">

@@ -2,12 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!--/* 全画面で同一だった <head> をまとめる。titleは各画面から渡す。 */-->
+<!--/* 全画面で同一だった <head> をまとめる。titleは各画面から渡す。説明文は画面ごとの pageDescription があればそれを使う。 */-->
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="#{title.format(${title}, #{app.name})}"></title>
-    <meta name="description" th:content="#{app.description}">
+    <meta name="description" th:content="${pageDescription} ?: #{app.description}">
     <link rel="icon" type="image/png" th:href="@{/favicon.png}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <!--/* カード画像は公式CDNから読む。最初の画像の手前でDNS・TLSを済ませておく。 */-->
@@ -22,13 +22,13 @@
         <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
     </th:block>
     <!--/*
-      SNSでリンクを貼ったときのカード表示用(OGP)。画面ごとの個別文言はまだ無いため、titleと説明文はページ共通のものを使う。
+      SNSでリンクを貼ったときのカード表示用(OGP)。titleと説明文は<title>・meta descriptionと同じものを使う。
       画像は正方形(630x630)なので、1.91:1を前提とするtwitter:cardは"summary"(正方形サムネイル)にする。
     */-->
     <meta property="og:type" content="website">
     <meta property="og:site_name" th:content="#{app.name}">
     <meta property="og:title" th:content="#{title.format(${title}, #{app.name})}">
-    <meta property="og:description" th:content="#{app.description}">
+    <meta property="og:description" th:content="${pageDescription} ?: #{app.description}">
     <meta property="og:url" th:if="${siteBaseUrl != null and currentUri != null}"
           th:content="${siteBaseUrl + currentUri}">
     <meta property="og:image" th:if="${siteBaseUrl != null}"

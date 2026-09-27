@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
+import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.SortDirection;
@@ -29,11 +30,14 @@ public class ClanController {
     private final ClanService clanService;
     private final ViewMapper viewMapper;
     private final FavoriteCookies favoriteCookies;
+    private final PageSummaries pageSummaries;
 
-    public ClanController(ClanService clanService, ViewMapper viewMapper, FavoriteCookies favoriteCookies) {
+    public ClanController(ClanService clanService, ViewMapper viewMapper, FavoriteCookies favoriteCookies,
+            PageSummaries pageSummaries) {
         this.clanService = clanService;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
+        this.pageSummaries = pageSummaries;
     }
 
     /** クランタグ・クラン名のどちらでも受け取る検索の受け口。 */
@@ -83,13 +87,20 @@ public class ClanController {
         model.addAttribute("sortDir", direction.code());
 
         // クラン対戦の取得に失敗してもメンバー一覧は表示したいので、ここだけは個別に握る。
+        ClanWarParticipation war = null;
         try {
-            clanService.findWarParticipation(clan).ifPresentOrElse(
-                    war -> model.addAttribute("war", viewMapper.toClanWar(war)),
-                    () -> model.addAttribute("warNotParticipating", true));
+            war = clanService.findWarParticipation(clan).orElse(null);
+            if (war != null) {
+                model.addAttribute("war", viewMapper.toClanWar(war));
+            } else {
+                model.addAttribute("warNotParticipating", true);
+            }
         } catch (ClashRoyaleApiException e) {
             model.addAttribute("warErrorKey", e.messageKey());
         }
+
+        model.addAttribute("pageTitle", pageSummaries.clanTitle(clan, clanName, locale));
+        model.addAttribute("pageDescription", pageSummaries.clanSummary(clan, clanName, war, locale));
         return "clan";
     }
 }

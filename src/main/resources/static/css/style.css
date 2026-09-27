@@ -581,6 +581,12 @@ td.cell-action {
     color: var(--color-text-muted);
 }
 
+.page-summary {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
 .share-buttons {
     display: flex;
     flex-wrap: wrap;
