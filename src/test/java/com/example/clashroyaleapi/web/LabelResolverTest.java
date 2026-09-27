@@ -7,6 +7,7 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * 実際の messages*.properties を直接読んで検証する。Springコンテキストの起動は不要。
@@ -33,16 +34,25 @@ class LabelResolverTest {
     @Test
     void キーに空白を含むカード名も引ける() {
         // .properties 側でエスケープしたキーが正しく読めているかの確認。
-        assertEquals("ミニペッカ", labels.cardName("Mini P.E.K.K.A", Locale.JAPANESE));
+        assertEquals("ミニP.E.K.K.A", labels.cardName("Mini P.E.K.K.A", Locale.JAPANESE));
         assertEquals("ベビードラゴン", labels.cardName("Baby Dragon", Locale.JAPANESE));
     }
 
     @Test
     void 誤訳修正済みのカード名が正しく引けることを確認する() {
-        // 進捗ログ.md記載: 単純カタカナ音訳の誤訳を公式ローカライズ名に修正した経緯があるカード。
+        // 進捗ログ.md記載: 単純カタカナ音訳の誤訳や通称を、ゲーム内の公式表記に直した経緯があるカード。
         assertEquals("オーブン", labels.cardName("Furnace", Locale.JAPANESE));
-        assertEquals("60式ムート", labels.cardName("Cannon Cart", Locale.JAPANESE));
+        assertEquals("60式 ムート", labels.cardName("Cannon Cart", Locale.JAPANESE));
         assertEquals("アサシン ユーノ", labels.cardName("Bandit", Locale.JAPANESE));
+        assertEquals("P.E.K.K.A", labels.cardName("P.E.K.K.A", Locale.JAPANESE));
+    }
+
+    @Test
+    void 通称は定着している言語にだけあり無ければnull() {
+        assertEquals("ペッカ", labels.cardAlias("P.E.K.K.A", Locale.JAPANESE));
+        assertEquals("ミニペッカ", labels.cardAlias("Mini P.E.K.K.A", Locale.JAPANESE));
+        assertNull(labels.cardAlias("P.E.K.K.A", Locale.ENGLISH));
+        assertNull(labels.cardAlias("Knight", Locale.JAPANESE));
     }
 
     @Test

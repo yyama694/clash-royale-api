@@ -79,7 +79,8 @@ public class SitemapController {
                 ## What you can look up
 
                 - Player search by name or tag: current deck, average elixir, 4-card cycle,
-                  win/loss streaks, Ranked league placement, battle history, card collection
+                  win/loss streaks, Rank Battle leaderboard position (top players), battle history,
+                  card collection
                 - Clan search by name or tag: member list with role, trophies, donations, last seen
                 - Rankings: top 1000 players and top 1000 clans, global or by country
                 - Cards: full card list and per-card detail pages, including Evolution artwork

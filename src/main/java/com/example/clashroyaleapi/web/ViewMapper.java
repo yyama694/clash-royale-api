@@ -224,12 +224,20 @@ public class ViewMapper {
                     return new CardCatalogGroupView(
                             tower ? labels.message("cards.group.tower", locale) : labels.rarity(group.rarity(), locale),
                             group.cards().stream()
-                                    .map(card -> new CardCatalogItemView(card.id(), labels.cardName(card.name(), locale),
-                                            card.name(), card.iconUrls() == null ? null : card.iconUrls().medium(),
-                                            toElixirBadge(card.elixirCost(), tower, locale), card.elixirCost()))
+                                    .map(card -> {
+                                        String name = labels.cardName(card.name(), locale);
+                                        return new CardCatalogItemView(card.id(), name,
+                                                searchText(name, card.name(), labels.cardAlias(card.name(), locale)),
+                                                card.iconUrls() == null ? null : card.iconUrls().medium(),
+                                                toElixirBadge(card.elixirCost(), tower, locale), card.elixirCost());
+                                    })
                                     .toList());
                 })
                 .toList();
+    }
+
+    private static String searchText(String name, String englishName, String alias) {
+        return alias == null ? name + " " + englishName : name + " " + englishName + " " + alias;
     }
 
     /**

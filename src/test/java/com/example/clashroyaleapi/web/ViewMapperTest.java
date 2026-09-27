@@ -38,11 +38,12 @@ import static org.mockito.Mockito.when;
 /** 2v2で「自分」と「味方」を取り違えない並べ方を中心に検証する。ラベル解決はモックで素通しにする。 */
 class ViewMapperTest {
 
+    private LabelResolver labels;
     private ViewMapper viewMapper;
 
     @BeforeEach
     void setUp() {
-        LabelResolver labels = mock(LabelResolver.class);
+        labels = mock(LabelResolver.class);
         when(labels.gameMode(anyString(), anyString(), any())).thenAnswer(invocation -> invocation.getArgument(1));
         when(labels.cardName(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(labels.rarity(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -174,6 +175,20 @@ class ViewMapperTest {
         assertNull(groups.get(0).cards().get(0).elixirCost());
         assertEquals("5", groups.get(0).cards().get(1).elixir().text());
         assertNull(groups.get(1).cards().get(0).elixir());
+    }
+
+    @Test
+    void カード一覧の絞り込み用の文字列は表示名と英語名と通称を含む() {
+        when(labels.cardAlias("P.E.K.K.A", Locale.JAPANESE)).thenReturn("ペッカ");
+        List<CardCatalogGroupView> groups = viewMapper.toCardCatalog(List.of(
+                new CardService.CardGroup("epic", List.of(
+                        new CardsResponse.Card(1, "P.E.K.K.A", 11, null, 7, "epic", null),
+                        new CardsResponse.Card(2, "Knight", 16, null, 3, "common", null)))),
+                Locale.JAPANESE);
+
+        // 表示名はモックが英語名を素通しにしている。
+        assertEquals("P.E.K.K.A P.E.K.K.A ペッカ", groups.get(0).cards().get(0).searchText());
+        assertEquals("Knight Knight", groups.get(0).cards().get(1).searchText());
     }
 
     @Test

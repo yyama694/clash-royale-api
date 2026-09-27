@@ -29,9 +29,9 @@ class MessagesConsistencyTest {
 
     /**
      * 英語(基本ファイル)には無くてよいキー。カード名は公式APIの英語名をそのまま使い、
-     * 国名の読み仮名は漢字の読みが要る言語にだけある。
+     * 国名の読み仮名は漢字の読みが要る言語に、カードの通称は通称が定着している言語にだけある。
      */
-    private static final List<String> LANGUAGE_SPECIFIC_PREFIXES = List.of("card.", "country.reading.");
+    private static final List<String> LANGUAGE_SPECIFIC_PREFIXES = List.of("card.", "cardalias.", "country.reading.");
 
     private static Properties load(String name) throws IOException {
         try (InputStream in = MessagesConsistencyTest.class.getResourceAsStream("/" + name)) {
