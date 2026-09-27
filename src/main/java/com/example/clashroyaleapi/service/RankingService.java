@@ -93,8 +93,11 @@ public class RankingService {
      * 集計結果自体もlocationIdをキーにキャッシュする。getClanは個々のクランについては2分キャッシュ済みだが、
      * それでも「20並行で取得する」処理自体を毎リクエスト実行すると、低スペックVM(1/8 OCPU)では
      * 仮想スレッドの起動コストだけで数秒かかることを本番で確認した(2026-09-19)。
+     * ただし一部のクランが取れなかった回と、ランキング自体が取れず clans が空だった回はキャッシュしない。
+     * キーが locationId だけなので、欠けた結果を残すと2分間その列が「―」のままになるため。
      */
-    @Cacheable(value = "clanWarTrophies", key = "#locationId")
+    @Cacheable(value = "clanWarTrophies", key = "#locationId",
+            unless = "#clans.isEmpty() or #result.size() < T(Math).min(#clans.size(), " + WAR_TROPHIES_RANK_LIMIT + ")")
     public Map<String, Integer> warTrophiesOfTopClans(String locationId, List<ClanRankingResponse.RankedClan> clans) {
         List<ClanRankingResponse.RankedClan> targets = clans.stream().limit(WAR_TROPHIES_RANK_LIMIT).toList();
         Map<String, Future<Integer>> futures = new LinkedHashMap<>();

@@ -85,6 +85,36 @@ class PlayerNameIndexTest {
     }
 
     @Test
+    void 二ページ目以降は前方一致を出さず_あることだけ返す() throws IOException {
+        write(2, add("alex", "#T0", "Alex", "2026-09-19T10:00:00Z"),
+                add("alex", "#T1", "Alex", "2026-09-19T11:00:00Z"),
+                add("alex", "#T2", "Alex", "2026-09-19T12:00:00Z"),
+                add("alexa", "#X", "Alexa", "2026-09-19T10:00:00Z"));
+
+        PlayerNameSearch second = new PlayerNameIndex(dir).search("alex", 2, 2);
+
+        assertEquals(List.of("#T0"), tags(second.exact()));
+        assertTrue(second.prefix().isEmpty());
+        assertTrue(second.morePrefix());
+    }
+
+    @Test
+    void 完全一致より前に並ぶ前方一致があっても完全一致を数え漏らさない() throws IOException {
+        // "\t" より小さい文字(制御文字)が続く名前は、完全一致の行より前に並ぶ。
+        write(2, add("bob\u0001", "#P1", "bob\u0001", "2026-09-19T10:00:00Z"),
+                add("bob\u0002", "#P2", "bob\u0002", "2026-09-19T10:00:00Z"),
+                add("bob", "#E0", "Bob", "2026-09-19T10:00:00Z"),
+                add("bob", "#E1", "Bob", "2026-09-19T11:00:00Z"),
+                add("bob", "#E2", "Bob", "2026-09-19T12:00:00Z"),
+                add("bobby", "#P3", "Bobby", "2026-09-19T10:00:00Z"));
+
+        PlayerNameSearch second = new PlayerNameIndex(dir).search("bob", 2, 1);
+
+        assertEquals(3, second.exactTotal());
+        assertEquals(List.of("#E0"), tags(second.exact()));
+    }
+
+    @Test
     void 差分で名前を変えた人は旧名で見つからず_ファイルが大きくなれば分ける() throws IOException {
         List<String> diffs = new ArrayList<>();
         IntStream.range(0, 10).forEach(i -> diffs.add(add("name" + i, "#T" + i, "Name" + i, "2026-09-19T10:00:00Z")));

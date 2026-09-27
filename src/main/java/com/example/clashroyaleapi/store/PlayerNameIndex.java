@@ -79,41 +79,40 @@ public class PlayerNameIndex {
         if (key.isEmpty()) {
             return new PlayerNameSearch(List.of(), 0, offset, List.of(), false);
         }
-        List<IndexEntry> entries = entries();
         String exactPrefix = key + "\t";
 
-        // 並べ替えに必要な上位 offset+limit 人だけを残す(完全一致が数十万人いてもメモリを食わないように)。
+        // 完全一致の行も前方一致の行も key で始まる範囲に並ぶので、1回読むだけで両方を集める。
+        // 完全一致は、並べ替えに必要な上位 offset+limit 人だけを残す(数十万人いてもメモリを食わないように)。
         int keep = offset + limit;
         PriorityQueue<PlayerNameMatch> top = new PriorityQueue<>(RECENT_FIRST.reversed());
         int[] exactTotal = {0};
-        scan(entries, exactPrefix, exactPrefix, line -> {
-            exactTotal[0]++;
-            top.add(toMatch(line));
-            if (top.size() > keep) {
-                top.poll();
+        // 前方一致を出すのは1ページ目の残りの枠だけ。1人多く取るのは、表示しきれない人がいるかを知るため。
+        int prefixCapacity = (offset == 0 ? limit : 0) + 1;
+        List<String> prefixLines = new ArrayList<>();
+        scan(entries(), key, key, line -> {
+            if (line.startsWith(exactPrefix)) {
+                exactTotal[0]++;
+                top.add(toMatch(line));
+                if (top.size() > keep) {
+                    top.poll();
+                }
+                return true;
             }
-            return true;
+            if (prefixLines.size() < prefixCapacity) {
+                prefixLines.add(line);
+                return true;
+            }
+            // 完全一致の行より後ろまで来たら、もう読むものは無い。手前では止めない
+            // (key の直後が "\t" より小さい文字の名前は、完全一致の行より前に並ぶため)。
+            return line.compareTo(exactPrefix) < 0;
         });
         List<PlayerNameMatch> ranked = new ArrayList<>(top);
         ranked.sort(RECENT_FIRST);
         List<PlayerNameMatch> exact = offset < ranked.size() ? ranked.subList(offset, ranked.size()) : List.of();
 
-        // 前方一致は名前順に必要な分だけ読んで止める。1人多く読むのは、表示しきれない人がいるかを知るため。
         int wanted = offset == 0 ? Math.max(limit - exactTotal[0], 0) : 0;
-        List<PlayerNameMatch> prefix = new ArrayList<>();
-        boolean[] more = {false};
-        scan(entries, key, key, line -> {
-            if (line.startsWith(exactPrefix)) {
-                return true;
-            }
-            if (prefix.size() >= wanted) {
-                more[0] = true;
-                return false;
-            }
-            prefix.add(toMatch(line));
-            return true;
-        });
-        return new PlayerNameSearch(List.copyOf(exact), exactTotal[0], offset, prefix, more[0]);
+        List<PlayerNameMatch> prefix = prefixLines.stream().limit(wanted).map(PlayerNameIndex::toMatch).toList();
+        return new PlayerNameSearch(List.copyOf(exact), exactTotal[0], offset, prefix, prefixLines.size() > wanted);
     }
 
     private interface LineVisitor {

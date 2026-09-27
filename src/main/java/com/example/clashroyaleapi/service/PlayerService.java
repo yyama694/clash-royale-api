@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
+import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
@@ -26,6 +27,8 @@ public class PlayerService {
 
     // 名前検索の1ページの人数。よくある名前は完全一致だけで数百人以上になるため、ページ送りにする。
     public static final int SEARCH_PAGE_SIZE = 50;
+    // 索引側で offset + ページの人数を計算しても溢れない値。
+    private static final int MAX_OFFSET = Integer.MAX_VALUE - SEARCH_PAGE_SIZE;
 
     private final ClashRoyaleApiClient apiClient;
     private final PlayerSightingLog sightingLog;
@@ -65,7 +68,8 @@ public class PlayerService {
                 // 名前として探し直す。
             }
         }
-        int offset = (Math.max(page, 1) - 1) * SEARCH_PAGE_SIZE;
+        // URLで大きなページ番号を渡されても int が溢れないよう上限をかける(範囲外は下で最後のページに直す)。
+        int offset = (int) Math.min((Math.max(page, 1) - 1L) * SEARCH_PAGE_SIZE, MAX_OFFSET);
         PlayerNameSearch result = nameIndex.search(trimmed, offset, SEARCH_PAGE_SIZE);
         if (offset > 0 && result.exact().isEmpty()) {
             int lastPageOffset = Math.max(result.exactTotal() - 1, 0) / SEARCH_PAGE_SIZE * SEARCH_PAGE_SIZE;
@@ -105,10 +109,12 @@ public class PlayerService {
     /**
      * battlelogは新しい対戦が入るたびに先頭へ積まれるため、位置(index)で参照すると
      * 画面を開き直した際に黙って別の対戦が表示されてしまう。battleTimeをキーにして特定する。
+     * 片側が欠けた対戦は対戦履歴の一覧にも出さないため、URLで直接指定されても見つからない扱いにする。
      */
     public BattleLogEntry findBattle(String tag, String battleTime) {
         Optional<BattleLogEntry> battle = findBattleLog(tag).stream()
                 .filter(entry -> battleTime.equals(entry.battleTime()))
+                .filter(BattleResult::hasBothSides)
                 .findFirst();
         return battle.orElseThrow(() -> new BattleNotFoundException("battle " + battleTime + " of " + tag));
     }

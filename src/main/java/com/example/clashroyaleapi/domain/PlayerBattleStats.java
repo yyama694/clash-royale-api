@@ -34,10 +34,10 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
         Map<String, CardTally> tallies = new LinkedHashMap<>();
 
         for (BattleLogEntry battle : battleLog) {
-            if (isIncomplete(battle)) {
+            if (!BattleResult.hasBothSides(battle)) {
                 continue;
             }
-            BattleResult result = BattleResult.of(crownsOf(battle.team()), crownsOf(battle.opponent()));
+            BattleResult result = BattleResult.of(battle);
             switch (result) {
                 case WIN -> wins++;
                 case LOSE -> losses++;
@@ -83,7 +83,7 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
                 continue;
             }
             CardTally cardTally = tallies.computeIfAbsent(card.name(),
-                    key -> new CardTally(card.id(), iconUrlOf(card)));
+                    key -> new CardTally(card.id(), card.mediumIconUrl()));
             cardTally.uses++;
             if (result == BattleResult.WIN) {
                 cardTally.wins++;
@@ -101,21 +101,6 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
                 .filter(entry -> entry.getValue().uses >= MIN_USES_FOR_RANKING)
                 .map(entry -> toPerformance(entry.getKey(), entry.getValue()))
                 .toList();
-    }
-
-    private static boolean isIncomplete(BattleLogEntry battle) {
-        return battle == null
-                || battle.team() == null || battle.team().isEmpty()
-                || battle.opponent() == null || battle.opponent().isEmpty();
-    }
-
-    // 2v2ではチームの各メンバーに同じクラウン数が入るが、仕様として保証されていないため最大値を取る。
-    private static int crownsOf(List<BattleLogEntry.Participant> side) {
-        return side.stream().mapToInt(BattleLogEntry.Participant::crowns).max().orElse(0);
-    }
-
-    private static String iconUrlOf(BattleLogEntry.Card card) {
-        return card.iconUrls() != null ? card.iconUrls().medium() : null;
     }
 
     private static CardPerformance toPerformance(String name, CardTally tally) {

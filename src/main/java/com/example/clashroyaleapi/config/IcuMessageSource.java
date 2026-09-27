@@ -6,6 +6,8 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.util.ObjectUtils;
 
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * 引数付きメッセージの書式にICUのMessageFormatを使う。
@@ -14,6 +16,11 @@ import java.util.Locale;
  * メッセージ側に書けるので、複数形が3種類以上ある言語を足してもテンプレートを変えずに済む。
  */
 public class IcuMessageSource extends ResourceBundleMessageSource {
+
+    // 書式の解析と複数形の規則の取得は重いため、書式と言語の組ごとに1回だけ作って使い回す
+    // (個人ランキング画面は1回の描画で1000回以上呼ぶ)。書式はメッセージファイルにあるものだけなので、
+    // 件数は「引数付きのメッセージの数 × 言語の数」で頭打ちになる。
+    private final ConcurrentMap<FormatKey, MessageFormat> formats = new ConcurrentHashMap<>();
 
     public static IcuMessageSource forBasename(String basename) {
         IcuMessageSource messageSource = new IcuMessageSource();
@@ -34,6 +41,15 @@ public class IcuMessageSource extends ResourceBundleMessageSource {
         if (pattern == null) {
             return super.getMessageInternal(code, args, locale);
         }
-        return new MessageFormat(pattern, ULocale.forLocale(target)).format(resolveArguments(args, target));
+        MessageFormat format = formats.computeIfAbsent(new FormatKey(pattern, target),
+                key -> new MessageFormat(key.pattern(), ULocale.forLocale(key.locale())));
+        Object[] arguments = resolveArguments(args, target);
+        // ICUのMessageFormatはスレッドセーフではないため、使い回す以上は書式ごとに同期する。
+        synchronized (format) {
+            return format.format(arguments);
+        }
+    }
+
+    private record FormatKey(String pattern, Locale locale) {
     }
 }

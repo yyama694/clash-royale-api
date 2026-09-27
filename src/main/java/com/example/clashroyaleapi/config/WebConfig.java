@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.config;
 
+import com.example.clashroyaleapi.web.CrossSiteRequestGuard;
 import com.example.clashroyaleapi.web.SupportedLanguages;
 import com.example.clashroyaleapi.web.WebConstants;
 
@@ -83,6 +84,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(localeChangeInterceptor());
+        registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**");
     }
 
     /**

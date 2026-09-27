@@ -43,10 +43,15 @@ public class FavoriteCookies {
             String tag, String name) {
         Favorites favorites = read(request, kind);
         Favorites updated = favorites.updateName(tag, name);
-        if (updated != favorites) {
-            write(response, kind, updated);
-        }
+        writeIfChanged(response, kind, favorites, updated);
         return updated;
+    }
+
+    /** 中身が変わっていなければ書かない(画面を開くたびにSet-Cookieを返さないため)。 */
+    public void writeIfChanged(HttpServletResponse response, FavoriteKind kind, Favorites before, Favorites after) {
+        if (after != before) {
+            write(response, kind, after);
+        }
     }
 
     public void write(HttpServletResponse response, FavoriteKind kind, Favorites favorites) {
@@ -54,7 +59,8 @@ public class FavoriteCookies {
         cookie.setPath("/");
         cookie.setMaxAge((int) COOKIE_MAX_AGE.toSeconds());
         cookie.setHttpOnly(true);
-        // 他サイトからのPOSTで勝手に登録・解除されない(CSRF)よう、初回遷移以外は送らないLaxにする。
+        // 他サイトからのPOSTにはCookieを送らないLaxにする。ただしLaxはその応答のSet-Cookieまでは止めないため、
+        // CSRF対策の本体は他サイトからのPOSTを拒否する CrossSiteRequestGuard にある。
         cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
