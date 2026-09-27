@@ -51,6 +51,14 @@ crawler:
   # 5回に1回をプレイヤーの対戦履歴の巡回にする(クランに入っていない人を拾うため)。
   battle-log-every: ${CRAWLER_BATTLE_LOG_EVERY:5}
 
+# カード詳細画面の「世界トップのデッキでの使用率」用に、ランク戦の上位プレイヤーのデッキを1人ずつ集める(TopDeckCollector)。
+# 1000人×3秒で約50分。集計結果は player-index.dir の下の card-usage/ に保存し、再起動しても消えない。
+card-usage:
+  enabled: ${CARD_USAGE_ENABLED:true}
+  interval: ${CARD_USAGE_INTERVAL:3s}
+  refresh-every: ${CARD_USAGE_REFRESH_EVERY:24h}
+  players: ${CARD_USAGE_PLAYERS:1000}
+
 clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1

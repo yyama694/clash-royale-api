@@ -36,6 +36,31 @@
 
             <p th:replace="~{fragments/layout :: notice(#{card.notice})}"></p>
         </div>
+
+        <div th:if="${usage}" class="card">
+            <h2 th:text="#{cardUsage.heading}"></h2>
+            <ul class="stat-grid">
+                <li><span class="label" th:text="#{cardUsage.rate}"></span><span class="value" th:text="#{cardUsage.rate.value(${usage.percent()})}"></span></li>
+                <li><span class="label" th:text="#{cardUsage.users}"></span><span class="value" th:text="#{cardUsage.users.value(${usage.users()}, ${usage.sampleSize()})}"></span></li>
+                <li th:if="${usage.rank() != null}"><span class="label" th:text="#{cardUsage.rank}"></span><span class="value" th:text="#{cardUsage.rank.value(${usage.rank()}, ${usage.rankedOf()})}"></span></li>
+            </ul>
+
+            <th:block th:unless="${#lists.isEmpty(usage.partners())}">
+                <h3 th:text="#{cardUsage.partners.heading}"></h3>
+                <div class="deck-grid">
+                    <div class="deck-card" th:each="p : ${usage.partners()}">
+                        <a th:replace="~{fragments/layout :: cardLink(${p.id()}, ${p.name()}, ${p.iconUrl()})}"></a>
+                        <div class="card-name" th:text="${p.name()}"></div>
+                        <div class="card-sub" th:text="#{cardUsage.partner.value(${p.percent()})}"></div>
+                    </div>
+                </div>
+                <p th:replace="~{fragments/layout :: notice(#{cardUsage.partners.notice})}"></p>
+            </th:block>
+
+            <p th:replace="~{fragments/layout :: notice(#{cardUsage.notice(${usage.sampleSize()})})}"></p>
+            <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
+                <time th:replace="~{fragments/layout :: localTime(${usage.collectedAt()})}"></time></p>
+        </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>

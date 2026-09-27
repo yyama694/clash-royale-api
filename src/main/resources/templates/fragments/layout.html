@@ -365,6 +365,26 @@
             });
         })();
     </script>
+    <!--/* 共有ボタン(shareButtons)の「リンクをコピー」。Clipboard APIはHTTPSでしか使えないため、使えるときだけボタンを出す。 */-->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!navigator.clipboard) {
+                return;
+            }
+            document.querySelectorAll('[data-copy-url]').forEach(function (button) {
+                var label = button.textContent;
+                button.classList.remove('is-hidden');
+                button.addEventListener('click', function () {
+                    navigator.clipboard.writeText(button.dataset.copyUrl).then(function () {
+                        button.textContent = button.dataset.copiedLabel;
+                        setTimeout(function () { button.textContent = label; }, 2000);
+                    }).catch(function () {
+                        // 権限で拒否された場合など。押した結果が出ないだけなので何もしない。
+                    });
+                });
+            });
+        });
+    </script>
 </head>
 
 <!--/* ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 */-->
@@ -419,6 +439,20 @@
     <p class="favorite-limit-notice notice" th:classappend="${favoriteLimit} ? '' : 'is-hidden'"
        th:text="#{favorite.limit}"></p>
 </span>
+
+<!--/*
+  共有ボタン。pathは"/player/XXXX"のようなパス。共有されたURLから来た表示をビーコンで数えられるよう ?from=share を付け、
+  受け取った人がその人の言語で読めるよう lang は付けない。
+  リンクのコピーはClipboard APIが使えるときだけ出す(JSが動かない環境では押しても何も起きないため)。
+*/-->
+<div th:fragment="shareButtons(text, path)" class="share-buttons"
+     th:with="shareUrl=${siteBaseUrl + path + '?from=share'}">
+    <a class="btn btn-secondary btn-small" target="_blank" rel="noopener noreferrer"
+       th:href="@{https://x.com/intent/post(text=${text},url=${shareUrl},hashtags=#{share.hashtags})}"
+       th:text="#{share.x}"></a>
+    <button type="button" class="btn btn-secondary btn-small is-hidden"
+            th:attr="data-copy-url=${shareUrl},data-copied-label=#{share.copied}" th:text="#{share.copy}"></button>
+</div>
 
 <!--/* Supercellのファンコンテンツポリシーで必須の、非公式である旨の表示。全画面の末尾に置く。 */-->
 <footer class="site-footer" th:fragment="footer">

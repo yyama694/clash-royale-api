@@ -13,11 +13,46 @@
                 <span th:replace="~{fragments/layout :: favoriteButton('clans', ${clanPathTag}, ${favorite}, ${favoriteLimit})}"></span>
             </div>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
+            <div th:replace="~{fragments/layout :: shareButtons(#{share.clan.text(${clanName})}, '/clan/' + ${clanPathTag})}"></div>
             <p class="clan-description" th:if="${clan.description()}" th:text="${clan.description()}"></p>
             <ul class="stat-grid">
                 <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{clan.score}"></span></span><span class="value" th:text="${#numbers.formatInteger(clan.clanScore(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">👥</span> <span th:text="#{clan.memberCount}"></span></span><span class="value" th:text="${clan.members()}"></span></li>
             </ul>
+        </div>
+
+        <div class="card" id="war">
+            <h2 th:text="#{clanWar.heading}"></h2>
+            <p th:if="${warErrorKey}" class="error-box" th:text="#{${warErrorKey}}"></p>
+            <p th:if="${warNotParticipating}" class="empty-state" th:text="#{clanWar.notParticipating}"></p>
+            <p th:if="${war != null and not war.battleDay()}" class="empty-state" th:text="#{clanWar.noBattleDay}"></p>
+            <th:block th:if="${war != null and war.battleDay()}">
+                <ul class="stat-grid">
+                    <li><span class="label" th:text="#{clanWar.today.members}"></span><span class="value" th:text="#{clanWar.ratio(${war.membersBattledToday()}, ${war.memberCount()})}"></span></li>
+                    <li><span class="label" th:text="#{clanWar.today.decks}"></span><span class="value" th:text="#{clanWar.ratio(${war.decksUsedToday()}, ${war.maxDecksToday()})}"></span></li>
+                </ul>
+                <p th:replace="~{fragments/layout :: notice(#{clanWar.notice})}"></p>
+                <div class="table-scroll">
+                    <!--/* 列が少ないので、スマホでもカード型にせず表のまま出す(1人1行で50人を見渡せるように) */-->
+                    <table class="table-compact">
+                        <thead>
+                            <tr>
+                                <th th:text="#{clan.col.name}"></th>
+                                <th class="num" th:text="#{clanWar.col.today}"></th>
+                                <th class="num" th:text="#{clanWar.col.week}"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="m : ${war.members()}">
+                                <td><a th:href="@{/player/{tag}(tag=${m.pathTag()})}"><bdi th:text="${m.name()}"></bdi></a></td>
+                                <td class="num"><span th:classappend="${m.notBattledToday()} ? 'inactive-badge'"
+                                                      th:text="#{clanWar.ratio(${m.decksUsedToday()}, ${war.decksPerDay()})}"></span></td>
+                                <td class="num" th:text="${m.decksUsedThisWeek()}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </th:block>
         </div>
 
         <div class="card" id="members">

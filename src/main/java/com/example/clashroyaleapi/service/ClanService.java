@@ -6,6 +6,7 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
+import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.PlayerSighting;
 import com.example.clashroyaleapi.domain.SortDirection;
@@ -35,6 +36,15 @@ public class ClanService {
 
     public ClanResponse findClan(String tag) {
         return recordMembers(apiClient.getClan(tag));
+    }
+
+    /** クラン対戦に参加していないクランは空。それ以外の取得失敗は例外のまま投げる。 */
+    public Optional<ClanWarParticipation> findWarParticipation(ClanResponse clan) {
+        try {
+            return Optional.of(ClanWarParticipation.of(clan.memberList(), apiClient.getCurrentRiverRace(clan.tag())));
+        } catch (ResourceNotFoundException e) {
+            return Optional.empty();
+        }
     }
 
     /**

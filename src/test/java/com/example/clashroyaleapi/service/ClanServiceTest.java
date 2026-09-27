@@ -3,8 +3,10 @@ package com.example.clashroyaleapi.service;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
+import com.example.clashroyaleapi.client.dto.CurrentRiverRaceResponse;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
+import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.SortDirection;
 import com.example.clashroyaleapi.store.PlayerSightingLog;
@@ -185,6 +187,27 @@ class ClanServiceTest {
         assertEquals(MemberSortKey.LAST_SEEN, MemberSortKey.from("lastSeen").orElseThrow());
         assertEquals(MemberSortKey.TROPHIES, MemberSortKey.from("trophies").orElseThrow());
         assertTrue(MemberSortKey.from("bogus").isEmpty());
+    }
+
+    @Test
+    void クラン対戦の参加状況はメンバー一覧と突き合わせて返す() {
+        ClanResponse clan = new ClanResponse("#2XYZ456", "Royals", "", 100, 0, 1,
+                List.of(new ClanResponse.Member("#A", "Alice", "member", 5000, 0, null)));
+        when(apiClient.getCurrentRiverRace("#2XYZ456")).thenReturn(new CurrentRiverRaceResponse("warDay",
+                new CurrentRiverRaceResponse.Clan("#2XYZ456",
+                        List.of(new CurrentRiverRaceResponse.Participant("#A", "Alice", 6, 2)))));
+
+        ClanWarParticipation war = clanService.findWarParticipation(clan).orElseThrow();
+
+        assertTrue(war.battleDay());
+        assertEquals(2, war.members().get(0).decksUsedToday());
+    }
+
+    @Test
+    void クラン対戦に参加していないクランは空() {
+        when(apiClient.getCurrentRiverRace(anyString())).thenThrow(new ResourceNotFoundException("not found", null));
+
+        assertTrue(clanService.findWarParticipation(clan("#2XYZ456", "Royals")).isEmpty());
     }
 
     private static ClanResponse clan(String tag, String name) {
