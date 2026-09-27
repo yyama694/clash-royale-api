@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${clanName})}"></head>
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
 <body>
     <header th:replace="~{fragments/layout :: header}"></header>
 
@@ -13,6 +13,7 @@
                 <span th:replace="~{fragments/layout :: favoriteButton('clans', ${clanPathTag}, ${favorite}, ${favoriteLimit})}"></span>
             </div>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
+            <p class="page-summary" th:text="${pageDescription}"></p>
             <div th:replace="~{fragments/layout :: shareButtons(#{share.clan.text(${clanName})}, '/clan/' + ${clanPathTag})}"></div>
             <p class="clan-description" th:if="${clan.description()}" th:text="${clan.description()}"></p>
             <ul class="stat-grid">

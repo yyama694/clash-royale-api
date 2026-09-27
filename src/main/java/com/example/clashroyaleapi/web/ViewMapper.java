@@ -14,6 +14,7 @@ import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.Country;
+import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.Deck;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.GameText;
@@ -98,14 +99,12 @@ public class ViewMapper {
     }
 
     /** デッキが空(公式APIが返さなかった)の場合は、画面に案内文を出すため空を返す。 */
-    public Optional<CurrentDeckView> toCurrentDeck(PlayerResponse player, Locale locale) {
-        if (player.currentDeck() == null || player.currentDeck().isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(new CurrentDeckView(
-                toCards(player.currentDeck(), locale),
-                toCards(player.currentDeckSupportCards(), locale),
-                toDeckMeta(player.currentDeck(), player.currentDeckSupportCards())));
+    public CurrentDeckView toCurrentDeck(CurrentDeck deck, Locale locale) {
+        return new CurrentDeckView(
+                toCards(deck.cards(), locale),
+                toCards(deck.supportCards(), locale),
+                toDeckMeta(deck.cards(), deck.supportCards()),
+                deck.completedFromBattle());
     }
 
     /**

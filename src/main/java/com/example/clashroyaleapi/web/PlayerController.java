@@ -6,10 +6,12 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.GameText;
+import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.PlayerService;
+import com.example.clashroyaleapi.web.view.CurrentDeckView;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,11 +34,14 @@ public class PlayerController {
     private final PlayerService playerService;
     private final ViewMapper viewMapper;
     private final FavoriteCookies favoriteCookies;
+    private final PageSummaries pageSummaries;
 
-    public PlayerController(PlayerService playerService, ViewMapper viewMapper, FavoriteCookies favoriteCookies) {
+    public PlayerController(PlayerService playerService, ViewMapper viewMapper, FavoriteCookies favoriteCookies,
+            PageSummaries pageSummaries) {
         this.playerService = playerService;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
+        this.pageSummaries = pageSummaries;
     }
 
     /** 検索フォームの受け口。タグで特定できたら正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
@@ -88,22 +93,33 @@ public class PlayerController {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
         }
-        WinLoseStreak.of(player.currentWinLoseStreak()).ifPresent(streak -> model.addAttribute("streak", streak));
-        viewMapper.toCurrentDeck(player, locale).ifPresent(deck -> model.addAttribute("currentDeck", deck));
+        WinLoseStreak streak = WinLoseStreak.of(player.currentWinLoseStreak()).orElse(null);
+        model.addAttribute("streak", streak);
         if (player.cards() != null && !player.cards().isEmpty()) {
             model.addAttribute("cardCollection", viewMapper.toCardCollection(CardCollection.of(player.cards()), locale));
         }
 
         // 戦績の取得に失敗してもプレイヤー情報自体は表示したいので、ここだけは個別に握る。
+        List<BattleLogEntry> battleLog = List.of();
+        PlayerBattleStats stats = null;
         try {
-            List<BattleLogEntry> battleLog = playerService.findBattleLog(tag);
+            battleLog = playerService.findBattleLog(tag);
             model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, player.tag(), locale));
             if (!battleLog.isEmpty()) {
-                model.addAttribute("battleStats", viewMapper.toStats(playerService.statsOf(battleLog), locale));
+                stats = playerService.statsOf(battleLog);
+                model.addAttribute("battleStats", viewMapper.toStats(stats, locale));
             }
         } catch (ClashRoyaleApiException e) {
             model.addAttribute("battleLogErrorKey", e.messageKey());
         }
+        CurrentDeckView currentDeck = playerService.currentDeckOf(player, battleLog)
+                .map(deck -> viewMapper.toCurrentDeck(deck, locale))
+                .orElse(null);
+        model.addAttribute("currentDeck", currentDeck);
+
+        model.addAttribute("pageTitle", pageSummaries.playerTitle(player, playerName, locale));
+        model.addAttribute("pageDescription", pageSummaries.playerSummary(player, playerName, streak,
+                currentDeck == null ? null : currentDeck.meta().averageElixir(), stats, locale));
         return "player";
     }
 

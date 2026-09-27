@@ -8,6 +8,7 @@ import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
@@ -104,6 +105,11 @@ public class PlayerService {
 
     public PlayerBattleStats statsOf(List<BattleLogEntry> battleLog) {
         return PlayerBattleStats.from(battleLog);
+    }
+
+    /** @param battleLog 取得できなかったときは空。その場合、公式APIが返さなかったカードは補わない */
+    public Optional<CurrentDeck> currentDeckOf(PlayerResponse player, List<BattleLogEntry> battleLog) {
+        return CurrentDeck.of(player, battleLog);
     }
 
     /**
