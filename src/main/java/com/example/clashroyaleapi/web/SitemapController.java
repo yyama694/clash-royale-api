@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 @RestController
 public class SitemapController {
 
-    private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/ranking", "/ranking/players");
+    private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players");
 
     private final CardService cardService;
     private final GlobalModelAttributes modelAttributes;
@@ -88,6 +88,7 @@ public class SitemapController {
 
                 - Player and clan search: %s/
                 - Player rankings: %s/ranking/players
+                - Top players' decks (latest Rank Battle deck of the global top players, updated daily): %s/decks
                 - Clan rankings: %s/ranking
                 - Card list: %s/cards
 
@@ -96,7 +97,7 @@ public class SitemapController {
                 - Data comes from the official Supercell Clash Royale API.
                 - Available languages: %s
                 - Not affiliated with or endorsed by Supercell.
-                """.formatted(siteName, base, base, base, base, languages);
+                """.formatted(siteName, base, base, base, base, base, languages);
     }
 
     private Stream<String> cardPaths() {

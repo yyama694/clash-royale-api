@@ -9,7 +9,27 @@ import java.util.List;
  */
 public record TopDecks(Instant collectedAt, List<SampledDeck> decks) {
 
-    /** towerTroopId はタワーユニットを返さないプレイヤーでは null。 */
-    public record SampledDeck(List<Integer> cardIds, Integer towerTroopId) {
+    /**
+     * towerTroopId はタワーユニットを返さないプレイヤーでは null。
+     * player は誰のデッキか。2026-09-27より前の形式の集計ファイルには無いので null になる。
+     */
+    public record SampledDeck(List<Integer> cardIds, Integer towerTroopId, Player player) {
+
+        public SampledDeck(List<Integer> cardIds, Integer towerTroopId) {
+            this(cardIds, towerTroopId, null);
+        }
+
+        public boolean contains(int cardId) {
+            return cardIds.contains(cardId) || Integer.valueOf(cardId).equals(towerTroopId);
+        }
+    }
+
+    /**
+     * 集計した時点のランキングの情報と、その対戦でのカードのレベル。
+     *
+     * @param levels     cardIds と同じ順の、ゲーム内表記のレベル
+     * @param towerLevel タワーユニットのゲーム内表記のレベル。タワーユニットが無ければ null
+     */
+    public record Player(String tag, String name, int rank, int rating, List<Integer> levels, Integer towerLevel) {
     }
 }

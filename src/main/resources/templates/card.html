@@ -57,6 +57,7 @@
                 <p th:replace="~{fragments/layout :: notice(#{cardUsage.partners.notice})}"></p>
             </th:block>
 
+            <p><a th:href="@{/decks(card=${card.id()})}" th:text="#{cardUsage.decksLink}"></a></p>
             <p th:replace="~{fragments/layout :: notice(#{cardUsage.notice(${usage.sampleSize()})})}"></p>
             <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
                 <time th:replace="~{fragments/layout :: localTime(${usage.collectedAt()})}"></time></p>

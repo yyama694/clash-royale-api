@@ -21,6 +21,7 @@ import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
@@ -29,13 +30,14 @@ import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
+import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanMemberView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
-import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
+import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
 import com.example.clashroyaleapi.web.view.DeckMetaView;
@@ -48,10 +50,14 @@ import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
+import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 
 import org.springframework.stereotype.Component;
 
+import java.text.Collator;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -147,6 +153,50 @@ public class ViewMapper {
                 card.rankedOf(),
                 timeFormatter.instant(usage.collectedAt(), locale),
                 partners);
+    }
+
+    /**
+     * 集計ファイルにはカードIDとレベルしか無いので、名前・画像・エリクサーはカード一覧から引く。
+     * 一覧に無いID(集計後に削除されたカードなど)は、名前の代わりにIDを出す。
+     */
+    public TopPlayerDeckView toTopPlayerDeck(TopDecks.SampledDeck deck, Map<Integer, CardsResponse.Card> cardsById,
+            Locale locale) {
+        TopDecks.Player player = deck.player();
+        List<CardView> cards = new ArrayList<>();
+        List<Integer> elixirCosts = new ArrayList<>();
+        for (int i = 0; i < deck.cardIds().size(); i++) {
+            int id = deck.cardIds().get(i);
+            int level = i < player.levels().size() ? player.levels().get(i) : 0;
+            CardsResponse.Card card = cardsById.get(id);
+            cards.add(toCardView(id, card, level, locale));
+            elixirCosts.add(card == null ? null : card.elixirCost());
+        }
+        List<CardView> support = deck.towerTroopId() == null ? List.of()
+                : List.of(toCardView(deck.towerTroopId(), cardsById.get(deck.towerTroopId()),
+                        player.towerLevel() == null ? 0 : player.towerLevel(), locale));
+        OptionalInt cycle = Deck.fourCardCycle(elixirCosts);
+        DeckMetaView meta = new DeckMetaView(
+                toNullable(Deck.averageElixir(elixirCosts)),
+                cycle.isPresent() ? cycle.getAsInt() : null,
+                toNullable(Deck.averageLevel(player.levels())),
+                Deck.copyUrl(deck.cardIds(), deck.towerTroopId()).orElse(null));
+        return new TopPlayerDeckView(player.rank(), player.name(), Tags.toPathSegment(player.tag()), player.rating(),
+                cards, support, meta);
+    }
+
+    private CardView toCardView(int id, CardsResponse.Card card, int level, Locale locale) {
+        return card == null ? new CardView(id, String.valueOf(id), null, level)
+                : new CardView(id, labels.cardName(card.name(), locale),
+                        card.iconUrls() == null ? null : card.iconUrls().medium(), level);
+    }
+
+    /** カードで絞り込むときの選択肢。表示言語の名前の順に並べる。 */
+    public List<CardOptionView> toCardOptions(Collection<CardsResponse.Card> cards, Locale locale) {
+        Collator collator = Collator.getInstance(locale);
+        return cards.stream()
+                .map(card -> new CardOptionView(card.id(), labels.cardName(card.name(), locale)))
+                .sorted(Comparator.comparing(CardOptionView::name, collator))
+                .toList();
     }
 
     public CardCollectionView toCardCollection(CardCollection collection, Locale locale) {

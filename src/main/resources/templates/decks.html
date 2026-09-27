@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{decks.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{decks.pageTitle}"></h1>
+            <p th:text="#{decks.lead}"></p>
+            <!--/* 選んだら送信する。スクリプトが動かないときのために送信ボタンも残す。 */-->
+            <form class="search-form deck-filter" method="get" th:action="@{/decks}">
+                <label>
+                    <span th:text="#{decks.filter.label}"></span>
+                    <select name="card" onchange="this.form.submit()">
+                        <option value="" th:text="#{decks.filter.all}"></option>
+                        <option th:each="o : ${cardOptions}" th:value="${o.id()}" th:text="${o.name()}"
+                                th:selected="${selectedCard != null and selectedCard == o.id()}"></option>
+                    </select>
+                </label>
+                <noscript><button type="submit" class="btn btn-secondary" th:text="#{decks.filter.submit}"></button></noscript>
+            </form>
+            <th:block th:if="${decks != null}">
+                <p th:replace="~{fragments/layout :: notice(#{decks.notice})}"></p>
+                <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
+                    <time th:replace="~{fragments/layout :: localTime(${collectedAt})}"></time></p>
+            </th:block>
+            <p th:if="${decks == null}" class="empty-state" th:text="#{decks.notCollected}"></p>
+            <p th:if="${decks != null and #lists.isEmpty(decks)}" class="empty-state" th:text="#{decks.filter.empty}"></p>
+        </div>
+
+        <th:block th:if="${decks != null and not #lists.isEmpty(decks)}">
+            <p class="pager-range" th:text="#{decks.range(${from}, ${to}, ${total})}"></p>
+            <div class="card top-deck" th:each="d : ${decks}">
+                <div class="top-deck-head">
+                    <span class="top-deck-rank" th:text="#{decks.rank(${d.rank()})}"></span>
+                    <a th:href="@{/player/{tag}(tag=${d.pathTag()})}"><bdi th:text="${d.name()}"></bdi></a>
+                    <span class="top-deck-rating" th:text="#{decks.rating(${d.rating()})}"></span>
+                </div>
+                <div th:replace="~{fragments/layout :: deckGrid(${d.cards()})}"></div>
+                <th:block th:if="${not #lists.isEmpty(d.supportCards())}">
+                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${d.supportCards()})}"></div>
+                </th:block>
+                <div th:replace="~{fragments/layout :: deckMeta(${d.meta()})}"></div>
+            </div>
+            <nav class="pager" th:if="${prevPage != null or nextPage != null}">
+                <a class="btn btn-secondary" th:if="${prevPage != null}"
+                   th:href="@{/decks(card=${selectedCard},page=${prevPage})}" th:text="#{decks.prev}"></a>
+                <span class="pager-range" th:text="#{decks.range(${from}, ${to}, ${total})}"></span>
+                <a class="btn btn-secondary" th:if="${nextPage != null}"
+                   th:href="@{/decks(card=${selectedCard},page=${nextPage})}" th:text="#{decks.next}"></a>
+            </nav>
+        </th:block>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

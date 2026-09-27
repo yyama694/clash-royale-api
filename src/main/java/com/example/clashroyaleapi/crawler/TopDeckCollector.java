@@ -7,7 +7,8 @@ import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
-import com.example.clashroyaleapi.domain.CardUsage;
+import com.example.clashroyaleapi.domain.CardLevel;
+import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
 
@@ -45,7 +46,7 @@ class TopDeckCollector {
     private final Clock clock;
 
     private Instant pausedUntil = Instant.MIN;
-    private List<String> tags;
+    private List<PlayerRankingResponse.RankedPlayer> players;
     private int next;
     private List<TopDecks.SampledDeck> decks;
 
@@ -64,16 +65,16 @@ class TopDeckCollector {
             return;
         }
         try {
-            if (tags == null) {
+            if (players == null) {
                 if (upToDate(now)) {
                     return;
                 }
                 start();
                 return;
             }
-            collect(tags.get(next));
+            collect(players.get(next));
             next++;
-            if (next >= tags.size()) {
+            if (next >= players.size()) {
                 finish(now);
             }
         } catch (ApiAccessDeniedException e) {
@@ -84,31 +85,32 @@ class TopDeckCollector {
         }
     }
 
+    /** 誰のデッキかを持たない古い形式の集計(2026-09-27より前)は、待たずに集め直す(トッププレイヤーのデッキ画面に要るため)。 */
     private boolean upToDate(Instant now) {
-        return usageService.current()
-                .map(CardUsage::collectedAt)
+        return usageService.topDecks()
+                .filter(topDecks -> topDecks.decks().stream().allMatch(deck -> deck.player() != null))
+                .map(TopDecks::collectedAt)
                 .map(collectedAt -> now.isBefore(collectedAt.plus(properties.refreshEvery())))
                 .orElse(false);
     }
 
     private void start() {
-        List<String> ranked = apiClient.getPathOfLegendRankings("global", properties.players()).stream()
-                .map(PlayerRankingResponse.RankedPlayer::tag)
-                .toList();
+        List<PlayerRankingResponse.RankedPlayer> ranked =
+                apiClient.getPathOfLegendRankings("global", properties.players());
         if (ranked.isEmpty()) {
             pause(FAILURE_PAUSE, "the global player ranking is empty");
             return;
         }
-        tags = ranked;
+        players = ranked;
         next = 0;
         decks = new ArrayList<>();
-        log.info("top deck collector: started collecting the decks of {} players", tags.size());
+        log.info("top deck collector: started collecting the decks of {} players", players.size());
     }
 
-    private void collect(String tag) {
+    private void collect(PlayerRankingResponse.RankedPlayer ranked) {
         List<BattleLogEntry> battles;
         try {
-            battles = apiClient.getBattleLogUncached(tag);
+            battles = apiClient.getBattleLogUncached(ranked.tag());
         } catch (ResourceNotFoundException e) {
             // ランキング取得後にアカウントが消えた場合など。数に入れずに次へ進む。
             return;
@@ -118,10 +120,20 @@ class TopDeckCollector {
                 .filter(TopDeckCollector::isRankedDeck)
                 .findFirst()
                 .map(battle -> battle.team().get(0))
-                .ifPresent(me -> decks.add(new TopDecks.SampledDeck(
-                        me.cards().stream().map(BattleLogEntry.Card::id).toList(),
-                        me.supportCards() == null || me.supportCards().isEmpty()
-                                ? null : me.supportCards().get(0).id())));
+                .ifPresent(me -> decks.add(sample(ranked, me)));
+    }
+
+    private static TopDecks.SampledDeck sample(PlayerRankingResponse.RankedPlayer ranked,
+            BattleLogEntry.Participant me) {
+        BattleLogEntry.Card tower = me.supportCards() == null || me.supportCards().isEmpty()
+                ? null : me.supportCards().get(0);
+        return new TopDecks.SampledDeck(
+                me.cards().stream().map(BattleLogEntry.Card::id).toList(),
+                tower == null ? null : tower.id(),
+                new TopDecks.Player(ranked.tag(), GameText.stripFormatting(ranked.name()), ranked.rank(),
+                        ranked.eloRating(),
+                        me.cards().stream().map(card -> CardLevel.inGame(card.level(), card.maxLevel())).toList(),
+                        tower == null ? null : CardLevel.inGame(tower.level(), tower.maxLevel())));
     }
 
     private static boolean isRankedDeck(BattleLogEntry battle) {
@@ -132,8 +144,8 @@ class TopDeckCollector {
 
     private void finish(Instant now) {
         usageService.publish(new TopDecks(now, List.copyOf(decks)));
-        log.info("top deck collector: collected {} decks from {} players", decks.size(), tags.size());
-        tags = null;
+        log.info("top deck collector: collected {} decks from {} players", decks.size(), players.size());
+        players = null;
         decks = null;
     }
 
