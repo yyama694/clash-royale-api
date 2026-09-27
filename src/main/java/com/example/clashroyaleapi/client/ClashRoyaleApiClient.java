@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
+import com.example.clashroyaleapi.client.dto.CurrentRiverRaceResponse;
 import com.example.clashroyaleapi.client.dto.LocationsResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
@@ -61,6 +62,16 @@ public class ClashRoyaleApiClient {
                 .retrieve()
                 .body(ClanResponse.class));
         return requireFound(clan, "clan " + tag);
+    }
+
+    /** クラン対戦に参加していないクランでは404(ResourceNotFoundException)になる。 */
+    @Cacheable(cacheNames = "riverRaces", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#clanTag)")
+    public CurrentRiverRaceResponse getCurrentRiverRace(String clanTag) {
+        CurrentRiverRaceResponse race = call(() -> restClient.get()
+                .uri("/clans/{tag}/currentriverrace", Tags.normalize(clanTag))
+                .retrieve()
+                .body(CurrentRiverRaceResponse.class));
+        return requireFound(race, "current river race " + clanTag);
     }
 
     // 公式APIのクラン名検索。タグ検索と異なり、完全一致ではなく部分一致で検索される。

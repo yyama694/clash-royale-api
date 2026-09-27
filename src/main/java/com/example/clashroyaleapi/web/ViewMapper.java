@@ -11,6 +11,8 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardLevel;
+import com.example.clashroyaleapi.domain.CardUsage;
+import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.Deck;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
@@ -27,9 +29,11 @@ import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
+import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanMemberView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
+import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
@@ -122,6 +126,30 @@ public class ViewMapper {
                 CardLevel.inGame(card.maxLevel(), card.maxLevel()));
     }
 
+    /**
+     * 一緒に使われるカードの名前・画像はカード一覧から引く。一覧に無いID(集計後に削除されたカードなど)は出さない。
+     */
+    public CardUsageView toCardUsage(CardUsage usage, int cardId, Map<Integer, CardsResponse.Card> cardsById,
+            Locale locale) {
+        CardUsage.Usage card = usage.usageOf(cardId);
+        List<CardUsageView.PartnerView> partners = card.partners().stream()
+                .filter(partner -> cardsById.containsKey(partner.cardId()))
+                .map(partner -> {
+                    CardsResponse.Card c = cardsById.get(partner.cardId());
+                    return new CardUsageView.PartnerView(c.id(), labels.cardName(c.name(), locale),
+                            c.iconUrls() == null ? null : c.iconUrls().medium(), partner.percent());
+                })
+                .toList();
+        return new CardUsageView(
+                Math.round(card.percent() * 10) / 10.0,
+                card.users(),
+                card.sampleSize(),
+                card.rank() == 0 ? null : card.rank(),
+                card.rankedOf(),
+                timeFormatter.instant(usage.collectedAt(), locale),
+                partners);
+    }
+
     public CardCollectionView toCardCollection(CardCollection collection, Locale locale) {
         return new CardCollectionView(
                 collection.totalCards(),
@@ -187,6 +215,21 @@ public class ViewMapper {
                             timeFormatter.apiTimestamp(member.lastSeen(), locale).iso());
                 })
                 .toList();
+    }
+
+    public ClanWarView toClanWar(ClanWarParticipation war) {
+        return new ClanWarView(
+                war.battleDay(),
+                war.membersBattledToday(),
+                war.members().size(),
+                war.decksUsedToday(),
+                war.maxDecksToday(),
+                ClanWarParticipation.DECKS_PER_DAY,
+                war.members().stream()
+                        .map(m -> new ClanWarView.MemberView(Tags.toPathSegment(m.tag()),
+                                GameText.stripFormatting(m.name()), m.decksUsedToday(), m.decksUsedThisWeek(),
+                                m.decksUsedToday() == 0))
+                        .toList());
     }
 
     public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans,

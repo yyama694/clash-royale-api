@@ -34,6 +34,8 @@ public class CacheConfig {
             "players", "maximumSize=300," + TTL,
             // 1件=クラン1つ(メンバー50人)。
             "clans", "maximumSize=200," + TTL,
+            // 1件=クラン1つの今週のクラン対戦(参加者は元メンバーを含め最大で数十人)。
+            "riverRaces", "maximumSize=200," + TTL,
             // 1件=直近25試合分の参加者とデッキ。1件で数百枚のカードになる、最も重いキャッシュ。
             "battleLogs", "maximumSize=80," + TTL,
             "clanSearches", "maximumSize=200," + TTL,

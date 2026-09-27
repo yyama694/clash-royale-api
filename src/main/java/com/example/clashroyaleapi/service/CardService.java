@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,6 +41,13 @@ public class CardService {
                 .filter(card -> card.id() == id)
                 .findFirst()
                 .orElseThrow(() -> new CardNotFoundException("card not found: " + id));
+    }
+
+    /** 通常のカードとタワーユニットの両方を、IDで引けるようにする。 */
+    public Map<Integer, CardsResponse.Card> allById() {
+        CardsResponse cards = apiClient.getCards();
+        return Stream.concat(cards.items().stream(), cards.supportItems().stream())
+                .collect(Collectors.toMap(CardsResponse.Card::id, card -> card, (first, second) -> first));
     }
 
     /**
