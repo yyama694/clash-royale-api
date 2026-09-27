@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 
 /**
  * inbox/ に溜まった発見ログを、タグごとの正本 by-tag/ にまとめ、名前検索用の索引 by-name/ に反映する
- * (「プレイヤー名検索（検討中）.md」参照)。
+ * (「設計_プレイヤー名検索.md」参照)。
  * <ul>
  *   <li>by-tag/NNNN.tsv … tag \t name \t 最終確認日時(タグ順)。タグのハッシュ値で1024個に分ける</li>
  *   <li>by-name/ … {@link PlayerNameIndex} を参照</li>

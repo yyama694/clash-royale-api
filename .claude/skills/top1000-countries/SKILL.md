@@ -70,4 +70,4 @@ bash .claude/skills/top1000-countries/collect.sh <作業ディレクトリ>
 ## 関連
 
 - X投稿として出す場合は`x-post`スキルの手順に従う(`?from=x`、`&lang=`なし、ハッシュタグは日英両方)
-- 案の管理と実施記録は`Xポスト案.md`の案21
+- 案の管理は`Xポスト案.md`の案21、実施記録は`X運用記録.md`
