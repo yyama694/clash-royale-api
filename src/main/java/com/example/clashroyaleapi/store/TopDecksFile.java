@@ -17,7 +17,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link TopDecks} の保存先。1行目が集計日時(ISO形式)、2行目以降が1人1行で「カードID(カンマ区切り) \t タワーユニットID」。
+ * {@link TopDecks} の保存先。1行目が集計日時(ISO形式)、2行目以降が1人1行で
+ * 「カードID(カンマ区切り) \t タワーユニットID \t タグ \t 順位 \t レーティング \t レベル(カンマ区切り) \t タワーユニットのレベル \t 名前」。
+ * 3列目以降は2026-09-27に足した。それより前のファイル(2列)も読め、そのときは player が null になる。
+ * 名前はプレイヤーが自由に付けるので、タブ・改行を含まないよう空白に置き換えて最後の列に置く。
  * 集計には1時間近くかかるため、再起動(デプロイ)のたびに前回の結果が消えないようファイルに残す。
  */
 public class TopDecksFile {
@@ -59,11 +62,14 @@ public class TopDecksFile {
             writer.write(topDecks.collectedAt().toString());
             writer.write('\n');
             for (TopDecks.SampledDeck deck : topDecks.decks()) {
-                writer.write(String.join(",", deck.cardIds().stream().map(String::valueOf).toList()));
-                writer.write('\t');
-                if (deck.towerTroopId() != null) {
-                    writer.write(deck.towerTroopId().toString());
+                List<String> columns = new ArrayList<>(List.of(joinInts(deck.cardIds()), orEmpty(deck.towerTroopId())));
+                TopDecks.Player player = deck.player();
+                if (player != null) {
+                    columns.addAll(List.of(player.tag(), String.valueOf(player.rank()), String.valueOf(player.rating()),
+                            joinInts(player.levels()), orEmpty(player.towerLevel()),
+                            player.name().replaceAll("[\\t\\r\\n]", " ")));
                 }
+                writer.write(String.join("\t", columns));
                 writer.write('\n');
             }
         }
@@ -73,11 +79,32 @@ public class TopDecksFile {
 
     private static TopDecks.SampledDeck parseDeck(String line) {
         String[] columns = line.split("\t", -1);
-        List<Integer> cards = Arrays.stream(columns[0].split(","))
-                .filter(id -> !id.isBlank())
+        List<Integer> cards = parseInts(columns[0]);
+        Integer tower = columns.length > 1 ? parseNullable(columns[1]) : null;
+        if (columns.length < 8) {
+            return new TopDecks.SampledDeck(cards, tower);
+        }
+        return new TopDecks.SampledDeck(cards, tower, new TopDecks.Player(columns[2], columns[7],
+                Integer.parseInt(columns[3]), Integer.parseInt(columns[4]), parseInts(columns[5]),
+                parseNullable(columns[6])));
+    }
+
+    private static String joinInts(List<Integer> values) {
+        return String.join(",", values.stream().map(String::valueOf).toList());
+    }
+
+    private static String orEmpty(Integer value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private static List<Integer> parseInts(String column) {
+        return Arrays.stream(column.split(","))
+                .filter(value -> !value.isBlank())
                 .map(Integer::valueOf)
                 .toList();
-        Integer tower = columns.length > 1 && !columns[1].isBlank() ? Integer.valueOf(columns[1]) : null;
-        return new TopDecks.SampledDeck(cards, tower);
+    }
+
+    private static Integer parseNullable(String column) {
+        return column.isBlank() ? null : Integer.valueOf(column);
     }
 }

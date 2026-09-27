@@ -581,6 +581,39 @@ td.cell-action {
     color: var(--color-text-muted);
 }
 
+/* トッププレイヤーのデッキ画面。100人分を並べるので、PC幅では8枚を1列に詰め、カード名は画像に任せて省く。 */
+.top-deck .deck-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.top-deck .deck-grid .card-name {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .top-deck .deck-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.top-deck-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.top-deck-rank {
+    font-weight: 700;
+}
+
+.top-deck-rating {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
 .page-summary {
     font-size: 0.9rem;
     line-height: 1.6;

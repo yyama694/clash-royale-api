@@ -6,7 +6,6 @@ import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
-import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
 
@@ -45,7 +44,7 @@ class TopDeckCollectorTest {
     void setUp() {
         apiClient = mock(ClashRoyaleApiClient.class);
         usageService = mock(CardUsageService.class);
-        when(usageService.current()).thenReturn(Optional.empty());
+        when(usageService.topDecks()).thenReturn(Optional.empty());
         clock = new MutableClock(Instant.parse("2026-09-26T00:00:00Z"));
         collector = new TopDeckCollector(apiClient, usageService,
                 new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1000), clock);
@@ -53,6 +52,10 @@ class TopDeckCollectorTest {
 
     private static PlayerRankingResponse.RankedPlayer ranked(String tag) {
         return new PlayerRankingResponse.RankedPlayer(tag, "name", 1, 1, 13, null);
+    }
+
+    private static TopDecks.Player playerInfo() {
+        return new TopDecks.Player("#A", "name", 1, 3000, List.of(16), null);
     }
 
     private static BattleLogEntry.Card card(int id) {
@@ -75,7 +78,8 @@ class TopDeckCollectorTest {
 
     @Test
     void 上位全員の直近のランク戦のデッキを1人ずつ集めてから渡す() {
-        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A"), ranked("#B")));
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(
+                new PlayerRankingResponse.RankedPlayer("#A", "Miku", 70, 2887, 1, null), ranked("#B")));
         // 対戦履歴は新しい順。ランク戦より新しいフレンドバトルのデッキは使わない。
         when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(
                 battle("friendly", deck(100, 8), List.of()),
@@ -95,6 +99,10 @@ class TopDeckCollectorTest {
         assertEquals(List.of(0, 1, 2, 3, 4, 5, 6, 7), decks.get(0).cardIds());
         assertEquals(159000000, decks.get(0).towerTroopId());
         assertNull(decks.get(1).towerTroopId());
+        // レベルは公式APIの値(14/14)をゲーム内表記に直して残す。
+        assertEquals(new TopDecks.Player("#A", "Miku", 1, 2887, List.of(16, 16, 16, 16, 16, 16, 16, 16), 16),
+                decks.get(0).player());
+        assertNull(decks.get(1).player().towerLevel());
     }
 
     @Test
@@ -129,8 +137,9 @@ class TopDeckCollectorTest {
 
     @Test
     void 前回の集計から時間が経っていなければ何もしない() {
-        CardUsage recent = CardUsage.of(new TopDecks(clock.instant().minus(Duration.ofHours(1)), List.of()));
-        when(usageService.current()).thenReturn(Optional.of(recent));
+        TopDecks recent = new TopDecks(clock.instant().minus(Duration.ofHours(1)),
+                List.of(new TopDecks.SampledDeck(List.of(1), null, playerInfo())));
+        when(usageService.topDecks()).thenReturn(Optional.of(recent));
 
         collector.collectNext();
 
@@ -139,8 +148,20 @@ class TopDeckCollectorTest {
 
     @Test
     void 前回の集計から時間が経っていれば集め直す() {
-        CardUsage old = CardUsage.of(new TopDecks(clock.instant().minus(Duration.ofHours(25)), List.of()));
-        when(usageService.current()).thenReturn(Optional.of(old));
+        TopDecks old = new TopDecks(clock.instant().minus(Duration.ofHours(25)),
+                List.of(new TopDecks.SampledDeck(List.of(1), null, playerInfo())));
+        when(usageService.topDecks()).thenReturn(Optional.of(old));
+
+        collector.collectNext();
+
+        verify(apiClient).getPathOfLegendRankings("global", 1000);
+    }
+
+    @Test
+    void 誰のデッキかを持たない古い形式の集計なら時間が経っていなくても集め直す() {
+        TopDecks legacy = new TopDecks(clock.instant().minus(Duration.ofHours(1)),
+                List.of(new TopDecks.SampledDeck(List.of(1), null)));
+        when(usageService.topDecks()).thenReturn(Optional.of(legacy));
 
         collector.collectNext();
 
