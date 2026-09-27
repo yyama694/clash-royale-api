@@ -90,7 +90,7 @@ class PageSummariesTest {
                 new ClanWarParticipation.Member("#C", "c", 0, 0)));
 
         assertEquals(FSI + "Clan" + PDI + "(#CLAN1)はクラロワのクランです。クランスコア133,292、メンバー3/50人。"
-                        + "直近7日以内にプレイしたメンバーは3人中2人。今日のクラン対戦は3人中1人が攻撃済み。",
+                        + "直近7日以内にアクセスしたメンバーは3人中2人。今日のクラン対戦は3人中1人が攻撃済み。",
                 summaries.clanSummary(clan, "Clan", war, Locale.JAPANESE));
     }
 

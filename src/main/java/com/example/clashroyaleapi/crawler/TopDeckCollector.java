@@ -115,7 +115,7 @@ class TopDeckCollector {
             // ランキング取得後にアカウントが消えた場合など。数に入れずに次へ進む。
             return;
         }
-        // 対戦履歴は新しい順。直近25戦にランク戦が無い人は数に入れない(上位勢ではまず起きない)。
+        // 対戦履歴は新しい順(公式APIが返すのは通常30戦)。その中にランク戦が無い人は数に入れない(上位勢ではまず起きない)。
         battles.stream()
                 .filter(TopDeckCollector::isRankedDeck)
                 .findFirst()

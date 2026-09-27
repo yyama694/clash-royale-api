@@ -46,6 +46,11 @@ public class LabelResolver {
         return messageSource.getMessage(key, null, rawName, locale);
     }
 
+    /** 公式名とは別にプレイヤーの間で通っている呼び名(日本語の「ペッカ」など)。無ければ null。 */
+    public String cardAlias(String rawName, Locale locale) {
+        return isEmpty(rawName) ? null : messageSource.getMessage("cardalias." + rawName, null, null, locale);
+    }
+
     /**
      * ゲームモードは gameMode.name が "Ranked1v1_NewArena2" のようにアリーナやイベントごとに増えるため、
      * name だけの完全一致では追いつかない。name の辞書(gamemode.*)に無ければ、分類として安定している
