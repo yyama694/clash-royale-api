@@ -52,9 +52,20 @@ echo "(UTC換算: $(date -u -d "@$START_EPOCH" '+%Y-%m-%d %H:%M:%S') 〜 $(date 
 
 BOT_REGEX='GPTBot|ClaudeBot|Googlebot|GoogleOther|Google-Extended|bingbot|YandexBot|Baiduspider|DuckDuckBot|facebookexternalhit|Applebot|PetalBot|MJ12bot|AhrefsBot|SemrushBot|DotBot|SeznamBot|Bytespider|CCBot|meta-externalagent|curl/|python-requests|Go-http-client|l9scan|masscan|Zgrab|libwww-perl|Wget/|okhttp|Scrapy|[Bb]ot[/ .]|/bot|[Ss]pider|[Cc]rawl'
 
-# ログ全体を1回のawkパスだけで対象範囲に絞る(1行ごとにdateを呼ぶと110000行規模で
-# 実用的な速度が出ないため、月名→数値の変換だけをawk内テーブルで行う)。
-sudo awk -v start="$START_KEY" -v end="$END_KEY" '
+# logrotateが週1回(日曜 00:00 UTC=日本時間 9:00)access_logをaccess_log-YYYYMMDDに切り替える。
+# 現行のaccess_logだけ読むと切り替え前の分が抜けるため(2026-09-27に9/26が0件になって判明)、
+# 範囲の開始より後に最終更新されたローテーション済みファイルも読む。/var/log/httpdは
+# rootしか中を見られずglobが展開されないので、sudo findで探す。zcat -fは圧縮の有無どちらも読める。
+mapfile -t LOG_FILES < <(sudo find /var/log/httpd -maxdepth 1 -name 'access_log-*' -newermt "@$START_EPOCH" | sort)
+LOG_FILES+=(/var/log/httpd/access_log)
+echo "読んだログ: ${LOG_FILES[*]##*/}"
+
+# ローテーション済みファイルは1GBを超えるので、範囲にかかるUTC日付の文字列でまず粗く絞る
+# (JSTの1日はUTCの2日にまたがる)。そのうえで1回のawkパスで秒単位の範囲に絞る
+# (1行ごとにdateを呼ぶと実用的な速度が出ないため、月名→数値の変換だけをawk内テーブルで行う)。
+DAY_FROM=$(LC_ALL=C date -u -d "@$START_EPOCH" +%d/%b/%Y)
+DAY_TO=$(LC_ALL=C date -u -d "@$END_EPOCH" +%d/%b/%Y)
+sudo zcat -f "${LOG_FILES[@]}" | { grep -F -e "[$DAY_FROM:" -e "[$DAY_TO:" || true; } | awk -v start="$START_KEY" -v end="$END_KEY" '
 BEGIN {
     split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", months, " ");
     for (i = 1; i <= 12; i++) monnum[months[i]] = i;
@@ -64,7 +75,7 @@ BEGIN {
         key = sprintf("%04d%02d%02d%02d%02d%02d", m[3], monnum[m[2]], m[1], m[4], m[5], m[6]);
         if (key >= start && key <= end) print;
     }
-}' /var/log/httpd/access_log > /tmp/access-check-window.log
+}' > /tmp/access-check-window.log
 sudo chmod 644 /tmp/access-check-window.log
 
 echo
@@ -170,12 +181,14 @@ grep -iE 't\.co|x\.com' /tmp/access-check-clean.log || echo "(なし)"
 # X等に出すURLには ?from=x を付けている(2026-09-21、フェーズ1.55)。
 # リファラが付かない流入でもこれで数えられる。クエリの先頭(?from=)にも
 # 2番目以降のパラメータ(&from=)にも付き得るため両方拾う。
+# リファラ欄やビーコンのURLにも同じfrom=が載るため、行全体から拾うと1回の訪問が5件前後に
+# 膨らむ(2026-09-27に判明)。リクエストのURL($7)だけを、ビーコンを除いて数える。
 echo
 echo "== 流入元タグ(?from=)付きのアクセス =="
 echo "-- 除外前(clean) --"
-grep -ohE '[?&]from=[A-Za-z0-9_-]+' /tmp/access-check-clean.log | sed -E 's/^&/?/' | sort | uniq -c | sort -rn || echo "(なし)"
+awk '$7 !~ /^\/beacon/ {print $7}' /tmp/access-check-clean.log | grep -oE '[?&]from=[A-Za-z0-9_-]+' | sed -E 's/^&/?/' | sort | uniq -c | sort -rn || echo "(なし)"
 echo "-- 人間候補のみ --"
-grep -ohE '[?&]from=[A-Za-z0-9_-]+' /tmp/access-check-human.log | sed -E 's/^&/?/' | sort | uniq -c | sort -rn || echo "(なし)"
+awk '$7 !~ /^\/beacon/ {print $7}' /tmp/access-check-human.log | grep -oE '[?&]from=[A-Za-z0-9_-]+' | sed -E 's/^&/?/' | sort | uniq -c | sort -rn || echo "(なし)"
 
 # ビーコン(/beacon)はブラウザがJSを実行したときだけ叩かれる(2026-09-22追加、フェーズ1.61)。
 # HTMLを取得するだけのクローラーはここに現れないため、ログのUA/IPによる推定と違って

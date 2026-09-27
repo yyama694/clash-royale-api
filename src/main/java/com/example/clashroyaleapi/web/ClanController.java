@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
+import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberSortKey;
@@ -80,6 +81,15 @@ public class ClanController {
                 viewMapper.toMembers(clanService.sortMembers(clan.memberList(), sortKey, direction), locale));
         model.addAttribute("sortBy", sortKey == null ? null : sortKey.code());
         model.addAttribute("sortDir", direction.code());
+
+        // クラン対戦の取得に失敗してもメンバー一覧は表示したいので、ここだけは個別に握る。
+        try {
+            clanService.findWarParticipation(clan).ifPresentOrElse(
+                    war -> model.addAttribute("war", viewMapper.toClanWar(war)),
+                    () -> model.addAttribute("warNotParticipating", true));
+        } catch (ClashRoyaleApiException e) {
+            model.addAttribute("warErrorKey", e.messageKey());
+        }
         return "clan";
     }
 }
