@@ -3,7 +3,6 @@ package com.example.clashroyaleapi.crawler;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
-import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
@@ -60,20 +59,29 @@ class TopDeckCollectorTest {
         return new BattleLogEntry.Card(id, "card", 14, 14, 3, null);
     }
 
-    private static PlayerResponse player(List<BattleLogEntry.Card> deck, List<BattleLogEntry.Card> support) {
-        return new PlayerResponse("#P", "name", 50, 9000, 9000, 0, 0, 0, null, deck, support, null, null, null,
-                List.of());
+    private static List<BattleLogEntry.Card> deck(int firstId, int size) {
+        return IntStream.range(firstId, firstId + size).mapToObj(TopDeckCollectorTest::card).toList();
     }
 
-    private static List<BattleLogEntry.Card> fullDeck() {
-        return IntStream.range(0, 8).mapToObj(TopDeckCollectorTest::card).toList();
+    private static BattleLogEntry battle(String type, List<BattleLogEntry.Card> cards,
+            List<BattleLogEntry.Card> support) {
+        return new BattleLogEntry(type, "20260926T000000.000Z", null,
+                List.of(new BattleLogEntry.Participant("#P", "name", 1, cards, support)), List.of());
+    }
+
+    private static BattleLogEntry ranked(List<BattleLogEntry.Card> cards, List<BattleLogEntry.Card> support) {
+        return battle("pathOfLegend", cards, support);
     }
 
     @Test
-    void 上位全員のデッキを1人ずつ集めてから渡す() {
+    void 上位全員の直近のランク戦のデッキを1人ずつ集めてから渡す() {
         when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A"), ranked("#B")));
-        when(apiClient.getPlayerUncached("#A")).thenReturn(player(fullDeck(), List.of(card(159000000))));
-        when(apiClient.getPlayerUncached("#B")).thenReturn(player(fullDeck(), List.of()));
+        // 対戦履歴は新しい順。ランク戦より新しいフレンドバトルのデッキは使わない。
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(
+                battle("friendly", deck(100, 8), List.of()),
+                ranked(deck(0, 8), List.of(card(159000000))),
+                ranked(deck(200, 8), List.of())));
+        when(apiClient.getBattleLogUncached("#B")).thenReturn(List.of(ranked(deck(0, 8), List.of())));
 
         collector.collectNext();
         collector.collectNext();
@@ -84,18 +92,33 @@ class TopDeckCollectorTest {
         verify(usageService).publish(captor.capture());
         List<TopDecks.SampledDeck> decks = captor.getValue().decks();
         assertEquals(2, decks.size());
+        assertEquals(List.of(0, 1, 2, 3, 4, 5, 6, 7), decks.get(0).cardIds());
         assertEquals(159000000, decks.get(0).towerTroopId());
         assertNull(decks.get(1).towerTroopId());
-        assertEquals(List.of(0, 1, 2, 3, 4, 5, 6, 7), decks.get(0).cardIds());
     }
 
     @Test
-    void 八枚そろっていないデッキと見つからないプレイヤーは標本に入れない() {
+    void 八枚そろっていないランク戦は飛ばして次のランク戦を使う() {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A")));
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(
+                ranked(deck(100, 7), List.of()),
+                ranked(deck(0, 8), List.of())));
+
+        collector.collectNext();
+        collector.collectNext();
+
+        ArgumentCaptor<TopDecks> captor = ArgumentCaptor.forClass(TopDecks.class);
+        verify(usageService).publish(captor.capture());
+        assertEquals(List.of(0, 1, 2, 3, 4, 5, 6, 7), captor.getValue().decks().get(0).cardIds());
+    }
+
+    @Test
+    void ランク戦をしていない人と見つからないプレイヤーは標本に入れない() {
         when(apiClient.getPathOfLegendRankings("global", 1000))
                 .thenReturn(List.of(ranked("#A"), ranked("#B"), ranked("#C")));
-        when(apiClient.getPlayerUncached("#A")).thenReturn(player(fullDeck(), null));
-        when(apiClient.getPlayerUncached("#B")).thenReturn(player(List.of(card(1)), null));
-        when(apiClient.getPlayerUncached("#C")).thenThrow(new ResourceNotFoundException("gone", null));
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(ranked(deck(0, 8), null)));
+        when(apiClient.getBattleLogUncached("#B")).thenReturn(List.of(battle("clanMate", deck(0, 8), null)));
+        when(apiClient.getBattleLogUncached("#C")).thenThrow(new ResourceNotFoundException("gone", null));
 
         IntStream.range(0, 4).forEach(i -> collector.collectNext());
 
@@ -127,19 +150,19 @@ class TopDeckCollectorTest {
     @Test
     void 呼び出し制限に当たったら少し待ってから同じ人をやり直す() {
         when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A")));
-        when(apiClient.getPlayerUncached("#A"))
+        when(apiClient.getBattleLogUncached("#A"))
                 .thenThrow(new ApiRateLimitException("too many requests", null))
-                .thenReturn(player(fullDeck(), null));
+                .thenReturn(List.of(ranked(deck(0, 8), null)));
 
         collector.collectNext();
         collector.collectNext();
         collector.collectNext();
-        verify(apiClient, times(1)).getPlayerUncached("#A");
+        verify(apiClient, times(1)).getBattleLogUncached("#A");
 
         clock.advance(Duration.ofMinutes(2));
         collector.collectNext();
 
-        verify(apiClient, times(2)).getPlayerUncached("#A");
+        verify(apiClient, times(2)).getBattleLogUncached("#A");
         verify(usageService).publish(any());
     }
 

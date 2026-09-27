@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * ランク戦の世界上位プレイヤーが、集計した時点でゲーム内にセットしていたデッキ(currentDeck)の標本。
- * 対戦で実際に使った回数ではない点に注意(公式APIは上位プレイヤーの対戦を集計する手段を持たない)。
+ * ランク戦の世界上位プレイヤーが、直近のランク戦で使ったデッキの標本(1人1デッキ)。
+ * 使った回数は数えていない点に注意(公式APIの対戦履歴は1人25戦分しか返さない)。
  */
 public record TopDecks(Instant collectedAt, List<SampledDeck> decks) {
 

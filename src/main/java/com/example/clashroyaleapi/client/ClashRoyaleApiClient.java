@@ -48,15 +48,6 @@ public class ClashRoyaleApiClient {
     // キーは正規化後のタグにする。"2pyl" と "#2PYL" のような表記違いで同じプレイヤーを取り直さないため。
     @Cacheable(cacheNames = "players", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#tag)")
     public PlayerResponse getPlayer(String tag) {
-        return fetchPlayer(tag);
-    }
-
-    /** 上位プレイヤーのデッキ集計用。getRiverRaceLog と同じ理由でキャッシュしない。 */
-    public PlayerResponse getPlayerUncached(String tag) {
-        return fetchPlayer(tag);
-    }
-
-    private PlayerResponse fetchPlayer(String tag) {
         PlayerResponse player = call(() -> restClient.get()
                 .uri("/players/{tag}", Tags.normalize(tag))
                 .retrieve()
@@ -74,7 +65,7 @@ public class ClashRoyaleApiClient {
     }
 
     /** クラン対戦に参加していないクランでは404(ResourceNotFoundException)になる。 */
-    @Cacheable("riverRaces")
+    @Cacheable(cacheNames = "riverRaces", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#clanTag)")
     public CurrentRiverRaceResponse getCurrentRiverRace(String clanTag) {
         CurrentRiverRaceResponse race = call(() -> restClient.get()
                 .uri("/clans/{tag}/currentriverrace", Tags.normalize(clanTag))
