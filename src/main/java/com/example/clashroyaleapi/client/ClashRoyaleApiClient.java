@@ -51,8 +51,8 @@ public class ClashRoyaleApiClient {
         PlayerResponse player = call(() -> restClient.get()
                 .uri("/players/{tag}", Tags.normalize(tag))
                 .retrieve()
-                .body(PlayerResponse.class));
-        return requireFound(player, "player " + tag);
+                .body(PlayerResponse.class), ResourceNotFoundException.PLAYER);
+        return requireFound(player, ResourceNotFoundException.PLAYER, "player " + tag);
     }
 
     @Cacheable(cacheNames = "clans", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#tag)")
@@ -60,8 +60,8 @@ public class ClashRoyaleApiClient {
         ClanResponse clan = call(() -> restClient.get()
                 .uri("/clans/{tag}", Tags.normalize(tag))
                 .retrieve()
-                .body(ClanResponse.class));
-        return requireFound(clan, "clan " + tag);
+                .body(ClanResponse.class), ResourceNotFoundException.CLAN);
+        return requireFound(clan, ResourceNotFoundException.CLAN, "clan " + tag);
     }
 
     /** クラン対戦に参加していないクランでは404(ResourceNotFoundException)になる。 */
@@ -71,7 +71,7 @@ public class ClashRoyaleApiClient {
                 .uri("/clans/{tag}/currentriverrace", Tags.normalize(clanTag))
                 .retrieve()
                 .body(CurrentRiverRaceResponse.class));
-        return requireFound(race, "current river race " + clanTag);
+        return requireFound(race, ResourceNotFoundException.ANY, "current river race " + clanTag);
     }
 
     // 公式APIのクラン名検索。タグ検索と異なり、完全一致ではなく部分一致で検索される。
@@ -164,7 +164,7 @@ public class ClashRoyaleApiClient {
                 .uri("/players/{tag}/battlelog", Tags.normalize(tag))
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<BattleLogEntry>>() {
-                }));
+                }), ResourceNotFoundException.PLAYER);
         return log == null ? List.of() : log;
     }
 
@@ -183,10 +183,15 @@ public class ClashRoyaleApiClient {
     }
 
     private <T> T call(Supplier<T> request) {
+        return call(request, ResourceNotFoundException.ANY);
+    }
+
+    /** @param notFoundKey 404(と400)のときに画面に出す文言のキー。何を探していたかで変える。 */
+    private <T> T call(Supplier<T> request, String notFoundKey) {
         try {
             return request.get();
         } catch (RestClientResponseException e) {
-            throw translate(e);
+            throw translate(e, notFoundKey);
         } catch (ResourceAccessException e) {
             // 接続タイムアウト・読み取りタイムアウト・名前解決失敗。未捕捉だと500の白画面に落ちる。
             throw new ApiUnavailableException("clash royale api not reachable", e);
@@ -196,10 +201,10 @@ public class ClashRoyaleApiClient {
         }
     }
 
-    static ClashRoyaleApiException translate(RestClientResponseException e) {
+    static ClashRoyaleApiException translate(RestClientResponseException e, String notFoundKey) {
         return switch (e.getStatusCode().value()) {
             // タグとして不正な形式の場合、公式APIは404ではなく400を返す。どちらも「見つからない」として扱う。
-            case 400, 404 -> new ResourceNotFoundException(e.getStatusText(), e);
+            case 400, 404 -> new ResourceNotFoundException(notFoundKey, e.getStatusText(), e);
             case 403 -> new ApiAccessDeniedException(e.getStatusText(), e);
             case 429 -> new ApiRateLimitException(e.getStatusText(), e);
             // メンテナンス中は {"reason":"inMaintenance",...} が返る(2026-09-24に本番ログで確認)。
@@ -211,9 +216,9 @@ public class ClashRoyaleApiClient {
     }
 
     // RestClient は 204 やボディ空のときに null を返しうるため、呼び出し側でNPEにせず例外に寄せる。
-    private <T> T requireFound(T body, String what) {
+    private <T> T requireFound(T body, String notFoundKey, String what) {
         if (body == null) {
-            throw new ResourceNotFoundException("empty body for " + what, null);
+            throw new ResourceNotFoundException(notFoundKey, "empty body for " + what, null);
         }
         return body;
     }

@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     // @ExceptionHandler には @ControllerAdvice の @ModelAttribute が適用されないため、
-    // 全画面共通の属性(言語切替リンクとhreflangが使う)をここで自分で詰める。
+    // 全画面共通の属性(言語切替リンク・hreflang・検索フォームの文言が使う)をここで自分で詰める。
     private final GlobalModelAttributes modelAttributes;
 
     public GlobalExceptionHandler(GlobalModelAttributes modelAttributes) {
@@ -76,6 +76,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("currentUri", modelAttributes.currentUri(request));
         model.addAttribute("siteBaseUrl", modelAttributes.siteBaseUrl(request));
         model.addAttribute("languageCodes", modelAttributes.languageCodes());
+        model.addAttribute("nameSearchEnabled", modelAttributes.nameSearchEnabled());
         return "error";
     }
 

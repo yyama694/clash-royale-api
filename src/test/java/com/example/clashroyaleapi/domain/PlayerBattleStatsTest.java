@@ -191,12 +191,54 @@ class PlayerBattleStatsTest {
         assertEquals(1, stats.wins());
     }
 
+    @Test
+    void フレンドバトルは勝敗にもカードの集計にも入れず除いた数だけ残す() {
+        List<BattleLogEntry> log = new ArrayList<>();
+        log.add(battle(3, 0, "Knight"));
+        // 同じクランの相手と続けて戦ったフレンドバトル。数えると Golem が苦手カードに並んでしまう。
+        for (int i = 0; i < 5; i++) {
+            log.add(battle("clanMate", "Friendly", 0, 3, "Golem"));
+        }
+        log.add(battle("friendly", "Friendly", 0, 1, "Golem"));
+
+        PlayerBattleStats stats = PlayerBattleStats.from(log);
+
+        assertEquals(1, stats.total());
+        assertEquals(1, stats.wins());
+        assertEquals(0, stats.losses());
+        assertEquals(6, stats.friendlyExcluded());
+        assertTrue(stats.weakCards().isEmpty());
+    }
+
+    @Test
+    void 名前にFriendlyと付く特殊ルール戦でも対戦の種類がフレンドバトルでなければ数える() {
+        // RR_*_Friendly は type が unknown で、相手は他クランのプレイヤー(2026-09-27に実データで確認)。
+        PlayerBattleStats stats = PlayerBattleStats.from(List.of(battle("unknown", "RR_Rage_Friendly", 3, 0, "Knight")));
+
+        assertEquals(1, stats.total());
+        assertEquals(0, stats.friendlyExcluded());
+    }
+
+    @Test
+    void すべてフレンドバトルなら集計する対戦は0件になる() {
+        PlayerBattleStats stats = PlayerBattleStats.from(List.of(battle("clanMate", "Friendly", 3, 0, "Knight")));
+
+        assertEquals(0, stats.total());
+        assertEquals(1, stats.friendlyExcluded());
+        assertTrue(stats.favoriteCards().isEmpty());
+    }
+
     private static BattleLogEntry battle(int selfCrowns, int opponentCrowns, String opponentCardName) {
+        return battle("PvP", "Ladder", selfCrowns, opponentCrowns, opponentCardName);
+    }
+
+    private static BattleLogEntry battle(String type, String gameMode, int selfCrowns, int opponentCrowns,
+            String opponentCardName) {
         BattleLogEntry.Participant self = participant("#SELF", "Self", selfCrowns, List.of());
         BattleLogEntry.Participant opponent =
                 participant("#OPP", "Opponent", opponentCrowns, List.of(card(opponentCardName)));
-        return new BattleLogEntry("PvP", "20260101T000000.000Z",
-                new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of(opponent));
+        return new BattleLogEntry(type, "20260101T000000.000Z",
+                new BattleLogEntry.GameMode(gameMode), List.of(self), List.of(opponent));
     }
 
     private static BattleLogEntry.Participant participant(String tag, String name, int crowns,

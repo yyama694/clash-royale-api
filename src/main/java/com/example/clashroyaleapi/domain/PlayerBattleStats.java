@@ -12,9 +12,16 @@ import java.util.stream.Collectors;
 /**
  * 直近の対戦履歴(battlelog)から、勝敗数と「対戦相手が使用したカードに対する自分の勝率」を集計する。
  * 得意カード=相手がそのカードを使った対戦での勝率が高いカード、苦手カード=勝率が低いカード、という定義。
+ * フレンドバトルは集計せず、除いた数を friendlyExcluded に残す(total には含めない)。
  */
-public record PlayerBattleStats(int total, int wins, int losses, int draws, List<CardPerformance> favoriteCards,
-        List<CardPerformance> weakCards) {
+public record PlayerBattleStats(int total, int wins, int losses, int draws, int friendlyExcluded,
+        List<CardPerformance> favoriteCards, List<CardPerformance> weakCards) {
+
+    // フレンドバトルは練習や身内の対戦で、同じ相手と続けて戦うことが多い。同じ8枚が何度も数えられて
+    // 得意/苦手カードが実戦と関係ない結果になる(世界1位のプレイヤーで直近30戦中13戦を占めていた)。
+    // type の値は2026-09-27に42人・約1,150戦で確かめた。clanMate は全戦が同じクランの相手だった。
+    // "unknown" の特殊ルール戦(RR_*_Friendly など)は名前に Friendly と付くが、相手は全戦が他クランで対象外。
+    private static final Set<String> FRIENDLY_TYPES = Set.of("clanMate", "friendly");
 
     // 使用回数がこれ未満のカードはノイズとして除外する。5回はユーザー指定の仕様値のため、
     // Wilson score で少数回のカードの順位が下がるからといって下げないこと。
@@ -31,10 +38,15 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
         int wins = 0;
         int losses = 0;
         int draws = 0;
+        int friendly = 0;
         Map<String, CardTally> tallies = new LinkedHashMap<>();
 
         for (BattleLogEntry battle : battleLog) {
             if (!BattleResult.hasBothSides(battle)) {
+                continue;
+            }
+            if (FRIENDLY_TYPES.contains(battle.type())) {
+                friendly++;
                 continue;
             }
             BattleResult result = BattleResult.of(battle);
@@ -70,7 +82,7 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, List
                 .limit(size)
                 .toList();
 
-        return new PlayerBattleStats(wins + losses + draws, wins, losses, draws, favorite, weak);
+        return new PlayerBattleStats(wins + losses + draws, wins, losses, draws, friendly, favorite, weak);
     }
 
     private static void tally(Map<String, CardTally> tallies, BattleLogEntry.Participant opponent,

@@ -63,21 +63,27 @@
         <div th:if="${battleStats}" class="card">
             <h2 th:text="#{stats.heading}"></h2>
             <p th:replace="~{fragments/layout :: notice(#{stats.notice})}"></p>
-            <p class="stats-summary">
-                <span th:text="#{stats.summary(${battleStats.total()}, ${battleStats.wins()}, ${battleStats.losses()})}"></span>
-                <span th:if="${battleStats.draws() > 0}" th:text="#{stats.draws(${battleStats.draws()})}"></span>
-            </p>
+            <th:block th:if="${battleStats.friendlyExcluded() > 0}">
+                <p th:replace="~{fragments/layout :: notice(#{stats.friendlyExcluded(${battleStats.friendlyExcluded()})})}"></p>
+            </th:block>
+            <th:block th:if="${battleStats.total() > 0}">
+                <p class="stats-summary">
+                    <span th:text="#{stats.summary(${battleStats.total()}, ${battleStats.wins()}, ${battleStats.losses()})}"></span>
+                    <span th:if="${battleStats.draws() > 0}" th:text="#{stats.draws(${battleStats.draws()})}"></span>
+                </p>
 
-            <div th:if="${battleStats.hasCardRanking()}">
-                <p th:replace="~{fragments/layout :: notice(#{stats.method})}"></p>
+                <div th:if="${battleStats.hasCardRanking()}">
+                    <p th:replace="~{fragments/layout :: notice(#{stats.method})}"></p>
 
-                <h3 th:text="#{stats.favorite.heading}"></h3>
-                <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.favoriteCards()}, 'good')}"></div>
+                    <h3 th:text="#{stats.favorite.heading}"></h3>
+                    <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.favoriteCards()}, 'good')}"></div>
 
-                <h3 th:text="#{stats.weak.heading}"></h3>
-                <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.weakCards()}, 'bad')}"></div>
-            </div>
-            <p th:unless="${battleStats.hasCardRanking()}" class="empty-state" th:text="#{stats.insufficient}"></p>
+                    <h3 th:text="#{stats.weak.heading}"></h3>
+                    <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.weakCards()}, 'bad')}"></div>
+                </div>
+                <p th:unless="${battleStats.hasCardRanking()}" class="empty-state" th:text="#{stats.insufficient}"></p>
+            </th:block>
+            <p th:if="${battleStats.total() == 0}" class="empty-state" th:text="#{stats.onlyFriendly}"></p>
         </div>
 
         <div class="card">
