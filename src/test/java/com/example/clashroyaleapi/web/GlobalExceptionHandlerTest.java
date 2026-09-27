@@ -34,6 +34,24 @@ class GlobalExceptionHandlerTest {
         assertEquals("http://localhost", model.getAttribute("siteBaseUrl"));
     }
 
+    /** タグを打ち間違えた人に、その場で名前から探せることを伝えるため(フォームの文言がこの属性で切り替わる)。 */
+    @Test
+    void 見つからない画面の検索フォームにも名前検索の設定を渡す() {
+        GlobalExceptionHandler nameSearchHandler =
+                new GlobalExceptionHandler(new GlobalModelAttributes(new PlayerIndexProperties("data", true)));
+        Model model = new ExtendedModelMap();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        nameSearchHandler.handleApiError(
+                new ResourceNotFoundException(ResourceNotFoundException.PLAYER, "not found", null), model,
+                new MockHttpServletRequest("GET", "/player/ZZZ"), response);
+
+        assertEquals(404, response.getStatus());
+        assertEquals(true, model.getAttribute("nameSearchEnabled"));
+        assertEquals(true, model.getAttribute("notFound"));
+        assertEquals("error.playerNotFound", model.getAttribute("errorKey"));
+    }
+
     @Test
     void メンテナンス中は503でメンテナンスの文言を出す() {
         Model model = new ExtendedModelMap();

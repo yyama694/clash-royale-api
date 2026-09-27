@@ -247,7 +247,7 @@ public class ViewMapper {
     }
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
-        return new BattleStatsView(stats.total(), stats.wins(), stats.losses(), stats.draws(),
+        return new BattleStatsView(stats.total(), stats.wins(), stats.losses(), stats.draws(), stats.friendlyExcluded(),
                 toPerformances(stats.favoriteCards(), locale),
                 toPerformances(stats.weakCards(), locale));
     }
