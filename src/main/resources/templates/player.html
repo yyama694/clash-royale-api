@@ -41,6 +41,9 @@
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${currentDeck.supportCards()})}"></div>
                 </th:block>
                 <div th:replace="~{fragments/layout :: deckMeta(${currentDeck.meta()})}"></div>
+                <th:block th:if="${currentDeck.completedFromBattle()}">
+                    <p th:replace="~{fragments/layout :: notice(#{deck.completed})}"></p>
+                </th:block>
             </th:block>
             <p th:unless="${currentDeck}" class="empty-state" th:text="#{deck.empty}"></p>
         </div>

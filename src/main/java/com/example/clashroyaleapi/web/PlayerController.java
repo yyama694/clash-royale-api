@@ -89,14 +89,14 @@ public class PlayerController {
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
         }
         WinLoseStreak.of(player.currentWinLoseStreak()).ifPresent(streak -> model.addAttribute("streak", streak));
-        viewMapper.toCurrentDeck(player, locale).ifPresent(deck -> model.addAttribute("currentDeck", deck));
         if (player.cards() != null && !player.cards().isEmpty()) {
             model.addAttribute("cardCollection", viewMapper.toCardCollection(CardCollection.of(player.cards()), locale));
         }
 
         // 戦績の取得に失敗してもプレイヤー情報自体は表示したいので、ここだけは個別に握る。
+        List<BattleLogEntry> battleLog = List.of();
         try {
-            List<BattleLogEntry> battleLog = playerService.findBattleLog(tag);
+            battleLog = playerService.findBattleLog(tag);
             model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, player.tag(), locale));
             if (!battleLog.isEmpty()) {
                 model.addAttribute("battleStats", viewMapper.toStats(playerService.statsOf(battleLog), locale));
@@ -104,6 +104,8 @@ public class PlayerController {
         } catch (ClashRoyaleApiException e) {
             model.addAttribute("battleLogErrorKey", e.messageKey());
         }
+        playerService.currentDeckOf(player, battleLog)
+                .ifPresent(deck -> model.addAttribute("currentDeck", viewMapper.toCurrentDeck(deck, locale)));
         return "player";
     }
 
