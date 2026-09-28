@@ -65,6 +65,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    - 日の途中で集計したときは日付に「※HH:MMまで」を付ける。次に集計したとき、その行を1日分の数字で置き換える。
    - 前回の行から日が空いていたら、スクリプトに日付を渡して(`check-access.sh 2026-09-25`のように)抜けた日も集計して埋める。
    - ドキュメントの操作はdocsスキル(`anthropic-skills:docs`)を読み込んでから行う。
+   - 更新したら、Artifactツールの`open`でドキュメントをユーザーの画面に開く。確認は不要(2026-09-28にユーザーが依頼)。
 
 ## 報告フォーマット
 
