@@ -66,6 +66,10 @@ Google側の割り当てで変わり得るため、`known_noise.md`にIPとし�
 試すリクエストを送っている。UAが「Chrome偽装」ではなくツール名そのままのため、ブラウザ偽装型より
 判別は容易(2026-09-21、当日のアクセス数の大半(49件ずつ)を占めていた)。
 
+送信元IPが次々に変わるため、2026-09-29から`BOT_REGEX`に`libredtail`を加えてUAで除外している
+(`scripts/check-access.sh`と本番VMの`/usr/local/bin/clash-royale-access-stats.sh`の両方)。
+上のIPはその前に見つけたもので、残していても害はない。
+
 ## データセンター由来の一括除外(2026-09-22導入)
 
 IPのCIDR一覧を手で持つ方式はやめ、`check-access.sh`が**逆引き(rDNS)のホスト名**で機械的に
