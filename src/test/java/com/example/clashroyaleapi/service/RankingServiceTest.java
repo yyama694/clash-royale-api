@@ -128,7 +128,7 @@ class RankingServiceTest {
     }
 
     private static PlayerRankingResponse.RankedPlayer rankedPlayer(int rank, String tag) {
-        return new PlayerRankingResponse.RankedPlayer(tag, "player" + rank, 70, 4000 - rank, rank,
+        return new PlayerRankingResponse.RankedPlayer(tag, "player" + rank, 4000 - rank, rank,
                 new PlayerRankingResponse.Clan("#C1", "clan"));
     }
 

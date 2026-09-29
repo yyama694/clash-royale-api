@@ -25,7 +25,7 @@ class CurrentDeckTest {
     }
 
     private static PlayerResponse player(List<BattleLogEntry.Card> deck) {
-        return new PlayerResponse("#ABC", "name", 50, 9000, 9000, 0, 0, 0, null, deck, cards(159000000), null, null,
+        return new PlayerResponse("#ABC", "name", 15, 9000, 9000, 0, 0, 0, null, deck, cards(159000000), null, null,
                 null, List.of());
     }
 
