@@ -7,12 +7,14 @@ import java.util.List;
 /**
  * currentDeck のカードは battlelog のカードと同じ形なので、型を共用している。
  * currentWinLoseStreak は連勝なら正、連敗なら負の数(2026-09-19に実データと対戦履歴を突き合わせて確認)。
+ * expLevel(旧キングレベル)は2026-05-26のXP廃止で更新されなくなり、以後に作られたアカウントは1のままなので受け取らない。
+ * 今のゲームが表示するのは kingTowerLevel(カードの強化状況で決まる、最大16)。
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PlayerResponse(
         String tag,
         String name,
-        int expLevel,
+        int kingTowerLevel,
         int trophies,
         int bestTrophies,
         int wins,

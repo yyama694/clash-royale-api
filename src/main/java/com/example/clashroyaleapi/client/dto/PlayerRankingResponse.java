@@ -8,7 +8,7 @@ import java.util.List;
 public record PlayerRankingResponse(List<RankedPlayer> items) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record RankedPlayer(String tag, String name, int expLevel, int eloRating, int rank, Clan clan) {
+    public record RankedPlayer(String tag, String name, int eloRating, int rank, Clan clan) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

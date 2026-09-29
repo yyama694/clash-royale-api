@@ -675,7 +675,6 @@
                 <tr>
                     <th th:text="#{ranking.col.rank}"></th>
                     <th th:text="#{playerRanking.col.player}"></th>
-                    <th th:if="${detailed}" th:text="#{playerRanking.col.level}"></th>
                     <th class="num" th:text="#{playerRanking.col.rating}"></th>
                     <th th:if="${detailed}" th:text="#{playerRanking.col.clan}"></th>
                 </tr>
@@ -686,8 +685,6 @@
                     <td class="cell-name" th:attr="data-label=#{playerRanking.col.player}">
                         <a th:href="@{/player/{tag}(tag=${row.pathTag()})}"><bdi th:text="${row.name()}"></bdi></a>
                     </td>
-                    <td th:if="${detailed}" th:attr="data-label=#{playerRanking.col.level}"
-                        th:text="#{battle.level(${row.expLevel()})}"></td>
                     <td class="num" th:attr="data-label=#{playerRanking.col.rating}"
                         th:text="${#numbers.formatInteger(row.eloRating(), 1, 'DEFAULT')}"></td>
                     <!--/* クラン未所属の人は、スマホのカード表示で「クラン」の見出しだけが空で残らないよう is-empty を付ける。 */-->

@@ -29,7 +29,7 @@ class PageSummariesTest {
             Clock.fixed(Instant.parse("2026-09-27T12:00:00Z"), ZoneOffset.UTC));
 
     private static PlayerResponse player(PlayerResponse.RankedSeasonResult ranked) {
-        return new PlayerResponse("#ABC123", "Taro", 50, 9000, 9200, 3210, 1000, 500, null, List.of(), List.of(),
+        return new PlayerResponse("#ABC123", "Taro", 15, 9000, 9200, 3210, 1000, 500, null, List.of(), List.of(),
                 null, ranked, null, List.of());
     }
 

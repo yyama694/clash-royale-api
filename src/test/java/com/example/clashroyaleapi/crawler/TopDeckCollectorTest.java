@@ -51,7 +51,7 @@ class TopDeckCollectorTest {
     }
 
     private static PlayerRankingResponse.RankedPlayer ranked(String tag) {
-        return new PlayerRankingResponse.RankedPlayer(tag, "name", 1, 1, 13, null);
+        return new PlayerRankingResponse.RankedPlayer(tag, "name", 1, 13, null);
     }
 
     private static TopDecks.Player playerInfo() {
@@ -79,7 +79,7 @@ class TopDeckCollectorTest {
     @Test
     void 上位全員の直近のランク戦のデッキを1人ずつ集めてから渡す() {
         when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(
-                new PlayerRankingResponse.RankedPlayer("#A", "Miku", 70, 2887, 1, null), ranked("#B")));
+                new PlayerRankingResponse.RankedPlayer("#A", "Miku", 2887, 1, null), ranked("#B")));
         // 対戦履歴は新しい順。ランク戦より新しいフレンドバトルのデッキは使わない。
         when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(
                 battle("friendly", deck(100, 8), List.of()),

@@ -305,7 +305,7 @@ public class ViewMapper {
     public List<PlayerRankingRowView> toPlayerRankingRows(List<PlayerRankingResponse.RankedPlayer> players) {
         return players.stream()
                 .map(player -> new PlayerRankingRowView(player.rank(), Tags.toPathSegment(player.tag()), player.tag(),
-                        GameText.stripFormatting(player.name()), player.expLevel(), player.eloRating(),
+                        GameText.stripFormatting(player.name()), player.eloRating(),
                         player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
                         player.clan() == null ? null : Tags.toPathSegment(player.clan().tag())))
                 .toList();
