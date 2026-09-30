@@ -7,8 +7,8 @@ import re
 import sys
 import time
 
-from common import (FRIENDLY_TYPES, api, both_sides, card_performance, crowns, enc, in_game_level, site, text,
-                    win_rate)
+from common import (api, both_sides, card_performance, counted, crowns, enc, in_game_level, result, site, streak,
+                    text, win_rate)
 
 
 def stat_grid(page):
@@ -62,10 +62,15 @@ def check(tag):
     expect("Wins", number(g.get("Wins")), p["wins"])
     expect("Losses", number(g.get("Losses")), p["losses"])
     expect("Three crown wins", number(g.get("Three crown wins")), p["threeCrownWins"])
-    raw = p.get("currentWinLoseStreak") or 0
+    # 連勝・連敗は2026-10-01から、公式APIの currentWinLoseStreak ではなく対戦履歴から数えている(WinLoseStreak)。
+    # 取得できた対戦がすべて同じ結果なら「At least N ...」と出る。
+    counted_results = [result(b) for b in counted(log)]
+    s = streak(counted_results)
+    want = (s, abs(s) == len(counted_results)) if s else None
     m = re.search(r"(\d+)", g.get("Streak", ""))
-    shown = None if not m else int(m.group(1)) * (1 if "win" in g["Streak"] else -1)
-    expect("Streak", shown, raw or None)
+    shown = None if not m else (int(m.group(1)) * (1 if "win" in g["Streak"] else -1),
+                                g["Streak"].startswith("At least"))
+    expect("Streak (count, at least)", shown, want)
     for key, label in (("currentPathOfLegendSeasonResult", "Rank Battle (this season)"),
                        ("bestPathOfLegendSeasonResult", "Rank Battle (best season)")):
         r = p.get(key) or {}
@@ -73,14 +78,14 @@ def check(tag):
         expect(label, g.get(label), want)
 
     battles = [b for b in log if both_sides(b)]
-    counted = [b for b in battles if b["type"] not in FRIENDLY_TYPES]
-    wins = sum(crowns(b["team"]) > crowns(b["opponent"]) for b in counted)
-    losses = sum(crowns(b["team"]) < crowns(b["opponent"]) for b in counted)
+    stats_battles = counted(log)
+    wins = sum(crowns(b["team"]) > crowns(b["opponent"]) for b in stats_battles)
+    losses = sum(crowns(b["team"]) < crowns(b["opponent"]) for b in stats_battles)
     summary = re.search(r'<p class="stats-summary">\s*<span>(.*?)</span>', page, re.S)
     if summary:
         # 英語の文は「{勝}W {敗}L in the last {戦数} battles」の順
         w, l, total = (int(x) for x in re.findall(r"\d+", text(summary.group(1)))[:3])
-        expect("stats (total, W, L)", (total, w, l), (len(counted), wins, losses))
+        expect("stats (total, W, L)", (total, w, l), (len(stats_battles), wins, losses))
     expect("battle rows", len(re.findall(r'<td class="cell-action">', page)), len(battles))
     rows = [r for r in re.findall(r"<tr>(.*?)</tr>", page, re.S) if '<td class="cell-action">' in r]
     wrong_levels = [(b["battleTime"], re.findall(r"Avg\. Lv\.([\d.]+)", r), opponent_level(b))
