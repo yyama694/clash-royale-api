@@ -62,10 +62,12 @@
       Chrome偽装のスキャナーと本物の閲覧者を見分けきれないため、JSが動いたときだけ叩く一発の
       リクエストで「本当にブラウザで表示された」ことを記録する。
       識別子は送らない(Cookieも使わない)ので、送るのはパスと流入元タグだけ。
-      表示を1msでも遅らせないよう、読み込み完了後にキュー(sendBeacon)へ積むだけにする。
+      loadではなくDOMContentLoadedで送る。loadは画面内のカード画像(公式CDN)を読み終えるまで起きず、
+      XアプリからすぐXに戻った人の分が漏れていたとみられるため(9/22〜9/30、iPhoneのXアプリで27人中6人)。
+      sendBeaconは非同期に送るだけなので、ここで送っても表示は遅れない。
     */-->
     <script>
-        window.addEventListener('load', function () {
+        document.addEventListener('DOMContentLoaded', function () {
             // ?from= はX等に出したURLに付けている。どの宣伝から来た表示かをここでも拾う。
             var from = new URLSearchParams(location.search).get('from');
             var url = '/beacon?p=' + encodeURIComponent(location.pathname)
