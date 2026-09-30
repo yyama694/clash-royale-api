@@ -69,6 +69,7 @@ class PlayerBattleStatsTest {
         // カードが1種類しかないと「得意」と「苦手」を区別する意味がないため、どちらも空にする。
         PlayerBattleStats stats = PlayerBattleStats.from(List.of(battle(3, 0, "Knight")));
 
+        assertFalse(stats.cardRanking());
         assertTrue(stats.favoriteCards().isEmpty());
         assertTrue(stats.weakCards().isEmpty());
         assertEquals(1, stats.total());
@@ -151,15 +152,77 @@ class PlayerBattleStatsTest {
         BattleLogEntry.Participant opponent2 = participant("#OPP2", "Opponent2", 0, List.of(card("Golem")));
         BattleLogEntry duel = new BattleLogEntry("PvP", "20260101T000000.000Z",
                 new BattleLogEntry.GameMode("CasualDuel2v2"), List.of(self, mate), List.of(opponent1, opponent2), null);
-        // 最低使用回数(5回)に届かせるため、同じ対戦を5回分並べる。
-        List<BattleLogEntry> log = List.of(duel, duel, duel, duel, duel);
+        // 最低使用回数(5回)に届かせるため、同じ対戦を5回分並べる。負け側のカードも2枚あると得意を2枚まで選べる。
+        List<BattleLogEntry> log = new ArrayList<>(List.of(duel, duel, duel, duel, duel));
+        for (int i = 0; i < 5; i++) {
+            log.add(battle(0, 3, "Arrows"));
+            log.add(battle(0, 3, "Zap"));
+        }
 
         PlayerBattleStats stats = PlayerBattleStats.from(log);
 
         assertEquals(5, stats.wins());
-        // 相手2人分のカードが両方とも集計に載っていれば、得意/苦手が1枚ずつ選ばれる。
+        // 相手2人分のカードが両方とも集計に載っていれば、どちらも得意に選ばれる。
+        assertEquals(List.of("Golem", "Knight"), stats.favoriteCards().stream()
+                .map(PlayerBattleStats.CardPerformance::cardName).sorted().toList());
+    }
+
+    @Test
+    void 全体の勝率以上のカードは苦手に出さない() {
+        // 勝率の高い人は、相対順位だけで選ぶと勝率100%のカードまで「苦手」に並んでいた(2026-09-30のファクトチェック)。
+        List<BattleLogEntry> log = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            log.add(battle(3, 0, "Knight"));
+        }
+        for (int i = 0; i < 5; i++) {
+            log.add(battle(3, 0, "Bats"));
+            log.add(battle(3, 0, "Zap"));
+        }
+        // Golem: 5戦4勝(80%)。全体の勝率(24/25=96%)より低いのはこのカードだけ。
+        for (int i = 0; i < 4; i++) {
+            log.add(battle(3, 0, "Golem"));
+        }
+        log.add(battle(0, 3, "Golem"));
+
+        PlayerBattleStats stats = PlayerBattleStats.from(log);
+
+        assertTrue(stats.cardRanking());
+        assertEquals(2, stats.favoriteCards().size());
+        assertEquals(List.of("Golem"), stats.weakCards().stream().map(PlayerBattleStats.CardPerformance::cardName)
+                .toList());
+    }
+
+    @Test
+    void 全体の勝率より低いカードが無ければ苦手は空にする() {
+        List<BattleLogEntry> log = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            log.add(battle(3, 0, "Knight"));
+            log.add(battle(3, 0, "Golem"));
+        }
+        // 負けた対戦の相手のカードは5回に届かないので、得意/苦手の候補にならない。
+        log.add(battle(0, 3, "Bats"));
+        log.add(battle(0, 3, "Bats"));
+
+        PlayerBattleStats stats = PlayerBattleStats.from(log);
+
+        assertTrue(stats.cardRanking());
         assertEquals(1, stats.favoriteCards().size());
-        assertEquals(1, stats.weakCards().size());
+        assertTrue(stats.weakCards().isEmpty());
+    }
+
+    @Test
+    void 全体の勝率と同じカードは得意にも苦手にも出さない() {
+        List<BattleLogEntry> log = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            log.add(battle(3, 0, "Knight"));
+            log.add(battle(3, 0, "Golem"));
+        }
+
+        PlayerBattleStats stats = PlayerBattleStats.from(log);
+
+        assertTrue(stats.cardRanking());
+        assertTrue(stats.favoriteCards().isEmpty());
+        assertTrue(stats.weakCards().isEmpty());
     }
 
     @Test

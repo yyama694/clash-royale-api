@@ -137,14 +137,19 @@ def main(work):
         print(f"\n[カードコレクション] 全カード {len(all_cards)}枚。cards がそれより少ない人 {len(fewer)}/{n}人"
               + (f"(最少 {min(fewer)}枚)" if fewer else ""))
 
-    # 7. 苦手カード: 相対順位なので、勝率が高くても「苦手」に並ぶ
-    shown_weak = high_weak = 0
+    # 7. 苦手カード: 2026-10-01から本人の全体の勝率より低いカードだけを選ぶ。それ以前は相対順位だけで選んでいて、
+    #    勝率の高い人の「苦手」に勝率80%のカードが並んでいた(9/30、123人中23人)
+    shown_weak = high_weak = above_overall = 0
     for d in data.values():
         _, weak = card_performance(d["battlelog"])
+        battles = counted(d["battlelog"])
+        overall = sum(result(b) == "W" for b in battles) / len(battles) if battles else 0
         if weak:
             shown_weak += 1
             high_weak += min(win_rate(w, u) for _, w, u in weak) >= 50
-    print(f"\n[苦手カード] 得意・苦手が出る {shown_weak}人中、苦手カードがすべて勝率50%以上の人 {high_weak}人")
+            above_overall += any(w / u >= overall for _, w, u in weak)
+    print(f"\n[苦手カード] 苦手が出る {shown_weak}人中、全体の勝率以上のカードが苦手に入っている人 {above_overall}人"
+          f"(0人のはず)。参考: 苦手がすべて勝率50%以上の人 {high_weak}人(勝率の高い人では正しくありうる)")
 
     # 8. 対戦種別の内訳(モード名の表示を確かめる材料)
     modes = collections.Counter((b["type"], b.get("gameMode", {}).get("name")) for d in data.values() for b in d["battlelog"])

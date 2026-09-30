@@ -8,10 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 所持カード全体のうち、何%を最大レベルにしているかをレアリティ別に集計する。
- * 「所持しているか」ではなく「最大レベルかどうか」だけを見る(PlayerResponse.OwnedCard参照)。
- */
+/** 所持カードのうち、何%を最大レベルにしているかをレアリティ別に集計する(公式APIは所持カードだけを返す)。 */
 public record CardCollection(List<RaritySummary> rarities, int totalCards, int maxedCards) {
 
     public record RaritySummary(String rarity, int totalCards, int maxedCards) {

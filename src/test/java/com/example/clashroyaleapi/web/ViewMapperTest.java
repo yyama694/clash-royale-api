@@ -105,6 +105,17 @@ class ViewMapperTest {
     }
 
     @Test
+    void キングタワーレベルが0なら出さない() {
+        PlayerResponse active = new PlayerResponse("#AAA", "a", 13, 0, 0, 0, 0, 0, null, List.of(), List.of(), null,
+                null, List.of());
+        PlayerResponse dormant = new PlayerResponse("#BBB", "b", 0, 0, 0, 0, 0, 0, null, List.of(), List.of(), null,
+                null, List.of());
+
+        assertEquals(13, viewMapper.kingTowerLevel(active));
+        assertNull(viewMapper.kingTowerLevel(dormant));
+    }
+
+    @Test
     void 船のバトルの守備側は集計から外していると分かる名前で出す() {
         when(labels.message("battletype.boatDefense", Locale.JAPANESE)).thenReturn("クラン対戦(船の防衛)");
         BattleLogEntry defense = boatBattle("defender");

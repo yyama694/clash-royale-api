@@ -23,7 +23,7 @@ def stat_grid(page):
 
 
 def number(s):
-    return int(s.replace(",", "")) if s else None
+    return int(s.replace(",", "")) if s and s != "-" else None
 
 
 def shown_performance(page, css):
@@ -56,7 +56,8 @@ def check(tag):
             issues.append(f"{label}: 画面={shown} API={actual}")
 
     g = stat_grid(page)
-    expect("King Tower Level", number(g.get("King Tower Level")), p["kingTowerLevel"])
+    # 0(導入以降ログインしていないアカウント)は画面では「-」と出す(ViewMapper#kingTowerLevel)
+    expect("King Tower Level", number(g.get("King Tower Level")), p["kingTowerLevel"] or None)
     expect("Trophies", number(g.get("Trophies")), p["trophies"])
     expect("Best trophies", number(g.get("Best trophies")), p["bestTrophies"])
     expect("Wins", number(g.get("Wins")), p["wins"])
@@ -72,7 +73,7 @@ def check(tag):
                                 g["Streak"].startswith("At least"))
     expect("Streak (count, at least)", shown, want)
     for key, label in (("currentPathOfLegendSeasonResult", "Rank Battle (this season)"),
-                       ("bestPathOfLegendSeasonResult", "Rank Battle (best season)")):
+                       ("bestPathOfLegendSeasonResult", "Rank Battle (best past season)")):
         r = p.get(key) or {}
         want = f"Rank {r['rank']} (rating {r['trophies']:,})" if r.get("rank") else None
         expect(label, g.get(label), want)

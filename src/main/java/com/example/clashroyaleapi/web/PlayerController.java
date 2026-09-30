@@ -83,6 +83,7 @@ public class PlayerController {
         String playerName = GameText.stripFormatting(player.name());
         String playerPathTag = Tags.toPathSegment(player.tag());
         model.addAttribute("player", player);
+        model.addAttribute("kingTowerLevel", viewMapper.kingTowerLevel(player));
         model.addAttribute("playerName", playerName);
         model.addAttribute("playerPathTag", playerPathTag);
         model.addAttribute("favorite",

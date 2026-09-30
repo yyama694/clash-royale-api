@@ -97,9 +97,15 @@ def _wilson(wins, uses, sign, z=1.96):
 
 
 def card_performance(battlelog):
-    """PlayerBattleStats と同じ方法で、得意・苦手カードを [(カードID, 勝数, 対戦数), ...] の組で返す。"""
+    """PlayerBattleStats と同じ方法で、得意・苦手カードを [(カードID, 勝数, 対戦数), ...] の組で返す。
+
+    2026-10-01から、得意は本人の全体の勝率より高いカード、苦手は低いカードだけから選ぶ。
+    """
     tallies = {}
-    for b in counted(battlelog):
+    battles = counted(battlelog)
+    total = len(battles)
+    wins = sum(result(b) == "W" for b in battles)
+    for b in battles:
         won = result(b) == "W"
         for opponent in b["opponent"]:
             for card in opponent.get("cards") or []:
@@ -108,8 +114,10 @@ def card_performance(battlelog):
                 t[2] += 1
     ranked = [tuple(t) for t in tallies.values() if t[2] >= 5]
     size = min(3, len(ranked) // 2)
-    favorite = sorted(ranked, key=lambda t: (-_wilson(t[1], t[2], -1), -t[2]))[:size]
-    weak = sorted((t for t in ranked if t not in favorite), key=lambda t: (_wilson(t[1], t[2], 1), -t[2]))[:size]
+    above = [t for t in ranked if t[1] * total > wins * t[2]]
+    below = [t for t in ranked if t[1] * total < wins * t[2]]
+    favorite = sorted(above, key=lambda t: (-_wilson(t[1], t[2], -1), -t[2]))[:size]
+    weak = sorted(below, key=lambda t: (_wilson(t[1], t[2], 1), -t[2]))[:size]
     return favorite, weak
 
 

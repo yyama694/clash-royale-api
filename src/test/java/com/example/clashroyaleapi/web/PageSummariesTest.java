@@ -34,7 +34,7 @@ class PageSummariesTest {
     }
 
     private static PlayerBattleStats stats(int wins, int losses) {
-        return new PlayerBattleStats(wins + losses, wins, losses, 0, 0, 0, List.of(), List.of());
+        return new PlayerBattleStats(wins + losses, wins, losses, 0, 0, 0, false, List.of(), List.of());
     }
 
     @Test

@@ -201,6 +201,14 @@ public class ViewMapper {
                 .toList();
     }
 
+    /**
+     * 画面に出せるキングタワーレベル。導入(2026-05-26のアップデート)以降ログインしていないアカウントは公式APIが0を返すが、
+     * ゲーム内の最小は1なので、そのときは null にして「-」と出す(2026-09-30、育成途中の24人中9人)。
+     */
+    public Integer kingTowerLevel(PlayerResponse player) {
+        return player.kingTowerLevel() > 0 ? player.kingTowerLevel() : null;
+    }
+
     public String toStreakLabel(WinLoseStreak streak, Locale locale) {
         return labels.message("player.streak." + streak.code(), locale, streak.count());
     }
@@ -262,7 +270,7 @@ public class ViewMapper {
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
         return new BattleStatsView(stats.total(), stats.wins(), stats.losses(), stats.draws(), stats.friendlyExcluded(),
-                stats.boatDefenseExcluded(), toPerformances(stats.favoriteCards(), locale),
+                stats.boatDefenseExcluded(), stats.cardRanking(), toPerformances(stats.favoriteCards(), locale),
                 toPerformances(stats.weakCards(), locale));
     }
 

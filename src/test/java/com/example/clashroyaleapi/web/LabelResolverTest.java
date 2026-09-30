@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.config.IcuMessageSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ResourceBundleMessageSource;
@@ -81,9 +82,40 @@ class LabelResolverTest {
 
     @Test
     void イベント名は接頭辞で分類する() {
-        // Challenge_* は type が trail のため、接頭辞を見ないと「通常バトル」に埋もれる。
+        // Challenge_* は type が trail のため、接頭辞を見ないと「イベント」に埋もれる。
         assertEquals("チャレンジ", labels.gameMode("trail", "Challenge_AllCards_EventDeck_NoSet", Locale.JAPANESE));
         assertEquals("Challenge", labels.gameMode("trail", "Challenge_AllCards_EventDeck_NoSet", Locale.ENGLISH));
+        // RR_* は type が unknown の特殊ルールのイベント戦(2026-10-01に200人の対戦履歴で確認)。
+        assertEquals("イベント", labels.gameMode("unknown", "RR_Snowball_bombardment", Locale.JAPANESE));
+    }
+
+    @Test
+    void 名前の辞書に無いtrailはトロフィー戦ではなくイベント戦() {
+        // トロフィー戦(Ladder)と協力バトル(TeamVsTeam)は名前で解決される。残るのはメガドラフトなどのイベント戦で、
+        // 以前は「通常バトル」と出ていた。
+        assertEquals("イベント", labels.gameMode("trail", "Chaos_1v1_MegaDraft_All", Locale.JAPANESE));
+        assertEquals("Event", labels.gameMode("trail", "Chaos_1v1_MegaDraft_All", Locale.ENGLISH));
+        assertEquals("1対1エンタメ", labels.gameMode("trail", "Showdown_Friendly", Locale.JAPANESE));
+    }
+
+    @Test
+    void 人気順位の分母は使われていたカードの数だと分かるように書く() {
+        // 分母はトッププレイヤーが1人以上使っていたカードの数で、ゲームの全カード数ではない(2026-09-30のファクトチェック)。
+        // 複数形(plural)を使うので、本番と同じ ICU のメッセージソースで組み立てる。
+        LabelResolver icu = new LabelResolver(IcuMessageSource.forBasename("messages"));
+        assertEquals("使われていた120枚中118位", icu.message("cardUsage.rank.value", Locale.JAPANESE, 118, 120));
+        assertEquals("#118 of 120 cards used", icu.message("cardUsage.rank.value", Locale.ENGLISH, 118, 120));
+        assertEquals("118-е из 121 использованной карты",
+                icu.message("cardUsage.rank.value", Locale.forLanguageTag("ru"), 118, 121));
+        assertEquals("118-е из 120 использованных карт",
+                icu.message("cardUsage.rank.value", Locale.forLanguageTag("ru"), 118, 120));
+    }
+
+    @Test
+    void 特殊ルールのフレンドバトルとトーナメントは種別で解決する() {
+        assertEquals("フレンドバトル", labels.gameMode("friendly", "Draft_Competitive", Locale.JAPANESE));
+        assertEquals("フレンドバトル", labels.gameMode("clanMate", "Duel_1v1_Friendly", Locale.JAPANESE));
+        assertEquals("トーナメント", labels.gameMode("tournament", "Chaos_1v1_MegaDraft_All", Locale.JAPANESE));
     }
 
     @Test
