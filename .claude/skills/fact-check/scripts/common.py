@@ -83,6 +83,37 @@ def both_sides(battle):
     return bool(battle.get("team")) and bool(battle.get("opponent"))
 
 
+def _wilson(wins, uses, sign, z=1.96):
+    p = wins / uses
+    centre = p + z * z / (2 * uses)
+    margin = z * (p * (1 - p) / uses + z * z / (4 * uses * uses)) ** 0.5
+    return (centre + sign * margin) / (1 + z * z / uses)
+
+
+def card_performance(battlelog):
+    """PlayerBattleStats と同じ方法で、得意・苦手カードを [(カードID, 勝数, 対戦数), ...] の組で返す。"""
+    tallies = {}
+    for b in battlelog:
+        if not both_sides(b) or b["type"] in FRIENDLY_TYPES:
+            continue
+        won = result(b) == "W"
+        for opponent in b["opponent"]:
+            for card in opponent.get("cards") or []:
+                t = tallies.setdefault(card["name"], [card["id"], 0, 0])
+                t[1] += won
+                t[2] += 1
+    ranked = [tuple(t) for t in tallies.values() if t[2] >= 5]
+    size = min(3, len(ranked) // 2)
+    favorite = sorted(ranked, key=lambda t: (-_wilson(t[1], t[2], -1), -t[2]))[:size]
+    weak = sorted((t for t in ranked if t not in favorite), key=lambda t: (_wilson(t[1], t[2], 1), -t[2]))[:size]
+    return favorite, weak
+
+
+def win_rate(wins, uses):
+    """Java の Math.round と同じく0.5は切り上げる。"""
+    return int(100 * wins / uses + 0.5)
+
+
 def streak(results):
     """新しい順の勝敗の並びから、先頭の連勝(正)・連敗(負)を数える。引き分けで止める。"""
     if not results or results[0] == "D":
