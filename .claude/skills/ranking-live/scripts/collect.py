@@ -59,8 +59,11 @@ def parse(html, limit):
     return players
 
 
-def history_path(skill_dir):
-    return Path(skill_dir) / "history" / "players.tsv"
+def history_path(skill_dir, country=None):
+    # 国別は国ごとに別ファイルにする。世界と同じファイルに混ぜると、首位の連続日数や
+    # 前回との差分が別のランキング同士の比較になってしまうため。
+    name = f"country-{country}.tsv" if country else "players.tsv"
+    return Path(skill_dir) / "history" / name
 
 
 def load_history(path):
@@ -159,7 +162,7 @@ def main():
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=10, help="取得・記録する人数")
-    ap.add_argument("--country", help="国コード(省略時はグローバル)")
+    ap.add_argument("--country", type=str.upper, help="国コード(省略時はグローバル)")
     ap.add_argument("--no-record", action="store_true",
                     help="history に追記しない(下見だけしたいとき)")
     args = ap.parse_args()
@@ -171,7 +174,7 @@ def main():
               file=sys.stderr)
         return 1
 
-    path = history_path(skill_dir)
+    path = history_path(skill_dir, args.country)
     history = load_history(path)
     stamp = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
 
@@ -186,8 +189,7 @@ def main():
         "history_runs": len(history),
     }
 
-    if not args.no_record and args.country is None:
-        # 記録はグローバルだけにする。国別まで混ぜると首位の連続日数が狂うため。
+    if not args.no_record:
         append_history(path, stamp, players)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
