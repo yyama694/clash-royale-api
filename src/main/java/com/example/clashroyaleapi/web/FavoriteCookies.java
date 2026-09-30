@@ -11,6 +11,7 @@ import org.springframework.web.util.WebUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +37,11 @@ public class FavoriteCookies {
             return Favorites.empty();
         }
         return decode(cookie.getValue());
+    }
+
+    /** プレイヤー・クランのどちらかに1件でも登録があるか。お気に入りを使ったことがある人には案内の吹き出しを出さないために使う。 */
+    public boolean hasAny(HttpServletRequest request) {
+        return Arrays.stream(FavoriteKind.values()).anyMatch(kind -> !read(request, kind).entries().isEmpty());
     }
 
     /** プレイヤー情報画面・クラン情報画面を開いたときに呼ぶ。登録済みで保存名と違えばCookieを書き直す。 */

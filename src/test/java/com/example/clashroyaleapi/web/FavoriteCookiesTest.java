@@ -13,6 +13,7 @@ import java.util.Base64;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FavoriteCookiesTest {
@@ -54,6 +55,27 @@ class FavoriteCookiesTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
 
         assertTrue(favoriteCookies.read(request, FavoriteKind.PLAYER).entries().isEmpty());
+    }
+
+    @Test
+    void どちらかに登録があればhasAnyはtrue() {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        favoriteCookies.write(response, FavoriteKind.CLAN, Favorites.empty().add("AAA", "名前"));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(response.getCookie(FavoriteKind.CLAN.cookieName()));
+
+        assertTrue(favoriteCookies.hasAny(request));
+    }
+
+    @Test
+    void 登録が無ければhasAnyはfalse() {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        favoriteCookies.write(response, FavoriteKind.PLAYER, Favorites.empty());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(response.getCookie(FavoriteKind.PLAYER.cookieName()));
+
+        assertFalse(favoriteCookies.hasAny(request));
+        assertFalse(favoriteCookies.hasAny(new MockHttpServletRequest()));
     }
 
     @Test

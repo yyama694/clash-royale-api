@@ -15,6 +15,7 @@
     --color-link: #2b4bd1;
     --color-heading: #1c3399;
     --color-accent: #f2b705;
+    --color-on-accent: #1f2430;
     --color-text: #1f2430;
     --color-text-muted: #5b6270;
     --color-border: #e2e5ee;
@@ -654,6 +655,66 @@ td.cell-action {
 
 .favorite-form {
     display: inline-flex;
+    position: relative;
+}
+
+/*
+  お気に入りの案内の吹き出し。☆の真下に出して矢印で☆を指す。--hint-shift はJSが画面からはみ出す分だけ入れる横のずれで、
+  矢印は逆方向にずらして☆を指したままにする。上下の揺れ(transform)と位置合わせ(translate)は別のプロパティにして打ち消し合わないようにしている。
+*/
+.favorite-hint {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    translate: calc(-50% + var(--hint-shift, 0px)) 0;
+    z-index: 10;
+    width: max-content;
+    max-width: min(16rem, calc(100vw - 2rem));
+    padding: 0.5rem 0.85rem;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.4;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+    animation: favorite-hint-in 0.35s ease-out, favorite-hint-float 2.4s ease-in-out 0.35s infinite;
+    transition: opacity 0.25s;
+}
+
+.favorite-hint::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: calc(50% - var(--hint-shift, 0px));
+    translate: -50% 0;
+    border: 7px solid transparent;
+    border-bottom-color: var(--color-accent);
+}
+
+.favorite-hint.is-leaving {
+    opacity: 0;
+}
+
+@keyframes favorite-hint-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+@keyframes favorite-hint-float {
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .favorite-hint {
+        animation: none;
+        transition: none;
+    }
 }
 
 .favorite-toggle {

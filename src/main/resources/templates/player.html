@@ -10,7 +10,7 @@
         <div class="card">
             <div class="page-heading">
                 <h1><bdi th:text="${playerName}"></bdi></h1>
-                <span th:replace="~{fragments/layout :: favoriteButton('players', ${playerPathTag}, ${favorite}, ${favoriteLimit})}"></span>
+                <span th:replace="~{fragments/layout :: favoriteButton('players', ${playerPathTag}, ${favorite}, ${favoriteLimit}, ${favoriteHint})}"></span>
             </div>
             <p><span class="tag-pill" th:text="${player.tag()}"></span></p>
             <p class="page-summary" th:text="${pageDescription}"></p>
