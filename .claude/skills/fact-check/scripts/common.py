@@ -83,6 +83,12 @@ def both_sides(battle):
     return bool(battle.get("team")) and bool(battle.get("opponent"))
 
 
+def counted(battlelog):
+    """戦績サマリーと連勝・連敗で数える対戦(BattleExclusion と同じ)。フレンドバトルと船のバトルの守備側を除く。"""
+    return [b for b in battlelog if both_sides(b) and b["type"] not in FRIENDLY_TYPES
+            and b.get("boatBattleSide") != "defender"]
+
+
 def _wilson(wins, uses, sign, z=1.96):
     p = wins / uses
     centre = p + z * z / (2 * uses)
@@ -93,9 +99,7 @@ def _wilson(wins, uses, sign, z=1.96):
 def card_performance(battlelog):
     """PlayerBattleStats と同じ方法で、得意・苦手カードを [(カードID, 勝数, 対戦数), ...] の組で返す。"""
     tallies = {}
-    for b in battlelog:
-        if not both_sides(b) or b["type"] in FRIENDLY_TYPES:
-            continue
+    for b in counted(battlelog):
         won = result(b) == "W"
         for opponent in b["opponent"]:
             for card in opponent.get("cards") or []:

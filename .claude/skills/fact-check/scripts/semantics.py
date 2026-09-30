@@ -7,7 +7,7 @@ import json
 import os
 import sys
 
-from common import FRIENDLY_TYPES, both_sides, card_performance, result, streak, win_rate
+from common import both_sides, card_performance, counted, result, streak, win_rate
 
 
 def by_tier(data, predicate):
@@ -30,7 +30,8 @@ def main(work):
     n = len(data)
     print(f"対象 {n}人\n")
 
-    # 1. 連勝・連敗: currentWinLoseStreak と対戦履歴の直近の並び
+    # 1. 連勝・連敗(参考): 画面は2026-10-01から対戦履歴から数えていて(転記は compare_player.py で確かめる)、
+    #    currentWinLoseStreak は使っていない。APIの値の意味が変わっていないかの記録として残す。
     mismatch = opposite = big = ranked = ranked_mismatch = 0
     pvp_ok = pvp_ng = 0
     examples = []
@@ -39,7 +40,7 @@ def main(work):
         p = d["player"]
         shown = p.get("currentWinLoseStreak") or 0
         log = [b for b in d["battlelog"] if both_sides(b)]
-        actual = streak([result(b) for b in log if b["type"] not in FRIENDLY_TYPES])
+        actual = streak([result(b) for b in counted(log)])
         actual_of[tag] = actual
         if shown != actual:
             mismatch += 1
@@ -57,7 +58,8 @@ def main(work):
             good = s == shown if closed else (shown * s > 0 and abs(shown) >= abs(s))
             pvp_ok += good
             pvp_ng += not good
-    print("[連勝・連敗] currentWinLoseStreak と、対戦履歴(フレンドバトル除く)の直近の連勝・連敗")
+    print("[連勝・連敗(参考。画面では使っていない)] currentWinLoseStreak と、"
+          "対戦履歴(フレンドバトル・船の防衛を除く)の直近の連勝・連敗")
     print(f"  不一致 {mismatch}/{n}人、向きが逆 {opposite}人、20連勝以上の表示 {big}人、"
           f"ランク戦の順位がある人 {ranked}人中 不一致 {ranked_mismatch}人")
     print("  層ごとの不一致: " + by_tier(data, lambda d: (d["player"].get("currentWinLoseStreak") or 0)
