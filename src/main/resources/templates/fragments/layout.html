@@ -336,23 +336,41 @@
         });
     </script>
     <!--/*
-      お気に入りの案内の吹き出し(☆が気付かれにくいため)。毎回出すとうるさいので、前回出してから一定期間は出さない。
-      出した時刻はlocalStorageに残す。ストレージが使えない環境では覚えておけず毎回出てしまうので、出さない。
+      お気に入りの案内の吹き出し(☆が気付かれにくいため)。お気に入りを使ったことがない人に、☆のある画面を開いた回数で
+      1回目・6回目・11回目…と5回に1回出す。1回目に出すのは、1〜2ページで離れる人にも一度は見せるため。回数はlocalStorageで数える。
+      サーバーは今の登録件数しか分からず、登録してから全部外した人を見分けられないので、使ったこと(☆を押した・登録がある状態で開いた)も
+      localStorageに残し、以後は出さない。ストレージが使えない環境では数えられず毎回出てしまうので、出さない。
       スマホで☆が画面の右端に寄ったときにはみ出さないよう、画面内に収まるだけ横にずらし、矢印は☆を指したままにする。
     */-->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var hint = document.querySelector('.favorite-hint');
-            if (!hint) {
+            var form = document.querySelector('.favorite-form');
+            if (!form) {
                 return;
             }
-            var key = 'favoriteHintShownAt';
-            var interval = 3 * 24 * 60 * 60 * 1000;
+            var usedKey = 'favoriteUsed';
+            var viewsKey = 'favoriteHintViews';
+            function markUsed() {
+                try {
+                    localStorage.setItem(usedKey, '1');
+                } catch (e) {
+                    // 覚えておけないだけなので、☆の送信は止めない。
+                }
+            }
+            var hint = form.querySelector('.favorite-hint');
+            // サーバーは登録が1件以上あると吹き出しを出力しない。
+            if (!hint) {
+                markUsed();
+                return;
+            }
+            form.addEventListener('submit', markUsed);
             try {
-                var last = Number(localStorage.getItem(key)) || 0;
-                var now = Date.now();
-                // 端末の時計が戻された場合(last が未来)は、いつまでも出なくならないよう期間切れとして扱う。
-                if (now >= last && now - last < interval) {
+                if (localStorage.getItem(usedKey)) {
+                    return;
+                }
+                var views = (Number(localStorage.getItem(viewsKey)) || 0) + 1;
+                localStorage.setItem(viewsKey, String(views));
+                if ((views - 1) % 5 !== 0) {
                     return;
                 }
             } catch (e) {
@@ -381,14 +399,9 @@
                 hint.style.setProperty('--hint-shift', shift + 'px');
             }
             hint.addEventListener('click', close);
-            hint.closest('form').addEventListener('submit', close);
+            form.addEventListener('submit', close);
             setTimeout(function () {
                 if (closed) {
-                    return;
-                }
-                try {
-                    localStorage.setItem(key, String(Date.now()));
-                } catch (e) {
                     return;
                 }
                 hint.hidden = false;
