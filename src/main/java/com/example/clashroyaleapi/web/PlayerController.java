@@ -94,8 +94,6 @@ public class PlayerController {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
         }
-        WinLoseStreak streak = WinLoseStreak.of(player.currentWinLoseStreak()).orElse(null);
-        model.addAttribute("streak", streak);
         if (player.cards() != null && !player.cards().isEmpty()) {
             model.addAttribute("cardCollection", viewMapper.toCardCollection(CardCollection.of(player.cards()), locale));
         }
@@ -112,6 +110,10 @@ public class PlayerController {
             }
         } catch (ClashRoyaleApiException e) {
             model.addAttribute("battleLogErrorKey", e.messageKey());
+        }
+        WinLoseStreak streak = WinLoseStreak.from(battleLog).orElse(null);
+        if (streak != null) {
+            model.addAttribute("streak", viewMapper.toStreakLabel(streak, locale));
         }
         CurrentDeckView currentDeck = playerService.currentDeckOf(player, battleLog)
                 .map(deck -> viewMapper.toCurrentDeck(deck, locale))

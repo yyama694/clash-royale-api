@@ -145,7 +145,7 @@ class PlayerServiceTest {
     void 片側が欠けた対戦は一覧に出さないのでbattleTimeを指定されても見つからない扱いにする() {
         BattleLogEntry.Participant self = new BattleLogEntry.Participant("#SELF", "Self", 3, List.of(), List.of());
         when(apiClient.getBattleLog(anyString())).thenReturn(List.of(new BattleLogEntry("PvP",
-                "20260101T000000.000Z", new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of())));
+                "20260101T000000.000Z", new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of(), null)));
 
         assertThrows(BattleNotFoundException.class,
                 () -> playerService.findBattle("#TAG", "20260101T000000.000Z"));
@@ -164,6 +164,6 @@ class PlayerServiceTest {
         BattleLogEntry.Participant self = new BattleLogEntry.Participant("#SELF", "Self", 3, List.of(), List.of());
         BattleLogEntry.Participant opponent = new BattleLogEntry.Participant("#OPP", "Opp", 0, List.of(), List.of());
         return new BattleLogEntry("PvP", battleTime, new BattleLogEntry.GameMode("Ladder"),
-                List.of(self), List.of(opponent));
+                List.of(self), List.of(opponent), null);
     }
 }

@@ -26,12 +26,12 @@ class CurrentDeckTest {
 
     private static PlayerResponse player(List<BattleLogEntry.Card> deck) {
         return new PlayerResponse("#ABC", "name", 15, 9000, 9000, 0, 0, 0, null, deck, cards(159000000), null, null,
-                null, List.of());
+                List.of());
     }
 
     private static BattleLogEntry battle(String tag, List<BattleLogEntry.Card> deck) {
         return new BattleLogEntry("pathOfLegend", "20260927T000000.000Z", null,
-                List.of(new BattleLogEntry.Participant(tag, "name", 1, deck, List.of())), List.of());
+                List.of(new BattleLogEntry.Participant(tag, "name", 1, deck, List.of())), List.of(), null);
     }
 
     private static List<Integer> ids(CurrentDeck deck) {
@@ -86,7 +86,7 @@ class CurrentDeckTest {
         BattleLogEntry twoVsTwo = new BattleLogEntry("clanMate2v2", "20260927T000000.000Z", null, List.of(
                 new BattleLogEntry.Participant("#ABC", "name", 1, cards(1, CHAMPION, 3, 4, 5, 6, 7, 8), List.of()),
                 new BattleLogEntry.Participant("#MATE", "mate", 1, cards(11, 12, 13, 14, 15, 16, 17, 18), List.of())),
-                List.of());
+                List.of(), null);
         List<BattleLogEntry> log = List.of(twoVsTwo, battle("#OTHER", cards(1, CHAMPION, 3, 4, 5, 6, 7, 8)));
 
         CurrentDeck deck = CurrentDeck.of(player, log).orElseThrow();

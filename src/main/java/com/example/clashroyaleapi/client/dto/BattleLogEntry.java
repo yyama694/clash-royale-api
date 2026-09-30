@@ -4,13 +4,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
+/** boatBattleSide は船のバトル(type が boatBattle)でだけ入り、"attacker" か "defender"。ほかの対戦では null。 */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record BattleLogEntry(
         String type,
         String battleTime,
         GameMode gameMode,
         List<Participant> team,
-        List<Participant> opponent
+        List<Participant> opponent,
+        String boatBattleSide
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Participant(String tag, String name, int crowns, List<Card> cards, List<Card> supportCards) {

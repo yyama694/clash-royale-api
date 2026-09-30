@@ -96,12 +96,25 @@ class ViewMapperTest {
     void 表示する名前からは色指定タグを取り除く() {
         BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
                 new BattleLogEntry.GameMode("Ladder"),
-                List.of(participant("#VIEWER", "Viewer")), List.of(participant("#OPP1", "<c6>Ale :D")));
+                List.of(participant("#VIEWER", "Viewer")), List.of(participant("#OPP1", "<c6>Ale :D")), null);
 
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
         assertEquals("Ale :D", summary.opponents().get(0).name());
         assertTrue(summary.teammates().isEmpty());
+    }
+
+    @Test
+    void 船のバトルの守備側は集計から外していると分かる名前で出す() {
+        when(labels.message("battletype.boatDefense", Locale.JAPANESE)).thenReturn("クラン対戦(船の防衛)");
+        BattleLogEntry defense = boatBattle("defender");
+        BattleLogEntry attack = boatBattle("attacker");
+
+        List<BattleSummaryView> summaries =
+                viewMapper.toBattleSummaries(List.of(defense, attack), "#VIEWER", Locale.JAPANESE);
+
+        assertEquals("クラン対戦(船の防衛)", summaries.get(0).gameMode());
+        assertEquals("ClanWar_BoatBattle", summaries.get(1).gameMode());
     }
 
     /** APIのlevelはレアリティごとに数え直した値なので、ゲーム内表記に直してから平均する。 */
@@ -112,7 +125,7 @@ class ViewMapperTest {
                 card(12, 14), card(12, 14), card(9, 11), card(5, 8));
         BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
                 new BattleLogEntry.GameMode("Ladder"), List.of(participant("#VIEWER", "Viewer")),
-                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of())));
+                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of())), null);
 
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
@@ -124,7 +137,7 @@ class ViewMapperTest {
     void 八枚そろっていないデッキの相手は平均レベルを出さない() {
         BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
                 new BattleLogEntry.GameMode("Ladder"),
-                List.of(participant("#VIEWER", "Viewer")), List.of(participant("#OPP1", "Opp1")));
+                List.of(participant("#VIEWER", "Viewer")), List.of(participant("#OPP1", "Opp1")), null);
 
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
@@ -140,7 +153,7 @@ class ViewMapperTest {
                 new BattleLogEntry.GameMode("TeamVsTeam"),
                 List.of(participant("#VIEWER", "Viewer"), participant("#MATE", "Mate")),
                 List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of()),
-                        new BattleLogEntry.Participant("#OPP2", "Opp2", 0, deck, List.of())));
+                        new BattleLogEntry.Participant("#OPP2", "Opp2", 0, deck, List.of())), null);
 
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
@@ -195,9 +208,9 @@ class ViewMapperTest {
     void お気に入りプレイヤーは見つかった順位無し見つからない取得できないを区別する() {
         PlayerResponse.RankedSeasonResult ranked = new PlayerResponse.RankedSeasonResult(1, 4500, 12);
         PlayerResponse found = new PlayerResponse("#AAA", "太郎", 10, 5000, 5000, 1, 0, 0,
-                new PlayerResponse.ClanRef("#CLAN", "償い"), List.of(), List.of(), null, ranked, null, List.of());
+                new PlayerResponse.ClanRef("#CLAN", "償い"), List.of(), List.of(), ranked, null, List.of());
         PlayerResponse noRank = new PlayerResponse("#BBB", "次郎", 5, 1000, 1000, 0, 0, 0, null, List.of(), List.of(),
-                null, new PlayerResponse.RankedSeasonResult(null, 0, null), null, List.of());
+                new PlayerResponse.RankedSeasonResult(null, 0, null), null, List.of());
 
         List<FavoritePlayerView> rows = viewMapper.toFavoritePlayerRows(List.of(
                 new FavoriteFetch.Found<>("AAA", "太郎(旧)", found),
@@ -238,7 +251,12 @@ class ViewMapperTest {
 
     private static BattleLogEntry duel(List<BattleLogEntry.Participant> team) {
         return new BattleLogEntry("PvP", "20260101T000000.000Z", new BattleLogEntry.GameMode("TeamVsTeam"),
-                team, List.of(participant("#OPP1", "Opp1"), participant("#OPP2", "Opp2")));
+                team, List.of(participant("#OPP1", "Opp1"), participant("#OPP2", "Opp2")), null);
+    }
+
+    private static BattleLogEntry boatBattle(String side) {
+        return new BattleLogEntry("boatBattle", "20260101T000000.000Z", new BattleLogEntry.GameMode("ClanWar_BoatBattle"),
+                List.of(participant("#VIEWER", "Viewer")), List.of(participant("#OPP1", "Opp1")), side);
     }
 
     private static BattleLogEntry.Participant participant(String tag, String name) {

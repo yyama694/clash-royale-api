@@ -100,7 +100,7 @@ class FavoriteServiceTest {
     }
 
     private static PlayerResponse player(String tag, String name) {
-        return new PlayerResponse(tag, name, 1, 0, 0, 0, 0, 0, null, List.of(), List.of(), null, null, null,
+        return new PlayerResponse(tag, name, 1, 0, 0, 0, 0, 0, null, List.of(), List.of(), null, null,
                 List.of());
     }
 

@@ -6,7 +6,8 @@ import java.util.List;
 
 /**
  * currentDeck のカードは battlelog のカードと同じ形なので、型を共用している。
- * currentWinLoseStreak は連勝なら正、連敗なら負の数(2026-09-19に実データと対戦履歴を突き合わせて確認)。
+ * currentWinLoseStreak(連勝・連敗)は、通常のトロフィー戦だけを数えているとみられ実態と合わないので受け取らない
+ * (対戦履歴から数える。WinLoseStreak 参照)。
  * expLevel(旧キングレベル)は2026-05-26のXP廃止で更新されなくなり、以後に作られたアカウントは1のままなので受け取らない。
  * 今のゲームが表示するのは kingTowerLevel(カードの強化状況で決まる、最大16)。
  */
@@ -23,7 +24,6 @@ public record PlayerResponse(
         ClanRef clan,
         List<BattleLogEntry.Card> currentDeck,
         List<BattleLogEntry.Card> currentDeckSupportCards,
-        Integer currentWinLoseStreak,
         RankedSeasonResult currentPathOfLegendSeasonResult,
         RankedSeasonResult bestPathOfLegendSeasonResult,
         List<OwnedCard> cards

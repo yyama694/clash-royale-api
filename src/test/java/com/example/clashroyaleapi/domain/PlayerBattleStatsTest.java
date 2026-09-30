@@ -150,7 +150,7 @@ class PlayerBattleStatsTest {
         BattleLogEntry.Participant opponent1 = participant("#OPP1", "Opponent1", 0, List.of(card("Knight")));
         BattleLogEntry.Participant opponent2 = participant("#OPP2", "Opponent2", 0, List.of(card("Golem")));
         BattleLogEntry duel = new BattleLogEntry("PvP", "20260101T000000.000Z",
-                new BattleLogEntry.GameMode("CasualDuel2v2"), List.of(self, mate), List.of(opponent1, opponent2));
+                new BattleLogEntry.GameMode("CasualDuel2v2"), List.of(self, mate), List.of(opponent1, opponent2), null);
         // 最低使用回数(5回)に届かせるため、同じ対戦を5回分並べる。
         List<BattleLogEntry> log = List.of(duel, duel, duel, duel, duel);
 
@@ -171,7 +171,7 @@ class PlayerBattleStatsTest {
                 card("Knight"), card("Golem"), card("Bats"), card("Zap"),
                 card("Arrows"), card("Giant"), card("Miner"), card("Log")));
         BattleLogEntry single = new BattleLogEntry("PvP", "20260101T000000.000Z",
-                new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of(opponent));
+                new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of(opponent), null);
 
         PlayerBattleStats stats = PlayerBattleStats.from(List.of(single));
 
@@ -183,7 +183,7 @@ class PlayerBattleStatsTest {
     @Test
     void チームや相手が空の対戦は集計対象から除外する() {
         BattleLogEntry broken = new BattleLogEntry("PvP", "20260101T000000.000Z",
-                new BattleLogEntry.GameMode("Ladder"), List.of(), List.of());
+                new BattleLogEntry.GameMode("Ladder"), List.of(), List.of(), null);
 
         PlayerBattleStats stats = PlayerBattleStats.from(List.of(broken, battle(3, 0, "Knight")));
 
@@ -220,6 +220,26 @@ class PlayerBattleStatsTest {
     }
 
     @Test
+    void 船のバトルの守備側は勝敗にもカードの集計にも入れず除いた数だけ残す() {
+        List<BattleLogEntry> log = new ArrayList<>();
+        log.add(battle(3, 0, "Knight"));
+        // 船の防衛設備が戦った対戦。放置していても負けが並ぶ。
+        for (int i = 0; i < 5; i++) {
+            log.add(boatBattle("defender", 0, 3, "Golem"));
+        }
+        log.add(boatBattle("attacker", 3, 0, "Knight"));
+
+        PlayerBattleStats stats = PlayerBattleStats.from(log);
+
+        assertEquals(2, stats.total());
+        assertEquals(2, stats.wins());
+        assertEquals(0, stats.losses());
+        assertEquals(5, stats.boatDefenseExcluded());
+        assertEquals(0, stats.friendlyExcluded());
+        assertTrue(stats.weakCards().isEmpty());
+    }
+
+    @Test
     void すべてフレンドバトルなら集計する対戦は0件になる() {
         PlayerBattleStats stats = PlayerBattleStats.from(List.of(battle("clanMate", "Friendly", 3, 0, "Knight")));
 
@@ -238,7 +258,15 @@ class PlayerBattleStatsTest {
         BattleLogEntry.Participant opponent =
                 participant("#OPP", "Opponent", opponentCrowns, List.of(card(opponentCardName)));
         return new BattleLogEntry(type, "20260101T000000.000Z",
-                new BattleLogEntry.GameMode(gameMode), List.of(self), List.of(opponent));
+                new BattleLogEntry.GameMode(gameMode), List.of(self), List.of(opponent), null);
+    }
+
+    private static BattleLogEntry boatBattle(String side, int selfCrowns, int opponentCrowns, String opponentCardName) {
+        BattleLogEntry.Participant self = participant("#SELF", "Self", selfCrowns, List.of());
+        BattleLogEntry.Participant opponent =
+                participant("#OPP", "Opponent", opponentCrowns, List.of(card(opponentCardName)));
+        return new BattleLogEntry("boatBattle", "20260101T000000.000Z",
+                new BattleLogEntry.GameMode("ClanWar_BoatBattle"), List.of(self), List.of(opponent), side);
     }
 
     private static BattleLogEntry.Participant participant(String tag, String name, int crowns,
