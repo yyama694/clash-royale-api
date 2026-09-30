@@ -336,6 +336,68 @@
         });
     </script>
     <!--/*
+      お気に入りの案内の吹き出し(☆が気付かれにくいため)。毎回出すとうるさいので、前回出してから一定期間は出さない。
+      出した時刻はlocalStorageに残す。ストレージが使えない環境では覚えておけず毎回出てしまうので、出さない。
+      スマホで☆が画面の右端に寄ったときにはみ出さないよう、画面内に収まるだけ横にずらし、矢印は☆を指したままにする。
+    */-->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var hint = document.querySelector('.favorite-hint');
+            if (!hint) {
+                return;
+            }
+            var key = 'favoriteHintShownAt';
+            var interval = 3 * 24 * 60 * 60 * 1000;
+            try {
+                var last = Number(localStorage.getItem(key)) || 0;
+                var now = Date.now();
+                // 端末の時計が戻された場合(last が未来)は、いつまでも出なくならないよう期間切れとして扱う。
+                if (now >= last && now - last < interval) {
+                    return;
+                }
+            } catch (e) {
+                return;
+            }
+            var closed = false;
+            function close() {
+                if (closed) {
+                    return;
+                }
+                closed = true;
+                hint.classList.add('is-leaving');
+                setTimeout(function () { hint.hidden = true; }, 250);
+            }
+            function fitToViewport() {
+                var margin = 8;
+                var width = document.documentElement.clientWidth;
+                var rect = hint.getBoundingClientRect();
+                var shift = 0;
+                if (rect.right > width - margin) {
+                    shift = width - margin - rect.right;
+                }
+                if (rect.left + shift < margin) {
+                    shift = margin - rect.left;
+                }
+                hint.style.setProperty('--hint-shift', shift + 'px');
+            }
+            hint.addEventListener('click', close);
+            hint.closest('form').addEventListener('submit', close);
+            setTimeout(function () {
+                if (closed) {
+                    return;
+                }
+                try {
+                    localStorage.setItem(key, String(Date.now()));
+                } catch (e) {
+                    return;
+                }
+                hint.hidden = false;
+                fitToViewport();
+                setTimeout(close, 10000);
+            }, 1200);
+        });
+    </script>
+    <!--/*
       お気に入りを表示する画面([data-favorites-tracked]を付けた画面。現状はトップページ)向け。
       他の画面で☆を切り替えた後にブラウザの「戻る」でここに戻ると、bfcacheの古い表示のままになることがある
       (お気に入りが0件→1件になった直後の「カードごと出ない→出る」の切り替わりも含む)。
@@ -428,8 +490,10 @@
 <!--/*
   お気に入りの☆ボタン。プレイヤー情報画面・クラン情報画面の見出し横に置く。
   kindは"players"/"clans"(登録・解除エンドポイントのURLセグメントと一致)、tagは"#"なしのパス用タグ。
+  favoriteHintは案内の吹き出しを出してよいか(お気に入りを1件も登録していない人だけ)。実際に出すかはJSが頻度を見て決める。
+  吹き出しはボタンのaria-labelと同じ内容なので、読み上げでは二重にならないよう aria-hidden にする。
 */-->
-<span th:fragment="favoriteButton(kind, tag, favorite, favoriteLimit)" class="favorite"
+<span th:fragment="favoriteButton(kind, tag, favorite, favoriteLimit, favoriteHint)" class="favorite"
       th:with="addUrl=@{'/favorites/' + ${kind} + '/' + ${tag}}, removeUrl=@{'/favorites/' + ${kind} + '/' + ${tag} + '/remove'}">
     <form class="favorite-form" method="post" th:action="${favorite} ? ${removeUrl} : ${addUrl}">
         <button type="submit" class="favorite-toggle" th:classappend="${favorite} ? 'is-favorite'"
@@ -440,6 +504,7 @@
                 <path d="M12 2.5l2.97 6.28 6.78.78-5.02 4.73 1.33 6.71L12 17.77l-6.06 3.23 1.33-6.71-5.02-4.73 6.78-.78Z"/>
             </svg>
         </button>
+        <span class="favorite-hint" th:if="${favoriteHint}" aria-hidden="true" hidden th:text="#{favorite.hint}"></span>
     </form>
     <p class="favorite-limit-notice notice" th:classappend="${favoriteLimit} ? '' : 'is-hidden'"
        th:text="#{favorite.limit}"></p>

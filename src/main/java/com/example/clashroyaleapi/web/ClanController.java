@@ -81,6 +81,7 @@ public class ClanController {
                 favoriteCookies.refreshName(request, response, FavoriteKind.CLAN, clanPathTag, clanName)
                         .contains(clanPathTag));
         model.addAttribute("favoriteLimit", favoriteLimit != null);
+        model.addAttribute("favoriteHint", !favoriteCookies.hasAny(request));
         model.addAttribute("members",
                 viewMapper.toMembers(clanService.sortMembers(clan.memberList(), sortKey, direction), locale));
         model.addAttribute("sortBy", sortKey == null ? null : sortKey.code());

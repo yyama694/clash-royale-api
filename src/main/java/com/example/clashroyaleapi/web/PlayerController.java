@@ -89,6 +89,7 @@ public class PlayerController {
                 favoriteCookies.refreshName(request, response, FavoriteKind.PLAYER, playerPathTag, playerName)
                         .contains(playerPathTag));
         model.addAttribute("favoriteLimit", favoriteLimit != null);
+        model.addAttribute("favoriteHint", !favoriteCookies.hasAny(request));
         if (player.clan() != null) {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
