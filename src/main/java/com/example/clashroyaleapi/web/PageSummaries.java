@@ -58,8 +58,7 @@ public class PageSummaries {
             sentences.add(labels.message("player.summary.ranked", locale, ranked.rank()));
         }
         if (streak != null) {
-            sentences.add(labels.message(streak.winning() ? "player.summary.streakWin" : "player.summary.streakLose",
-                    locale, streak.count()));
+            sentences.add(labels.message("player.summary.streak." + streak.code(), locale, streak.count()));
         }
         if (averageElixir != null) {
             sentences.add(labels.message("player.summary.deck", locale, averageElixir));

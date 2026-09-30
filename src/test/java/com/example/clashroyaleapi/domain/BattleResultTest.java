@@ -53,7 +53,7 @@ class BattleResultTest {
     private static BattleLogEntry battle(List<BattleLogEntry.Participant> team,
             List<BattleLogEntry.Participant> opponent) {
         return new BattleLogEntry("PvP", "20260101T000000.000Z", new BattleLogEntry.GameMode("Ladder"), team,
-                opponent);
+                opponent, null);
     }
 
     private static BattleLogEntry.Participant participant(int crowns) {

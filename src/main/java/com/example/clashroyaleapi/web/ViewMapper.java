@@ -8,6 +8,7 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
+import com.example.clashroyaleapi.domain.BattleExclusion;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardLevel;
@@ -22,6 +23,7 @@ import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.TopDecks;
+import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
@@ -199,6 +201,10 @@ public class ViewMapper {
                 .toList();
     }
 
+    public String toStreakLabel(WinLoseStreak streak, Locale locale) {
+        return labels.message("player.streak." + streak.code(), locale, streak.count());
+    }
+
     public CardCollectionView toCardCollection(CardCollection collection, Locale locale) {
         return new CardCollectionView(
                 collection.totalCards(),
@@ -256,7 +262,7 @@ public class ViewMapper {
 
     public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
         return new BattleStatsView(stats.total(), stats.wins(), stats.losses(), stats.draws(), stats.friendlyExcluded(),
-                toPerformances(stats.favoriteCards(), locale),
+                stats.boatDefenseExcluded(), toPerformances(stats.favoriteCards(), locale),
                 toPerformances(stats.weakCards(), locale));
     }
 
@@ -473,6 +479,10 @@ public class ViewMapper {
     }
 
     private String gameModeOf(BattleLogEntry battle, Locale locale) {
+        // 戦績サマリーと連勝の集計から外している対戦なので、一覧でも見分けられるようにする。
+        if (BattleExclusion.of(battle).orElse(null) == BattleExclusion.BOAT_DEFENSE) {
+            return labels.message("battletype.boatDefense", locale);
+        }
         return labels.gameMode(battle.type(), battle.gameMode() != null ? battle.gameMode().name() : null, locale);
     }
 }

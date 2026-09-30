@@ -23,7 +23,7 @@
                 <li><span class="label"><span aria-hidden="true">⚔️</span> <span th:text="#{player.wins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.wins(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">❌</span> <span th:text="#{player.losses}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.losses(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">👑</span> <span th:text="#{player.threeCrownWins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.threeCrownWins(), 1, 'DEFAULT')}"></span></li>
-                <li th:if="${streak}"><span class="label"><span aria-hidden="true">🔥</span> <span th:text="#{player.streak}"></span></span><span class="value" th:text="${streak.winning()} ? #{player.streak.win(${streak.count()})} : #{player.streak.lose(${streak.count()})}"></span></li>
+                <li th:if="${streak}"><span class="label"><span aria-hidden="true">🔥</span> <span th:text="#{player.streak}"></span></span><span class="value" th:text="${streak}"></span></li>
                 <!--/* ランク戦の成績は、上位の順位に入ったプレイヤーにしか意味のある値が無い(それ以外は順位なし・レーティング0) */-->
                 <th:block th:with="r=${player.currentPathOfLegendSeasonResult()}"><li th:if="${r != null and r.rank() != null}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.current}"></span></span><span class="value" th:text="#{player.ranked.value(${r.rank()}, ${#numbers.formatInteger(r.trophies(), 1, 'DEFAULT')})}"></span></li></th:block>
                 <th:block th:with="r=${player.bestPathOfLegendSeasonResult()}"><li th:if="${r != null and r.rank() != null}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.best}"></span></span><span class="value" th:text="#{player.ranked.value(${r.rank()}, ${#numbers.formatInteger(r.trophies(), 1, 'DEFAULT')})}"></span></li></th:block>
@@ -66,6 +66,9 @@
             <th:block th:if="${battleStats.friendlyExcluded() > 0}">
                 <p th:replace="~{fragments/layout :: notice(#{stats.friendlyExcluded(${battleStats.friendlyExcluded()})})}"></p>
             </th:block>
+            <th:block th:if="${battleStats.boatDefenseExcluded() > 0}">
+                <p th:replace="~{fragments/layout :: notice(#{stats.boatDefenseExcluded(${battleStats.boatDefenseExcluded()})})}"></p>
+            </th:block>
             <th:block th:if="${battleStats.total() > 0}">
                 <p class="stats-summary">
                     <span th:text="#{stats.summary(${battleStats.total()}, ${battleStats.wins()}, ${battleStats.losses()})}"></span>
@@ -83,7 +86,7 @@
                 </div>
                 <p th:unless="${battleStats.hasCardRanking()}" class="empty-state" th:text="#{stats.insufficient}"></p>
             </th:block>
-            <p th:if="${battleStats.total() == 0}" class="empty-state" th:text="#{stats.onlyFriendly}"></p>
+            <p th:if="${battleStats.total() == 0}" class="empty-state" th:text="#{stats.nothingCounted}"></p>
         </div>
 
         <div class="card">

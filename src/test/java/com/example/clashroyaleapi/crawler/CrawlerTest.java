@@ -89,7 +89,7 @@ class CrawlerTest {
         playerQueue.discover(List.of("#ME"));
         when(apiClient.getBattleLogUncached("#ME")).thenReturn(List.of(new BattleLogEntry(
                 "PvP", "20260919T000000.000Z", null,
-                List.of(participant("#ME")), List.of(participant("#RIV")))));
+                List.of(participant("#ME")), List.of(participant("#RIV")), null)));
 
         crawler(1).crawlNext();
 
