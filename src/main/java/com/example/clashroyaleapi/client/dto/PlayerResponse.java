@@ -41,9 +41,9 @@ public record PlayerResponse(
     }
 
     /**
-     * 所持カード。公式APIはレアリティを問わずほぼ全カードを含み、countが0でも
-     * level==maxLevelのことがある(手持ちを使い切って最大レベルにした場合)。
-     * そのため「所持しているか」の判定にはcountを使わず、level/maxLevelだけを見る(CardCollection参照)。
+     * 所持カード。公式APIは持っているカードだけを返す(育成途中のプレイヤーは8〜64枚など。2026-09-27・09-30に確認)。
+     * 以前は「ほぼ全カードを含む」と考えていたが、全カードを持つ上位勢だけを見た誤りだった。
+     * countが0でもlevel==maxLevelのことがある(手持ちを使い切って最大レベルにした場合)。
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record OwnedCard(int id, String name, int level, int maxLevel, int count, String rarity) {

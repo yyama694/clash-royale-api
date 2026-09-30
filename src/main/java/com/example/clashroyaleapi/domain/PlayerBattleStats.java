@@ -7,17 +7,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 直近の対戦履歴(battlelog)から、勝敗数と「対戦相手が使用したカードに対する自分の勝率」を集計する。
- * 得意カード=相手がそのカードを使った対戦での勝率が高いカード、苦手カード=勝率が低いカード、という定義。
+ * 得意カード=相手がそのカードを使った対戦での勝率が、本人の全体の勝率より高いカード、苦手カード=低いカード、という定義。
  * フレンドバトルと船のバトルの守備側(BattleExclusion)は集計せず、除いた数をそれぞれ friendlyExcluded・
  * boatDefenseExcluded に残す(total には含めない)。
+ *
+ * @param cardRanking 得意/苦手を選べるだけ対戦したカードがあったか。true でも、全体の勝率より高い(低い)カードが
+ *                    無ければ favoriteCards(weakCards)は空になる
  */
 public record PlayerBattleStats(int total, int wins, int losses, int draws, int friendlyExcluded,
-        int boatDefenseExcluded, List<CardPerformance> favoriteCards, List<CardPerformance> weakCards) {
+        int boatDefenseExcluded, boolean cardRanking, List<CardPerformance> favoriteCards,
+        List<CardPerformance> weakCards) {
 
     // 使用回数がこれ未満のカードはノイズとして除外する。5回はユーザー指定の仕様値のため、
     // Wilson score で少数回のカードの順位が下がるからといって下げないこと。
@@ -65,26 +67,27 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, int 
         List<CardPerformance> ranked = rank(tallies);
         // 「得意」と「苦手」を両方出すには最低2枚必要。母数が少ないときは無理に3枚並べない。
         int size = Math.min(MAX_RANKING_SIZE, ranked.size() / 2);
+        int total = wins + losses + draws;
+        int totalWins = wins;
 
-        // 単純な勝率降順だと、1〜2回しか当たっていないカードが勝率100%で上位を独占する。
-        // Wilson score interval の下限で並べることで、試行回数が少ないカードは自動的に順位が下がる。
+        // 得意は本人の全体の勝率より高いカード、苦手は低いカードだけから選ぶ(2つの条件は重ならない)。
+        // 相対順位だけで選ぶと、勝率の高い人の「苦手」に勝率80%のカードが並んだ(2026-09-30、123人中23人)。
+        // 並べる順は、単純な勝率順だと1〜2回しか当たっていないカードが勝率100%で上位を独占するため、
+        // Wilson score interval の下限(得意)・上限(苦手)を使い、試行回数が少ないカードの順位を自動的に下げる。
         List<CardPerformance> favorite = ranked.stream()
+                .filter(card -> (long) card.wins() * total > (long) totalWins * card.uses())
                 .sorted(Comparator.comparingDouble(CardPerformance::lowerBound).reversed()
                         .thenComparing(Comparator.comparingInt(CardPerformance::uses).reversed()))
                 .limit(size)
                 .toList();
-
-        // 同じカードが得意にも苦手にも並ぶと画面として破綻するため、得意に選ばれた分は除外する。
-        Set<String> alreadyRanked = favorite.stream().map(CardPerformance::cardName).collect(Collectors.toSet());
         List<CardPerformance> weak = ranked.stream()
-                .filter(card -> !alreadyRanked.contains(card.cardName()))
+                .filter(card -> (long) card.wins() * total < (long) totalWins * card.uses())
                 .sorted(Comparator.comparingDouble(CardPerformance::upperBound)
                         .thenComparing(Comparator.comparingInt(CardPerformance::uses).reversed()))
                 .limit(size)
                 .toList();
 
-        return new PlayerBattleStats(wins + losses + draws, wins, losses, draws, friendly, boatDefense, favorite,
-                weak);
+        return new PlayerBattleStats(total, wins, losses, draws, friendly, boatDefense, size > 0, favorite, weak);
     }
 
     private static void tally(Map<String, CardTally> tallies, BattleLogEntry.Participant opponent,

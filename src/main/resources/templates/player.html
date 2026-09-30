@@ -17,7 +17,7 @@
             <div th:replace="~{fragments/layout :: shareButtons(#{share.player.text(${playerName})}, '/player/' + ${playerPathTag})}"></div>
             <!--/* 絵文字は見た目の目印なので、読み上げでは項目名だけが読まれるよう aria-hidden にする */-->
             <ul class="stat-grid">
-                <li><span class="label"><span aria-hidden="true">⭐</span> <span th:text="#{player.kingTowerLevel}"></span></span><span class="value" th:text="${player.kingTowerLevel()}"></span></li>
+                <li><span class="label"><span aria-hidden="true">⭐</span> <span th:text="#{player.kingTowerLevel}"></span></span><span class="value" th:text="${kingTowerLevel} ?: '-'"></span></li>
                 <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{player.trophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.trophies(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">🥇</span> <span th:text="#{player.bestTrophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.bestTrophies(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">⚔️</span> <span th:text="#{player.wins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.wins(), 1, 'DEFAULT')}"></span></li>
@@ -75,16 +75,22 @@
                     <span th:if="${battleStats.draws() > 0}" th:text="#{stats.draws(${battleStats.draws()})}"></span>
                 </p>
 
-                <div th:if="${battleStats.hasCardRanking()}">
+                <div th:if="${battleStats.cardRanking()}">
                     <p th:replace="~{fragments/layout :: notice(#{stats.method})}"></p>
 
                     <h3 th:text="#{stats.favorite.heading}"></h3>
-                    <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.favoriteCards()}, 'good')}"></div>
+                    <th:block th:unless="${#lists.isEmpty(battleStats.favoriteCards())}">
+                        <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.favoriteCards()}, 'good')}"></div>
+                    </th:block>
+                    <p th:if="${#lists.isEmpty(battleStats.favoriteCards())}" class="empty-state" th:text="#{stats.favorite.none}"></p>
 
                     <h3 th:text="#{stats.weak.heading}"></h3>
-                    <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.weakCards()}, 'bad')}"></div>
+                    <th:block th:unless="${#lists.isEmpty(battleStats.weakCards())}">
+                        <div th:replace="~{fragments/layout :: performanceGrid(${battleStats.weakCards()}, 'bad')}"></div>
+                    </th:block>
+                    <p th:if="${#lists.isEmpty(battleStats.weakCards())}" class="empty-state" th:text="#{stats.weak.none}"></p>
                 </div>
-                <p th:unless="${battleStats.hasCardRanking()}" class="empty-state" th:text="#{stats.insufficient}"></p>
+                <p th:unless="${battleStats.cardRanking()}" class="empty-state" th:text="#{stats.insufficient}"></p>
             </th:block>
             <p th:if="${battleStats.total() == 0}" class="empty-state" th:text="#{stats.nothingCounted}"></p>
         </div>

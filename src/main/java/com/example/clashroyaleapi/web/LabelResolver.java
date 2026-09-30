@@ -65,7 +65,7 @@ public class LabelResolver {
             return byName;
         }
         // Challenge_AllCards_EventDeck_NoSet のようにイベントごとに増える名前は、完全一致では追いつかない。
-        // type では trail(通常バトル)に混ざってしまうので、名前の接頭辞で先に分類する。
+        // type では trail(イベント)に混ざってしまうので、名前の接頭辞で先に分類する。
         String byPrefix = isEmpty(name) ? null : messageSource.getMessage(prefixKey(name), null, null, locale);
         if (byPrefix != null) {
             return byPrefix;
