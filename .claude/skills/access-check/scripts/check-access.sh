@@ -197,13 +197,15 @@ awk '$7 !~ /^\/beacon/ {print $7}' /tmp/access-check-human.log | grep -oE '[?&]f
 # known_noise.md のIPは落とす(ビーコン自体はJSを実行した本物のブラウザからしか来ないが、
 # ユーザー本人の動作確認アクセスは「実訪問者」ではないため)。
 # sendBeaconは必ずPOSTで送る。GETはクローラーがJS内のURLを拾って叩いたもの(GoogleOtherで実例あり)。
+# JSを実行して描画するクローラーもビーコンを送るので、ページの集計と同じBOT_REGEXでも落とす
+# (2026-09-30に、Metaのmeta-externalagentが/card/{id}を描画して、除外後12件のうち11件を占めていた)。
 grep '"POST /beacon' /tmp/access-check-window.log > /tmp/access-check-beacon-all.log || true
-grep -vE "^($NOISE_REGEX) " /tmp/access-check-beacon-all.log > /tmp/access-check-beacon.log || true
+grep -viE "$BOT_REGEX" /tmp/access-check-beacon-all.log | grep -vE "^($NOISE_REGEX) " > /tmp/access-check-beacon.log || true
 
 echo
 echo "== 実ブラウザ表示(ビーコン /beacon) =="
 # 除外後が0件でも「仕組みが動いていない」のか「本人の分しか無かった」のかを見分けられるよう、除外前の件数も出す。
-echo "除外前(本人・既知ノイズ込み): $(wc -l < /tmp/access-check-beacon-all.log)件 / ユニーク$(awk '{print $1}' /tmp/access-check-beacon-all.log | sort -u | wc -l) IP"
+echo "除外前(ボットのUA・本人・既知ノイズ込み): $(wc -l < /tmp/access-check-beacon-all.log)件 / ユニーク$(awk '{print $1}' /tmp/access-check-beacon-all.log | sort -u | wc -l) IP"
 if [ -s /tmp/access-check-beacon.log ]; then
     echo "件数: $(wc -l < /tmp/access-check-beacon.log)"
     echo "ユニークIP数: $(awk '{print $1}' /tmp/access-check-beacon.log | sort -u | wc -l)"
