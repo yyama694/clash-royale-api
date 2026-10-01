@@ -91,7 +91,7 @@
 
 ## インフラ構成(OCI)
 
-- **現行VM(2026-09-20〜)**: パブリックIP: `161.33.136.175`(固定IP=予約済みパブリックIP)。**VM.Standard.A1.Flex**(ARM、Always Free枠。1 OCPU・約5.5GBメモリ)。リージョン: 東京(ap-tokyo-1)。OS: Oracle Linux Server 9.8(aarch64)。SSH鍵: `oci_clash_royale_api`(旧VMと共通)。Javaはdnfの`java-21-openjdk-headless`(aarch64、Oracle Linux 9標準リポジトリ)を使用(旧VMのAmazon Corretto x86_64から変更)。詳細な移行手順は`進捗ログ.md`のフェーズ1.40を参照。
+- **現行VM(2026-09-20〜)**: パブリックIP: `161.33.136.175`(固定IP=予約済みパブリックIP)。**VM.Standard.A1.Flex**(ARM、Always Free枠。1 OCPU・約5.5GBメモリ)。ブートボリュームは100GB(2026-10-01に46.6GBから拡張。ルート`/`は83GB。Always Freeはブート・ブロックボリューム合わせて200GBまでなので、ボリュームを足すときは残り100GBに収める。経緯は`進捗ログ.md`のフェーズ1.109)。リージョン: 東京(ap-tokyo-1)。OS: Oracle Linux Server 9.8(aarch64)。SSH鍵: `oci_clash_royale_api`(旧VMと共通)。Javaはdnfの`java-21-openjdk-headless`(aarch64、Oracle Linux 9標準リポジトリ)を使用(旧VMのAmazon Corretto x86_64から変更)。詳細な移行手順は`進捗ログ.md`のフェーズ1.40を参照。
 - **OCI上のインスタンスは現行VM(`clash-royale-api2`)の1台のみ**。旧VM(E2.1.Micro、`132.226.7.203`)は2026-09-21に削除した(`進捗ログ.md`のフェーズ1.53)。
 - ネットワーク公開・ポート開放・ファイアウォール設定はhello-worldでの手順(firewalld + OCIセキュリティリスト双方の開放が必要)を踏襲。**2026-09-20のApache導入に伴い、外部公開ポートは80番・443番のみに変更**(80番はHTTPSへのリダイレクト用、443番は同日のHTTPS化で追加。8080番はfirewalld・OCIセキュリティリストとも削除済み)。OCIセキュリティリストの追加・削除操作自体はユーザーがOCIコンソールで実施する運用。
 
