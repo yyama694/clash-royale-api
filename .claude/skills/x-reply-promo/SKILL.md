@@ -68,15 +68,18 @@ https://x.com/search?q=%23ClashRoyale ranking&f=top
 - 他のクラロワ統計サイト(`clashroyale.last-dragon.work`・`claroy.rakda3.net`・CRTracker等)の宣伝投稿。競合の投稿に自サイトを貼る形になる
 - 公式・esportsのアカウント(クラロワ公式、CRL関連)の告知。話題を乗っ取る形になる(公式への**リンクなしのデータの返信**は別のやり方で、`x-official-reply`スキルで行う)
 - カードの強さランキングなど、プレイヤーを特定できない投稿(リンクを出す口実がない)
+- **返信を制限している投稿**(投稿詳細の返信欄の代わりに「Only some accounts can reply.」と出る)。**文面を作る前に確かめる**(2026-10-02に承認後に送れないと分かった)
 
 ### 2. 投稿者のプレイヤータグを特定する
 
 **名前検索を先に試す**(`lang`は相手の言語に合わせる)。
 
+**⚠ Git Bashから`curl`に日本語を渡すとCP932でエンコードされ、サーバーが400を返す**(`--data-urlencode`も同じ。2026-10-02に再発)。Pythonは引数を正しく受け取れるので、Pythonでエンコードした値を使う。
+
 ```bash
-curl -s -G "https://princess-tower.duckdns.org/player/search" \
-  --data-urlencode "q=<プレイヤー名>" --data-urlencode "lang=ja" -o r.html
-grep -oE 'href="/player/[0-9A-Z]{3,15}"' r.html | sort -u
+q=$(python -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "<プレイヤー名>")
+curl -s "https://princess-tower.duckdns.org/player/search?q=$q&lang=ja" -o r.html
+grep -oE 'href="/player/[0-9A-Z]{3,15}"|<bdi>[^<]+</bdi>' r.html
 ```
 
 **⚠ 名前検索が空振りする主な原因**
@@ -89,9 +92,9 @@ grep -oE 'href="/player/[0-9A-Z]{3,15}"' r.html | sort -u
 
 ```bash
 # 1) クラン名で検索してタグを得る(部分一致で大量に出るときは短いキーワードで絞る)
-curl -s -G "https://princess-tower.duckdns.org/clan/search" \
-  --data-urlencode "q=<クラン名>" --data-urlencode "lang=ja" -o c.html
-grep -oE '<bdi>[^<]+</bdi>|#[0-9A-Z]{3,15}' c.html
+q=$(python -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "<クラン名>")
+curl -s "https://princess-tower.duckdns.org/clan/search?q=$q&lang=ja" -o c.html
+grep -oE '<bdi>[^<]+</bdi>|/clan/[0-9A-Z]{3,15}' c.html
 
 # 2) メンバー一覧から本人を探す(全角記号込みの正確な名前もここで確認できる)
 curl -s "https://princess-tower.duckdns.org/clan/<クランタグ>?lang=ja" -o m.html
