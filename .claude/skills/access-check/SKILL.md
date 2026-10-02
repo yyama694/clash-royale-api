@@ -11,7 +11,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
 
 ## 手順
 
-1. `scripts/check-access.sh`をBashツールで実行する(引数は省略可、省略時は今日のUTC日付)。
+1. `scripts/check-access.sh`をBashツールで実行する(引数は日本時間の日付`YYYY-MM-DD`。省略時は今日。その日の日本時間0:00〜24:00を集計する)。
    ```
    bash "C:\dev\clash-royale-api\.claude\skills\access-check\scripts\check-access.sh"
    ```
