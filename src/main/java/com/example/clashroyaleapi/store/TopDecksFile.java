@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.store;
 
+import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.TopDecks;
 
 import java.io.BufferedReader;
@@ -18,9 +19,11 @@ import java.util.Optional;
 
 /**
  * {@link TopDecks} の保存先。1行目が集計日時(ISO形式)、2行目以降が1人1行で
- * 「カードID(カンマ区切り) \t タワーユニットID \t タグ \t 順位 \t レーティング \t レベル(カンマ区切り) \t タワーユニットのレベル \t 名前」。
- * 3列目以降は2026-09-27に足した。それより前のファイル(2列)も読め、そのときは player が null になる。
- * 名前はプレイヤーが自由に付けるので、タブ・改行を含まないよう空白に置き換えて最後の列に置く。
+ * 「カードID(カンマ区切り) \t タワーユニットID \t タグ \t 順位 \t レーティング \t レベル(カンマ区切り) \t タワーユニットのレベル \t 名前
+ * \t 形(カンマ区切り。対戦の evolutionLevel と同じ数で、0が通常)」。
+ * 3〜8列目は2026-09-27に、9列目は2026-10-03に足した。それより前のファイル(2列・8列)も読め、そのときは player が null、
+ * または形が空になる。
+ * 名前はプレイヤーが自由に付けるので、タブ・改行を含まないよう空白に置き換える。
  * 集計には1時間近くかかるため、再起動(デプロイ)のたびに前回の結果が消えないようファイルに残す。
  */
 public class TopDecksFile {
@@ -67,7 +70,8 @@ public class TopDecksFile {
                 if (player != null) {
                     columns.addAll(List.of(player.tag(), String.valueOf(player.rank()), String.valueOf(player.rating()),
                             joinInts(player.levels()), orEmpty(player.towerLevel()),
-                            player.name().replaceAll("[\\t\\r\\n]", " ")));
+                            player.name().replaceAll("[\\t\\r\\n]", " "),
+                            joinInts(player.forms().stream().map(CardForm::battleLevel).toList())));
                 }
                 writer.write(String.join("\t", columns));
                 writer.write('\n');
@@ -84,9 +88,11 @@ public class TopDecksFile {
         if (columns.length < 8) {
             return new TopDecks.SampledDeck(cards, tower);
         }
+        List<CardForm> forms = columns.length < 9 ? List.of()
+                : parseInts(columns[8]).stream().map(CardForm::ofBattle).toList();
         return new TopDecks.SampledDeck(cards, tower, new TopDecks.Player(columns[2], columns[7],
                 Integer.parseInt(columns[3]), Integer.parseInt(columns[4]), parseInts(columns[5]),
-                parseNullable(columns[6])));
+                parseNullable(columns[6]), forms));
     }
 
     private static String joinInts(List<Integer> values) {

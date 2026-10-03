@@ -34,6 +34,11 @@
     --color-elixir: #a32fb5;
     /* 水滴の縁の色。下に敷く面の色に合わせる必要があるので、白い面の上で使うときは使う側で上書きする。 */
     --color-elixir-outline: var(--color-bg);
+    /* 進化(限界突破)は紫、ヒーローは金。ゲーム内の枠の色に寄せている。 */
+    --color-evolution: #8a3fd1;
+    --color-evolution-bg: #f1e6fb;
+    --color-hero: #b07c00;
+    --color-hero-bg: #fbf0d2;
     --radius: 12px;
     --shadow: 0 2px 10px rgba(31, 36, 48, 0.06);
 }
@@ -65,6 +70,10 @@
         --color-warn: #ffc36b;
         --color-warn-bg: #3a2e1a;
         --color-elixir: #b23dc4;
+        --color-evolution: #b98af0;
+        --color-evolution-bg: #2b2238;
+        --color-hero: #e5b53a;
+        --color-hero-bg: #352d1b;
         --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     }
 }
@@ -77,8 +86,22 @@ body {
     margin: 0;
     background: var(--color-bg);
     color: var(--color-text);
-    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+    /*
+      欧文・キリル文字はOSのUIフォントで、和文は後ろの和文フォントで出す。
+      以前は和文フォントを先頭にしていたため、Windowsでは英語などの画面もYu Gothicの欧文で表示されていた。
+    */
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Sans",
+        "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
     line-height: 1.6;
+}
+
+/*
+  日本語は、長音符や小書きの仮名で行を始めない(「バーサーカ/ー」を防ぐ)、文節の切れ目で折り返す(Chrome 119以降。
+  対応していないブラウザは無視して従来どおり折り返す)。
+*/
+:root:lang(ja) {
+    line-break: strict;
+    word-break: auto-phrase;
 }
 
 a {
@@ -129,9 +152,12 @@ a {
     margin-right: auto;
 }
 
-/* 装飾なので読み上げ対象から外す(content の "/" 以降が代替テキスト)。 */
-.site-header .brand::before {
-    content: "\1F451" / "";
+.brand-logo {
+    display: block;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
 
 .site-nav {
@@ -255,14 +281,6 @@ a {
     margin: 0;
 }
 
-/*
-  デッキを左右に並べる対戦詳細画面用。860pxだとカード1枚あたりが窮屈になる。
-  全画面を同じ幅に揃える案も試したが、1000pxでも「ゴブリンドリル」などのカード名が折り返したため、この画面だけ広げている。
-*/
-.container-wide {
-    max-width: 1100px;
-}
-
 .back-link {
     display: inline-block;
     margin-bottom: 1rem;
@@ -306,6 +324,52 @@ a {
 
 .card-action {
     margin-top: 1rem;
+}
+
+/* 集計方法などの注記。本文を先に読めるよう、カードの末尾に区切り線を引いてまとめる。 */
+.card-notes {
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.card-notes .notice {
+    margin: 0.3rem 0;
+    font-size: 0.8rem;
+}
+
+/* トップページの見出しと説明。何のサイトかを最初に伝える。 */
+.page-intro {
+    margin: 0.25rem 0 1.5rem;
+}
+
+.page-intro h1 {
+    margin: 0 0 0.4rem;
+    font-size: 1.5rem;
+    line-height: 1.35;
+    color: var(--color-heading);
+}
+
+.page-intro p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+}
+
+.profile-clan {
+    font-weight: 700;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.profile-clan:hover {
+    text-decoration: underline;
 }
 
 .clan-description {
@@ -430,6 +494,105 @@ button:hover, .btn:hover {
     text-decoration: underline;
 }
 
+/* 順位の下に添えるレーティングなど、値の補足。 */
+.stat-grid .sub,
+.stat-highlights .sub {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+/* プレイヤーの強さが一目で分かる項目。下の stat-grid-compact より大きく出す。 */
+.stat-highlights {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.stat-highlights li {
+    background: var(--color-bg);
+    border-top: 3px solid var(--color-accent);
+    border-radius: 10px;
+    padding: 0.7rem 1rem 0.8rem;
+}
+
+.stat-highlights .label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.stat-highlights .value {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.stat-grid-compact {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+}
+
+.stat-grid-compact li {
+    padding: 0.45rem 0.8rem;
+}
+
+.stat-grid-compact .value {
+    font-size: 1rem;
+}
+
+/* カードコレクション。割合はバーで見せ、正確な数は文言で添える。 */
+.collection-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.75rem 1.5rem;
+}
+
+.collection-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0 0.75rem;
+    margin-bottom: 0.3rem;
+}
+
+.collection-rarity {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.collection-count {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.progress {
+    height: 8px;
+    background: var(--color-bg);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress > span {
+    display: block;
+    width: var(--percent, 0%);
+    height: 100%;
+    background: var(--color-link);
+    border-radius: inherit;
+}
+
 .stats-summary {
     font-size: 1.05rem;
     font-weight: 600;
@@ -449,6 +612,21 @@ button:hover, .btn:hover {
 /* 右寄せのコピーボタンがデッキから離れないよう、デッキと同じ幅に収める。 */
 .current-deck .deck-meta {
     max-width: 560px;
+}
+
+.current-deck .card-thumb {
+    width: 72px;
+}
+
+/* 得意/苦手カード。全幅に伸びると3枚が間延びするため、使用中のデッキと同じ大きさのタイルにそろえる。 */
+.perf-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-width: 560px;
+}
+
+.perf-grid .deck-card img {
+    width: 72px;
 }
 
 .table-scroll {
@@ -552,6 +730,97 @@ td.cell-action {
     display: block;
     font-size: 0.82rem;
     color: var(--color-text-muted);
+}
+
+/*
+  対戦履歴。1戦を2行にまとめ、勝敗は左端の色帯でも示す。
+  勝敗の文言は言語によって長さが違う(「Niederlage」など)ので、subgridで全行の列幅をそろえ、対戦相手の位置がずれないようにする。
+*/
+.battle-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    row-gap: 0.5rem;
+}
+
+.battle-item {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 0.45rem 0.75rem 0.45rem 0.7rem;
+    background: var(--color-bg);
+    border-left: 4px solid var(--color-draw);
+    border-radius: 8px;
+}
+
+.battle-item.battle-win {
+    border-left-color: var(--color-win);
+}
+
+.battle-item.battle-lose {
+    border-left-color: var(--color-lose);
+}
+
+.battle-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.battle-crowns {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.battle-win .battle-crowns {
+    color: var(--color-win);
+}
+
+.battle-lose .battle-crowns {
+    color: var(--color-lose);
+}
+
+.battle-body {
+    min-width: 0;
+}
+
+.battle-opponents {
+    overflow-wrap: anywhere;
+}
+
+.battle-opponents a,
+.battle-sub a {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.battle-opponents a:hover,
+.battle-sub a:hover {
+    text-decoration: underline;
+}
+
+.battle-sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.battle-sub > * + *::before {
+    content: "\00B7" / "";
+    margin-right: 0.5rem;
+}
+
+.battle-sub .teammates {
+    display: inline;
+    font-size: inherit;
 }
 
 .badge {
@@ -918,6 +1187,23 @@ td.cell-action {
     margin: 0 auto;
 }
 
+.card-thumb img {
+    width: 100%;
+}
+
+/* 進化(限界突破)・ヒーローで使ったカード。水滴の縁はタイルの地色に合わせる。 */
+.deck-card.form-evolution {
+    --color-elixir-outline: var(--color-evolution-bg);
+    background: var(--color-evolution-bg);
+    box-shadow: inset 0 0 0 2px var(--color-evolution);
+}
+
+.deck-card.form-hero {
+    --color-elixir-outline: var(--color-hero-bg);
+    background: var(--color-hero-bg);
+    box-shadow: inset 0 0 0 2px var(--color-hero);
+}
+
 .elixir-badge {
     position: absolute;
     top: -7px;
@@ -1158,24 +1444,33 @@ td.cell-action {
     text-decoration: underline;
 }
 
-.matchup .vs {
-    font-weight: 700;
-    color: var(--color-text-muted);
+.score {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
 }
 
-.lead {
-    margin-bottom: 1.25rem;
+.score-sep {
+    color: var(--color-text-muted);
+    font-weight: 400;
 }
 
 /*
   自分側を左列、相手側を右列に置く。--row はテンプレートで指定する行番号で、2v2の2人目どうしを同じ行に揃える
   (同じ行のパネルは高さも揃う)。左右を別々に縦積みすると、カード名の折り返し行数の違いで2段目の位置がずれていた。
+  本文の幅(860px)では1枚あたりが窮屈なので、この部分だけ左右に1100pxまで張り出す。画面全体を広げると、
+  戻るリンクや見出しの位置が他の画面とずれるため。
 */
 .decks {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     align-items: stretch;
+    margin-inline: calc((100% - min(1100px - 2rem, 100vw - 2rem)) / 2);
 }
 
 .decks .deck-panel-team {
@@ -1198,13 +1493,16 @@ td.cell-action {
 }
 
 /* 幅に余裕があるのでカード画像を大きめにする。 */
-.deck-panel .deck-card img {
+.deck-panel .card-thumb {
     width: 72px;
 }
 
-/* デッキは常に8枚なので、幅が半分になっても4列×2行(ゲーム内と同じ形)を保つ。 */
+/*
+  デッキは常に8枚なので、幅が半分になっても4列×2行(ゲーム内と同じ形)を保つ。
+  1frだと列が画像の枠(72px)より縮まず、スマホ幅で画面の右にはみ出すため minmax(0, 1fr) にする。
+*/
 .deck-panel .deck-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.5rem;
 }
 
@@ -1288,6 +1586,7 @@ td.cell-action {
 @media (max-width: 760px) {
     .decks {
         grid-template-columns: 1fr;
+        margin-inline: 0;
     }
 
     /* 1列ではDOMの順(自分→味方→相手)に並べる。 */
@@ -1305,7 +1604,81 @@ td.cell-action {
 /* スマートフォン。横スクロールしていた表を1行=1カードの積み上げに切り替える。 */
 @media (max-width: 600px) {
     .site-header {
-        padding: 0.6rem 1rem;
+        padding: 0.5rem 1rem 0.35rem;
+    }
+
+    /*
+      メニューを折り返すとヘッダーが4段(約180px)になり、最初に見える範囲の4分の1を占めていた。
+      1段目にロゴと言語、2段目にメニューを1行で並べ、入りきらない分は横にスクロールさせる。
+    */
+    .site-nav {
+        order: 1;
+        flex: 1 0 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        margin: 0 -1rem;
+        padding: 0.15rem 0.75rem;
+    }
+
+    .site-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .site-nav a {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 0.35rem 0.65rem;
+    }
+
+    .page-intro h1 {
+        font-size: 1.3rem;
+    }
+
+    .perf-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .stat-highlights .value {
+        font-size: 1.35rem;
+    }
+
+    .stat-grid-compact {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    /*
+      対戦履歴は対戦相手の欄を広く取る。勝敗の文字は言語によって長い(「Niederlage」)ので見た目からは外して読み上げ用に残し、
+      勝敗の色を付けたクラウン数で示す(数字の大小で勝敗が分かるので、色だけに頼らない)。詳細ボタンは「›」だけにする。
+    */
+    .battle-item {
+        column-gap: 0.6rem;
+        padding: 0.45rem 0.5rem 0.45rem 0.6rem;
+    }
+
+    .battle-result .badge,
+    .battle-detail-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .battle-crowns {
+        font-size: 1.05rem;
+    }
+
+    .battle-detail {
+        padding: 0.35rem 0.7rem;
+    }
+
+    .battle-detail::after {
+        content: "\203A" / "";
+        font-size: 1.2rem;
+        line-height: 1;
     }
 
     /*
@@ -1526,9 +1899,8 @@ td.cell-action {
 }
 
 @media (max-width: 480px) {
-    .matchup {
-        grid-template-columns: 1fr;
-        text-align: center;
+    .score {
+        font-size: 1.9rem;
     }
 
     .card, .decks .card {

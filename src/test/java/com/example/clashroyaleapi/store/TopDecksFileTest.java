@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.store;
 
+import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.TopDecks;
 
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,30 @@ class TopDecksFileTest {
         file.write(written);
 
         assertEquals(Optional.of(written), file.read());
+    }
+
+    @Test
+    void 対戦で使った形も読み戻せる() throws IOException {
+        TopDecksFile file = new TopDecksFile(dir.resolve("top-decks.tsv"));
+        TopDecks written = new TopDecks(Instant.parse("2026-10-03T03:43:58Z"), List.of(
+                new TopDecks.SampledDeck(List.of(26000000, 26000001, 26000002), 159000000,
+                        new TopDecks.Player("#ABC", "Miku", 1, 2887, List.of(16, 16, 16), 16,
+                                List.of(CardForm.EVOLUTION, CardForm.HERO, CardForm.NORMAL)))));
+
+        file.write(written);
+
+        assertEquals(Optional.of(written), file.read());
+    }
+
+    @Test
+    void 形を持たない形式は形が空として読む() throws IOException {
+        Path path = dir.resolve("before-forms.tsv");
+        Files.writeString(path, "2026-09-27T03:43:58Z\n26000000,26000001\t159000000\t#ABC\t1\t2887\t16,15\t16\tMiku\n");
+
+        TopDecks.Player player = new TopDecksFile(path).read().orElseThrow().decks().get(0).player();
+
+        assertEquals(List.of(), player.forms());
+        assertEquals(CardForm.NORMAL, player.formAt(0));
     }
 
     @Test

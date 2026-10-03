@@ -5,6 +5,8 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -17,7 +19,7 @@ class CurrentDeckTest {
     private static final int CHAMPION = 26000074;
 
     private static BattleLogEntry.Card card(int id, int level) {
-        return new BattleLogEntry.Card(id, "card", level, 14, 3, null);
+        return new BattleLogEntry.Card(id, "card", level, 14, 3, null, null);
     }
 
     private static List<BattleLogEntry.Card> cards(int... ids) {
@@ -101,6 +103,48 @@ class CurrentDeckTest {
         List<BattleLogEntry> log = List.of(battle("#abc", cards(1, CHAMPION, 3, 4, 5, 6, 7, 8)));
 
         assertTrue(CurrentDeck.of(player, log).orElseThrow().completedFromBattle());
+    }
+
+    private static List<BattleLogEntry.Card> withLevels(List<BattleLogEntry.Card> cards, Integer... evolutionLevels) {
+        return IntStream.range(0, cards.size())
+                .mapToObj(i -> cards.get(i).withEvolutionLevel(i < evolutionLevels.length ? evolutionLevels[i] : null))
+                .toList();
+    }
+
+    private static List<Integer> evolutionLevels(CurrentDeck deck) {
+        return deck.cards().stream().map(BattleLogEntry.Card::evolutionLevel).toList();
+    }
+
+    @Test
+    void 形は同じ並びで戦った直近の対戦から取る() {
+        // 公式APIの currentDeck は持っている形を返す(8枚目にも進化があり、2枚目は進化とヒーローの両方を持つ3)。
+        PlayerResponse player = player(withLevels(cards(1, 2, 3, 4, 5, 6, 7, 8), 1, 3, 1, null, null, null, null, 1));
+        List<BattleLogEntry> log = List.of(battle("#ABC", withLevels(cards(1, 2, 3, 4, 5, 6, 7, 8), 1, 2, 1)));
+
+        CurrentDeck deck = CurrentDeck.of(player, log).orElseThrow();
+
+        assertEquals(Arrays.asList(1, 2, 1, null, null, null, null, null), evolutionLevels(deck));
+    }
+
+    @Test
+    void 同じ並びの対戦が無ければ通常の形として扱う() {
+        PlayerResponse player = player(withLevels(cards(1, 2, 3, 4, 5, 6, 7, 8), 1, 2, 1));
+        // 同じ8枚でも並びが違えば、枠が違うので使わない。
+        List<BattleLogEntry> log = List.of(battle("#ABC", withLevels(cards(2, 1, 3, 4, 5, 6, 7, 8), 1, 2, 1)));
+
+        CurrentDeck deck = CurrentDeck.of(player, log).orElseThrow();
+
+        assertEquals(Collections.nCopies(8, null), evolutionLevels(deck));
+    }
+
+    @Test
+    void 補ったデッキの形も補った対戦から取る() {
+        PlayerResponse player = player(withLevels(cards(1, 3, 4, 5, 6, 7, 8), 1, 1));
+        List<BattleLogEntry> log = List.of(battle("#ABC", withLevels(cards(1, CHAMPION, 3, 4, 5, 6, 7, 8), 1, null, 1)));
+
+        CurrentDeck deck = CurrentDeck.of(player, log).orElseThrow();
+
+        assertEquals(Arrays.asList(1, null, 1, null, null, null, null, null), evolutionLevels(deck));
     }
 
     @Test

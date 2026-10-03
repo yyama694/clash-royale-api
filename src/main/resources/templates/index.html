@@ -5,7 +5,11 @@
     <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container" data-favorites-tracked>
-        <p class="notice lead" th:text="#{app.description}"></p>
+        <!--/* 初めて来た人に何のサイトかが伝わるよう、ページの見出しと説明を検索フォームの前に置く */-->
+        <div class="page-intro">
+            <h1 th:text="#{home.heading}"></h1>
+            <p th:text="#{app.description}"></p>
+        </div>
 
         <div th:replace="~{fragments/layout :: playerSearchForm(null)}"></div>
         <div th:replace="~{fragments/layout :: clanSearchForm(null)}"></div>

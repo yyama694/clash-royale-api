@@ -4,7 +4,7 @@
 <body>
     <header th:replace="~{fragments/layout :: header}"></header>
 
-    <main class="container container-wide">
+    <main class="container">
         <a class="back-link" th:href="@{/player/{tag}(tag=${playerPathTag})}">&laquo; <span th:text="#{action.backToPlayer}"></span></a>
 
         <div class="card">
@@ -14,9 +14,12 @@
                 <span th:text="' / ' + ${battle.gameMode()}"></span>
             </p>
 
+            <!--/* 勝敗が一目で分かるよう、クラウン数を中央に大きく出す(読み上げは両側の「〇クラウン」で行う) */-->
             <div class="matchup">
                 <div th:replace="~{fragments/layout :: matchupSide(${battle.team()})}"></div>
-                <div class="vs" th:text="#{battle.vs}"></div>
+                <div class="score" aria-hidden="true">
+                    <span th:text="${battle.team()[0].crowns()}"></span><span class="score-sep">-</span><span th:text="${battle.opponents()[0].crowns()}"></span>
+                </div>
                 <div th:replace="~{fragments/layout :: matchupSide(${battle.opponents()})}"></div>
             </div>
         </div>

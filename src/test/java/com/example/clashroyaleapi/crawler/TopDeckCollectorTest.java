@@ -6,6 +6,7 @@ import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
+import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
 
@@ -18,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
@@ -59,7 +61,15 @@ class TopDeckCollectorTest {
     }
 
     private static BattleLogEntry.Card card(int id) {
-        return new BattleLogEntry.Card(id, "card", 14, 14, 3, null);
+        return new BattleLogEntry.Card(id, "card", 14, 14, 3, null, null);
+    }
+
+    /** 先頭を進化(限界突破)、2枚目をヒーローで使ったデッキ。 */
+    private static List<BattleLogEntry.Card> deckWithForms(int firstId) {
+        List<BattleLogEntry.Card> cards = new ArrayList<>(deck(firstId, 8));
+        cards.set(0, cards.get(0).withEvolutionLevel(1));
+        cards.set(1, cards.get(1).withEvolutionLevel(2));
+        return cards;
     }
 
     private static List<BattleLogEntry.Card> deck(int firstId, int size) {
@@ -83,7 +93,7 @@ class TopDeckCollectorTest {
         // 対戦履歴は新しい順。ランク戦より新しいフレンドバトルのデッキは使わない。
         when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(
                 battle("friendly", deck(100, 8), List.of()),
-                ranked(deck(0, 8), List.of(card(159000000))),
+                ranked(deckWithForms(0), List.of(card(159000000))),
                 ranked(deck(200, 8), List.of())));
         when(apiClient.getBattleLogUncached("#B")).thenReturn(List.of(ranked(deck(0, 8), List.of())));
 
@@ -99,8 +109,10 @@ class TopDeckCollectorTest {
         assertEquals(List.of(0, 1, 2, 3, 4, 5, 6, 7), decks.get(0).cardIds());
         assertEquals(159000000, decks.get(0).towerTroopId());
         assertNull(decks.get(1).towerTroopId());
-        // レベルは公式APIの値(14/14)をゲーム内表記に直して残す。
-        assertEquals(new TopDecks.Player("#A", "Miku", 1, 2887, List.of(16, 16, 16, 16, 16, 16, 16, 16), 16),
+        // レベルは公式APIの値(14/14)をゲーム内表記に直して残す。形はその対戦で使った形。
+        assertEquals(new TopDecks.Player("#A", "Miku", 1, 2887, List.of(16, 16, 16, 16, 16, 16, 16, 16), 16,
+                        List.of(CardForm.EVOLUTION, CardForm.HERO, CardForm.NORMAL, CardForm.NORMAL,
+                                CardForm.NORMAL, CardForm.NORMAL, CardForm.NORMAL, CardForm.NORMAL)),
                 decks.get(0).player());
         assertNull(decks.get(1).player().towerLevel());
     }
