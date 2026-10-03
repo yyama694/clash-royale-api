@@ -618,8 +618,11 @@ button:hover, .btn:hover {
     width: 72px;
 }
 
-/* 得意/苦手カード。全幅に伸びると3枚が間延びするため、使用中のデッキと同じ大きさのタイルにそろえる。 */
-.perf-grid {
+/*
+  得意/苦手カード。全幅に伸びると3枚が間延びするため、使用中のデッキと同じ大きさのタイルにそろえる。
+  後ろにある .deck-grid の auto-fit に負けて、1枚だけのときに横幅いっぱいに伸びていたので、2つのクラスで指定する。
+*/
+.deck-grid.perf-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.5rem;
     max-width: 560px;
@@ -1646,7 +1649,7 @@ td.cell-action {
         font-size: 1.3rem;
     }
 
-    .perf-grid {
+    .deck-grid.perf-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
