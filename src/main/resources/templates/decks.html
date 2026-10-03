@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(#{decks.pageTitle})}"></head>
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
 <body>
     <header th:replace="~{fragments/layout :: header}"></header>
 
@@ -8,7 +8,7 @@
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <div class="card">
-            <h1 th:text="#{decks.pageTitle}"></h1>
+            <h1 th:text="${heading}"></h1>
             <p th:text="#{decks.lead}"></p>
             <!--/* 選んだら送信する。スクリプトが動かないときのために送信ボタンも残す。 */-->
             <form class="search-form deck-filter" method="get" th:action="@{/decks}">

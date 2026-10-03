@@ -2,12 +2,16 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!--/* 全画面で同一だった <head> をまとめる。titleは各画面から渡す。説明文は画面ごとの pageDescription があればそれを使う。 */-->
+<!--/*
+  全画面で同一だった <head> をまとめる。titleは各画面から渡す。説明文は画面ごとの pageDescription があればそれを使う。
+  中身が空で検索結果に出したくない画面は、Controllerで noindex を立てる。
+*/-->
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="#{title.format(${title}, #{app.name})}"></title>
     <meta name="description" th:content="${pageDescription} ?: #{app.description}">
+    <meta name="robots" content="noindex" th:if="${noindex}">
     <link rel="icon" type="image/png" th:href="@{/favicon.png}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <!--/* カード画像は公式CDNから読む。最初の画像の手前でDNS・TLSを済ませておく。 */-->
