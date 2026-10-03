@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * 言語切替リンクが「今見ているページのまま言語だけ切り替える」ために、
- * 現在のURI(既存のクエリ付き、langは除く)を全テンプレートに渡す。
+ * 現在のURI(既存のクエリ付き、langとfromは除く)を全テンプレートに渡す。
  */
 @ControllerAdvice
 public class GlobalModelAttributes {
@@ -31,6 +31,10 @@ public class GlobalModelAttributes {
         return nameSearchEnabled;
     }
 
+    /**
+     * 流入元タグ(from)は最初の表示のビーコンで数え終わっているので、言語切替のリンクにも、
+     * hreflang・正規URLなど検索エンジン向けのURLにも引き継がない。
+     */
     @ModelAttribute("currentUri")
     public String currentUri(HttpServletRequest request) {
         String errorUri = forwardedFromError(request);
@@ -42,8 +46,27 @@ public class GlobalModelAttributes {
         }
         String kept = Arrays.stream(query.split("&"))
                 .filter(param -> !param.startsWith(WebConstants.LANGUAGE_PARAM + "="))
+                .filter(param -> !param.startsWith(WebConstants.SOURCE_PARAM + "="))
                 .collect(Collectors.joining("&"));
         return kept.isEmpty() ? uri : uri + "?" + kept;
+    }
+
+    /**
+     * 検索エンジンに示す正規URL(canonical)。?from=x 付きのURLがXなどに貼られて巡回されても、
+     * 評価が別々のURLに割れないよう、fromを除いたURLにする。言語はhreflangの各言語のURLに合わせ、
+     * 対応言語のlangが指定されていれば残す(無ければx-defaultのURL)。エラー画面には出さないので null。
+     */
+    @ModelAttribute("canonicalUrl")
+    public String canonicalUrl(HttpServletRequest request) {
+        if (forwardedFromError(request) != null) {
+            return null;
+        }
+        String url = siteBaseUrl(request) + currentUri(request);
+        String lang = request.getParameter(WebConstants.LANGUAGE_PARAM);
+        if (lang == null || !SupportedLanguages.languageCodes().contains(lang)) {
+            return url;
+        }
+        return url + (url.contains("?") ? "&" : "?") + WebConstants.LANGUAGE_PARAM + "=" + lang;
     }
 
     @ModelAttribute("languageCodes")

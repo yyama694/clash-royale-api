@@ -8,6 +8,9 @@ public final class WebConstants {
     /** 国別ランキングの対象国の切り替えに使うクエリパラメータ名。Cookie名にも同じ名前を使う。 */
     public static final String COUNTRY_PARAM = "country";
 
+    /** X等に出したURLに付けている流入元タグ(?from=x など)。表示の計測はビーコンが行う。 */
+    public static final String SOURCE_PARAM = "from";
+
     private WebConstants() {
     }
 }

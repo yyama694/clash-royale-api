@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class GlobalModelAttributesTest {
 
@@ -41,9 +42,40 @@ class GlobalModelAttributesTest {
         assertEquals("/nonexistent?x=1", attributes.currentUri(request));
     }
 
+    @Test
+    void 流入元タグのfromも取り除く() {
+        assertEquals("/decks?card=26000021",
+                attributes.currentUri(request("/decks", "from=x&card=26000021&lang=ja")));
+        assertEquals("/player/ABC", attributes.currentUri(request("/player/ABC", "lang=ja&from=xreply")));
+    }
+
+    @Test
+    void 正規URLはfromを除き対応言語のlangだけを残す() {
+        assertEquals("http://localhost/decks?card=26000021&lang=ja",
+                attributes.canonicalUrl(request("/decks", "from=x&card=26000021&lang=ja")));
+        assertEquals("http://localhost/player/ABC?lang=es",
+                attributes.canonicalUrl(request("/player/ABC", "lang=es&from=xreply")));
+        assertEquals("http://localhost/player/ABC", attributes.canonicalUrl(request("/player/ABC", "from=share")));
+        assertEquals("http://localhost/", attributes.canonicalUrl(request("/", "lang=xx")));
+    }
+
+    @Test
+    void エラー画面には正規URLを付けない() {
+        MockHttpServletRequest request = request("/error", null);
+        request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI, "/nonexistent");
+
+        assertNull(attributes.canonicalUrl(request));
+    }
+
     private static MockHttpServletRequest request(String uri, String query) {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", uri);
         request.setQueryString(query);
+        if (query != null) {
+            for (String pair : query.split("&")) {
+                String[] keyValue = pair.split("=", 2);
+                request.addParameter(keyValue[0], keyValue.length > 1 ? keyValue[1] : "");
+            }
+        }
         return request;
     }
 }
