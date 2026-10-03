@@ -25,11 +25,21 @@ public record TopDecks(Instant collectedAt, List<SampledDeck> decks) {
     }
 
     /**
-     * 集計した時点のランキングの情報と、その対戦でのカードのレベル。
+     * 集計した時点のランキングの情報と、その対戦でのカードのレベル・形。
      *
      * @param levels     cardIds と同じ順の、ゲーム内表記のレベル
      * @param towerLevel タワーユニットのゲーム内表記のレベル。タワーユニットが無ければ null
+     * @param forms      cardIds と同じ順の、その対戦で使った形。2026-10-03より前の形式の集計ファイルには無いので空になる
      */
-    public record Player(String tag, String name, int rank, int rating, List<Integer> levels, Integer towerLevel) {
+    public record Player(String tag, String name, int rank, int rating, List<Integer> levels, Integer towerLevel,
+            List<CardForm> forms) {
+
+        public Player(String tag, String name, int rank, int rating, List<Integer> levels, Integer towerLevel) {
+            this(tag, name, rank, rating, levels, towerLevel, List.of());
+        }
+
+        public CardForm formAt(int index) {
+            return index < forms.size() ? forms.get(index) : CardForm.NORMAL;
+        }
     }
 }

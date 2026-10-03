@@ -468,7 +468,11 @@
 
 <!--/* ランキング画面へはトップページを経由しないと行けなかったため、どの画面からも移動できるようヘッダーにメニューを置く。 */-->
 <header class="site-header" th:fragment="header">
-    <a class="brand" th:href="@{/}" th:text="#{app.name}"></a>
+    <!--/* ロゴはfavicon・OG画像と同じイラスト。名前が隣にあるので代替テキストは空にする。 */-->
+    <a class="brand" th:href="@{/}">
+        <img class="brand-logo" th:src="@{/favicon.png}" alt="" width="32" height="32">
+        <span th:text="#{app.name}"></span>
+    </a>
     <nav class="site-nav" th:aria-label="#{nav.main}">
         <a th:href="@{/}" th:text="#{nav.search}"></a>
         <a th:href="@{/ranking/players}" th:text="#{nav.playerRanking}"></a>
@@ -641,17 +645,22 @@
 <!--/*
   カード画像は width/height を指定し、読み込み前から枠の大きさを確保する(遅延読み込みの間に配置がガタつくため)。
   公式APIのカード画像は 285x420 で統一されている。
+  進化(限界突破)・ヒーローで使ったカードは、その形の画像と枠の色で示す。形の名前は読み上げと、マウスを重ねたときの表示に出す。
 */-->
 <div th:fragment="deckGrid(cards)" class="deck-grid">
-    <div class="deck-card" th:each="c : ${cards}">
-        <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
-        <div class="card-name" th:text="${c.name()}"></div>
+    <div class="deck-card" th:each="c : ${cards}" th:classappend="${c.formClass()}" th:title="${c.formLabel()}">
+        <div class="card-thumb">
+            <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
+            <span th:replace="~{fragments/layout :: elixirBadge(${c.elixir()})}"></span>
+        </div>
+        <div class="card-name"><span th:text="${c.name()}"></span><span class="visually-hidden"
+             th:if="${c.formLabel() != null}" th:text="' ' + ${c.formLabel()}"></span></div>
         <div class="card-sub" th:text="#{battle.level(${c.level()})}"></div>
     </div>
 </div>
 
 <!--/* 得意/苦手カード。kind(good/bad)で枠と勝率の色を変え、見出しを読まなくても強弱が伝わるようにする。 */-->
-<div th:fragment="performanceGrid(cards, kind)" class="deck-grid">
+<div th:fragment="performanceGrid(cards, kind)" class="deck-grid perf-grid">
     <div class="deck-card" th:each="c : ${cards}" th:classappend="'perf-' + ${kind}">
         <a th:replace="~{fragments/layout :: cardLink(${c.cardId()}, ${c.name()}, ${c.iconUrl()})}"></a>
         <div class="card-name" th:text="${c.name()}"></div>
@@ -691,13 +700,16 @@
        th:title="#{deck.copy.title}" target="_blank" rel="noopener noreferrer" th:text="#{deck.copy}"></a>
 </div>
 
-<!--/* 対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。 */-->
+<!--/*
+  対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。
+  クラウン数は中央に大きく出すので、ここでは読み上げ用にだけ残す。
+*/-->
 <div th:fragment="matchupSide(side)" class="side">
     <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">
         <a th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.name()}"></bdi></a>
     </div>
     <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
-    <div th:text="#{battle.crowns(${side[0].crowns()})}"></div>
+    <div class="visually-hidden" th:text="#{battle.crowns(${side[0].crowns()})}"></div>
 </div>
 
 <!--/*

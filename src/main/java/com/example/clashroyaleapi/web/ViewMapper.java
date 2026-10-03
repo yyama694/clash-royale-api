@@ -11,6 +11,7 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.BattleExclusion;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
+import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
@@ -109,8 +110,8 @@ public class ViewMapper {
     /** デッキが空(公式APIが返さなかった)の場合は、画面に案内文を出すため空を返す。 */
     public CurrentDeckView toCurrentDeck(CurrentDeck deck, Locale locale) {
         return new CurrentDeckView(
-                toCards(deck.cards(), locale),
-                toCards(deck.supportCards(), locale),
+                toCards(deck.cards(), false, locale),
+                toCards(deck.supportCards(), true, locale),
                 toDeckMeta(deck.cards(), deck.supportCards()),
                 deck.completedFromBattle());
     }
@@ -127,6 +128,7 @@ public class ViewMapper {
                 card.name(),
                 icons == null ? null : icons.medium(),
                 icons == null ? null : icons.evolutionMedium(),
+                icons == null ? null : icons.heroMedium(),
                 labels.rarity(card.rarity(), locale),
                 card.elixirCost(),
                 CardLevel.inGame(1, card.maxLevel()),
@@ -170,12 +172,12 @@ public class ViewMapper {
             int id = deck.cardIds().get(i);
             int level = i < player.levels().size() ? player.levels().get(i) : 0;
             CardsResponse.Card card = cardsById.get(id);
-            cards.add(toCardView(id, card, level, locale));
+            cards.add(toCardView(id, card, level, player.formAt(i), false, locale));
             elixirCosts.add(card == null ? null : card.elixirCost());
         }
         List<CardView> support = deck.towerTroopId() == null ? List.of()
                 : List.of(toCardView(deck.towerTroopId(), cardsById.get(deck.towerTroopId()),
-                        player.towerLevel() == null ? 0 : player.towerLevel(), locale));
+                        player.towerLevel() == null ? 0 : player.towerLevel(), CardForm.NORMAL, true, locale));
         OptionalInt cycle = Deck.fourCardCycle(elixirCosts);
         DeckMetaView meta = new DeckMetaView(
                 toNullable(Deck.averageElixir(elixirCosts)),
@@ -186,10 +188,33 @@ public class ViewMapper {
                 cards, support, meta);
     }
 
-    private CardView toCardView(int id, CardsResponse.Card card, int level, Locale locale) {
-        return card == null ? new CardView(id, String.valueOf(id), null, level)
-                : new CardView(id, labels.cardName(card.name(), locale),
-                        card.iconUrls() == null ? null : card.iconUrls().medium(), level);
+    private CardView toCardView(int id, CardsResponse.Card card, int level, CardForm form, boolean tower,
+            Locale locale) {
+        if (card == null) {
+            return new CardView(id, String.valueOf(id), null, level, CardForm.NORMAL, null, null);
+        }
+        CardsResponse.Card.IconUrls icons = card.iconUrls();
+        return new CardView(id, labels.cardName(card.name(), locale),
+                icons == null ? null : iconFor(form, icons.medium(), icons.evolutionMedium(), icons.heroMedium()),
+                level, form, formLabel(form, locale), toElixirBadge(card.elixirCost(), tower, locale));
+    }
+
+    /** 進化・ヒーローの画像が無いカードは通常の画像にする。 */
+    private static String iconFor(CardForm form, String medium, String evolution, String hero) {
+        String url = switch (form) {
+            case EVOLUTION -> evolution;
+            case HERO -> hero;
+            case NORMAL -> null;
+        };
+        return url != null ? url : medium;
+    }
+
+    private String formLabel(CardForm form, Locale locale) {
+        return switch (form) {
+            case EVOLUTION -> labels.message("card.evolution", locale);
+            case HERO -> labels.message("card.hero", locale);
+            case NORMAL -> null;
+        };
     }
 
     /** カードで絞り込むときの選択肢。表示言語の名前の順に並べる。 */
@@ -437,8 +462,8 @@ public class ViewMapper {
                         GameText.stripFormatting(participant.name()),
                         participant.crowns(),
                         result,
-                        toCards(participant.cards(), locale),
-                        toCards(participant.supportCards(), locale),
+                        toCards(participant.cards(), false, locale),
+                        toCards(participant.supportCards(), true, locale),
                         toDeckMeta(participant.cards(), participant.supportCards()),
                         isViewer(participant, viewerTag)))
                 .toList();
@@ -468,13 +493,21 @@ public class ViewMapper {
         return value.isPresent() ? value.getAsDouble() : null;
     }
 
-    private List<CardView> toCards(List<BattleLogEntry.Card> cards, Locale locale) {
+    /** tower はタワーユニットの並びか(エリクサーを払わず、進化・ヒーローも無い)。 */
+    private List<CardView> toCards(List<BattleLogEntry.Card> cards, boolean tower, Locale locale) {
         if (cards == null) {
             return List.of();
         }
         return cards.stream()
-                .map(card -> new CardView(card.id(), labels.cardName(card.name(), locale), card.mediumIconUrl(),
-                        CardLevel.inGame(card.level(), card.maxLevel())))
+                .map(card -> {
+                    CardForm form = tower ? CardForm.NORMAL : CardForm.ofBattle(card.evolutionLevel());
+                    BattleLogEntry.IconUrls icons = card.iconUrls();
+                    return new CardView(card.id(), labels.cardName(card.name(), locale),
+                            icons == null ? null
+                                    : iconFor(form, icons.medium(), icons.evolutionMedium(), icons.heroMedium()),
+                            CardLevel.inGame(card.level(), card.maxLevel()), form, formLabel(form, locale),
+                            toElixirBadge(card.elixirCost(), tower, locale));
+                })
                 .toList();
     }
 

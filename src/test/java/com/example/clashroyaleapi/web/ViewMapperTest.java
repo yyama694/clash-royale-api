@@ -6,11 +6,14 @@ import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.CardCollection;
+import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
+import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
+import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.FavoriteClanView;
@@ -18,6 +21,7 @@ import com.example.clashroyaleapi.web.view.FavoritePlayerView;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
+import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -256,8 +260,73 @@ class ViewMapperTest {
         assertEquals("不明", rows.get(1).name());
     }
 
+    @Test
+    void 進化とヒーローで使ったカードはその形の画像とラベルで出す() {
+        when(labels.message("card.evolution", Locale.JAPANESE)).thenReturn("限界突破");
+        when(labels.message("card.hero", Locale.JAPANESE)).thenReturn("ヒーロー");
+        BattleLogEntry.IconUrls icons = new BattleLogEntry.IconUrls("normal.png", "evolution.png", "hero.png");
+        List<BattleLogEntry.Card> cards = List.of(
+                new BattleLogEntry.Card(1, "Knight", 16, 16, 3, 1, icons),
+                new BattleLogEntry.Card(2, "Knight", 16, 16, 3, 2, icons),
+                new BattleLogEntry.Card(3, "Knight", 16, 16, 3, null, icons));
+        BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1, cards, List.of())));
+
+        List<CardView> views = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0).cards();
+
+        assertEquals("evolution.png", views.get(0).iconUrl());
+        assertEquals("限界突破", views.get(0).formLabel());
+        assertEquals("form-evolution", views.get(0).formClass());
+        assertEquals("hero.png", views.get(1).iconUrl());
+        assertEquals("ヒーロー", views.get(1).formLabel());
+        assertEquals("normal.png", views.get(2).iconUrl());
+        assertNull(views.get(2).formLabel());
+        assertNull(views.get(2).formClass());
+    }
+
+    @Test
+    void 形の画像が無いカードは通常の画像で出す() {
+        BattleLogEntry.IconUrls icons = new BattleLogEntry.IconUrls("normal.png", null, null);
+        BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1,
+                List.of(new BattleLogEntry.Card(1, "Zap", 16, 16, 2, 1, icons)), List.of())));
+
+        CardView view = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0).cards().get(0);
+
+        assertEquals("normal.png", view.iconUrl());
+        assertEquals(CardForm.EVOLUTION, view.form());
+    }
+
+    @Test
+    void デッキのカードにはエリクサーを付けタワーユニットには付けない() {
+        BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1,
+                List.of(new BattleLogEntry.Card(1, "Knight", 16, 16, 3, null, null),
+                        new BattleLogEntry.Card(2, "Mirror", 14, 14, null, null, null)),
+                List.of(new BattleLogEntry.Card(159000000, "Tower Princess", 16, 16, null, null, null)))));
+
+        ParticipantView viewer = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0);
+
+        assertEquals("3", viewer.cards().get(0).elixir().text());
+        // 鏡のようにコストが固定でないカードは "?"。
+        assertEquals("?", viewer.cards().get(1).elixir().text());
+        assertNull(viewer.supportCards().get(0).elixir());
+    }
+
+    @Test
+    void トッププレイヤーのデッキは集計した形の画像で出す() {
+        CardsResponse.Card knight = new CardsResponse.Card(26000000, "Knight", 16, 3, 3, "common",
+                new CardsResponse.Card.IconUrls("normal.png", "evolution.png", "hero.png"));
+        TopDecks.SampledDeck deck = new TopDecks.SampledDeck(List.of(26000000, 26000000), null,
+                new TopDecks.Player("#A", "Miku", 1, 2887, List.of(16, 16), null,
+                        List.of(CardForm.HERO, CardForm.NORMAL)));
+
+        TopPlayerDeckView view = viewMapper.toTopPlayerDeck(deck, Map.of(26000000, knight), Locale.JAPANESE);
+
+        assertEquals("hero.png", view.cards().get(0).iconUrl());
+        assertEquals("normal.png", view.cards().get(1).iconUrl());
+        assertEquals("3", view.cards().get(0).elixir().text());
+    }
+
     private static BattleLogEntry.Card card(int level, int maxLevel) {
-        return new BattleLogEntry.Card(1, "Card", level, maxLevel, 3, null);
+        return new BattleLogEntry.Card(1, "Card", level, maxLevel, 3, null, null);
     }
 
     private static BattleLogEntry duel(List<BattleLogEntry.Participant> team) {

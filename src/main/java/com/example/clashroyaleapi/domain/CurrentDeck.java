@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  * 使用中のデッキ(公式APIの currentDeck)。
  * currentDeck は条件によってチャンピオンを返さず7枚になる(ランク戦上位60人中19人。進捗ログ.mdのフェーズ1.80)。
  * そのときは、今のデッキのカードをすべて含む直近の1対1の対戦から、抜けているカードを補う。
+ * cards の evolutionLevel は、対戦と同じ「その形で使うか」の意味に置き換えてある(CardForm・withBattleForms 参照)。
  *
  * @param completedFromBattle 対戦履歴から補ったカードがあるか(画面で注記するため)
  */
@@ -30,16 +31,41 @@ public record CurrentDeck(List<BattleLogEntry.Card> cards, List<BattleLogEntry.C
         }
         List<BattleLogEntry.Card> support = player.currentDeckSupportCards() == null
                 ? List.of() : player.currentDeckSupportCards();
-        if (deck.size() >= DECK_SIZE) {
-            return Optional.of(new CurrentDeck(deck, support, false));
-        }
-        return Optional.of(battleLog.stream()
+        List<List<BattleLogEntry.Card>> battleDecks = battleLog.stream()
                 .map(battle -> ownDeck(battle, player.tag()))
                 .flatMap(Optional::stream)
+                .toList();
+        if (deck.size() >= DECK_SIZE) {
+            return Optional.of(new CurrentDeck(withBattleForms(deck, battleDecks), support, false));
+        }
+        return Optional.of(battleDecks.stream()
                 .filter(battleDeck -> containsAll(battleDeck, deck))
                 .findFirst()
-                .map(battleDeck -> new CurrentDeck(fill(deck, battleDeck), support, true))
-                .orElseGet(() -> new CurrentDeck(deck, support, false)));
+                .map(battleDeck -> new CurrentDeck(withBattleForms(fill(deck, battleDeck), battleDecks), support, true))
+                .orElseGet(() -> new CurrentDeck(withBattleForms(deck, battleDecks), support, false)));
+    }
+
+    /**
+     * 公式APIの currentDeck の evolutionLevel は持っている形を表し、進化・ヒーローの枠に置いていないカードにも付く。
+     * 同じカードを同じ並びで使った直近の対戦があれば、その対戦で使った形に置き換え、無ければ通常の形として扱う
+     * (枠の決まりを推測で当てはめると、枠が解放されていないプレイヤーなどで誤るため)。
+     */
+    private static List<BattleLogEntry.Card> withBattleForms(List<BattleLogEntry.Card> deck,
+            List<List<BattleLogEntry.Card>> battleDecks) {
+        List<Integer> ids = ids(deck);
+        List<BattleLogEntry.Card> sameOrder = battleDecks.stream()
+                .filter(battleDeck -> ids(battleDeck).equals(ids))
+                .findFirst()
+                .orElse(null);
+        List<BattleLogEntry.Card> result = new ArrayList<>();
+        for (int i = 0; i < deck.size(); i++) {
+            result.add(deck.get(i).withEvolutionLevel(sameOrder == null ? null : sameOrder.get(i).evolutionLevel()));
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<Integer> ids(List<BattleLogEntry.Card> cards) {
+        return cards.stream().map(BattleLogEntry.Card::id).toList();
     }
 
     /** 1対1の対戦で、本人が8枚そろったデッキを使っていればそのデッキ。2v2は味方と区別がつきにくいので使わない。 */

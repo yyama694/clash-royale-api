@@ -24,8 +24,6 @@
 
         <div class="card" id="members">
             <h2 th:text="#{clan.memberList.heading}"></h2>
-            <p th:replace="~{fragments/layout :: notice(#{clan.donationNotice})}"></p>
-            <p th:replace="~{fragments/layout :: notice(#{clan.lastSeenNotice})}"></p>
             <div class="table-scroll">
                 <table class="table-sortable">
                     <thead>
@@ -55,6 +53,10 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <div class="card-notes">
+                <p th:replace="~{fragments/layout :: notice(#{clan.donationNotice})}"></p>
+                <p th:replace="~{fragments/layout :: notice(#{clan.lastSeenNotice})}"></p>
             </div>
         </div>
 

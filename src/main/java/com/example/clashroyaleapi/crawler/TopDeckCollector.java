@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
+import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.TopDecks;
@@ -133,7 +134,8 @@ class TopDeckCollector {
                 new TopDecks.Player(ranked.tag(), GameText.stripFormatting(ranked.name()), ranked.rank(),
                         ranked.eloRating(),
                         me.cards().stream().map(card -> CardLevel.inGame(card.level(), card.maxLevel())).toList(),
-                        tower == null ? null : CardLevel.inGame(tower.level(), tower.maxLevel())));
+                        tower == null ? null : CardLevel.inGame(tower.level(), tower.maxLevel()),
+                        me.cards().stream().map(card -> CardForm.ofBattle(card.evolutionLevel())).toList()));
     }
 
     private static boolean isRankedDeck(BattleLogEntry battle) {
