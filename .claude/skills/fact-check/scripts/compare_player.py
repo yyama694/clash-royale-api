@@ -12,13 +12,17 @@ from common import (api, both_sides, card_performance, counted, crowns, enc, in_
 
 
 def stat_grid(page):
+    """基本情報の項目名→表示値。2026-10-03から大きく出す上段(stat-highlights)と下段(stat-grid-compact)に分かれた。
+    ランク戦の順位のように補足(レーティング)を添える項目は「Rank 2 / Rating 3,507」の形で返す。"""
     grid = {}
-    block = re.search(r'<ul class="stat-grid">(.*?)</ul>', page, re.S).group(1)
-    for li in re.findall(r"<li>(.*?)</li>", block, re.S):
-        label = re.search(r'<span class="label">(.*?)</span>\s*<span class="value">', li, re.S)
-        value = re.search(r'<span class="value">(.*)</span>', li, re.S)
-        if label and value:
-            grid[re.sub(r"^\W+", "", text(label.group(1))).strip()] = text(value.group(1))
+    for block in re.findall(r'<ul class="stat-(?:highlights|grid stat-grid-compact)">(.*?)</ul>', page, re.S):
+        for li in re.findall(r"<li>(.*?)</li>", block, re.S):
+            label = re.search(r'<span class="label">(.*?)</span>\s*<span class="value">', li, re.S)
+            value = re.search(r'<span class="value">(.*?)</span>', li, re.S)
+            sub = re.search(r'<span class="sub">(.*?)</span>', li, re.S)
+            if label and value:
+                shown = text(value.group(1)) + (" / " + text(sub.group(1)) if sub else "")
+                grid[re.sub(r"^\W+", "", text(label.group(1))).strip()] = shown
     return grid
 
 
@@ -75,7 +79,7 @@ def check(tag):
     for key, label in (("currentPathOfLegendSeasonResult", "Rank Battle (this season)"),
                        ("bestPathOfLegendSeasonResult", "Rank Battle (best past season)")):
         r = p.get(key) or {}
-        want = f"Rank {r['rank']} (rating {r['trophies']:,})" if r.get("rank") else None
+        want = f"Rank {r['rank']:,} / Rating {r['trophies']:,}" if r.get("rank") else None
         expect(label, g.get(label), want)
 
     battles = [b for b in log if both_sides(b)]
@@ -87,8 +91,9 @@ def check(tag):
         # 英語の文は「{勝}W {敗}L in the last {戦数} battles」の順
         w, l, total = (int(x) for x in re.findall(r"\d+", text(summary.group(1)))[:3])
         expect("stats (total, W, L)", (total, w, l), (len(stats_battles), wins, losses))
-    expect("battle rows", len(re.findall(r'<td class="cell-action">', page)), len(battles))
-    rows = [r for r in re.findall(r"<tr>(.*?)</tr>", page, re.S) if '<td class="cell-action">' in r]
+    # 対戦履歴は2026-10-03から表ではなく、1戦1つの<li class="battle-item ...">の一覧
+    rows = [item.split("</li>")[0] for item in page.split('<li class="battle-item')[1:]]
+    expect("battle rows", len(rows), len(battles))
     wrong_levels = [(b["battleTime"], re.findall(r"Avg\. Lv\.([\d.]+)", r), opponent_level(b))
                     for r, b in zip(rows, battles) if re.findall(r"Avg\. Lv\.([\d.]+)", r) != opponent_level(b)]
     expect("opponent avg level (rows)", wrong_levels[:2], [])
