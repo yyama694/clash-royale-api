@@ -61,21 +61,6 @@
             <p th:unless="${currentDeck}" class="empty-state" th:text="#{deck.empty}"></p>
         </div>
 
-        <div th:if="${cardCollection}" class="card">
-            <h2 th:text="#{cardCollection.heading}"></h2>
-            <p th:replace="~{fragments/layout :: notice(#{cardCollection.notice(${cardCollection.maxedPercent()})})}"></p>
-            <!--/* 割合は文言で読めるので、バーは見た目の補助として読み上げから外す */-->
-            <ul class="collection-list">
-                <li th:each="r : ${cardCollection.rarities()}">
-                    <div class="collection-head">
-                        <span class="collection-rarity" th:text="${r.rarityLabel()}"></span>
-                        <span class="collection-count" th:text="#{cardCollection.rarity.value(${r.maxedCards()}, ${r.totalCards()}, ${r.maxedPercent()})}"></span>
-                    </div>
-                    <div class="progress" aria-hidden="true"><span th:style="'--percent: ' + ${r.maxedPercent()} + '%'"></span></div>
-                </li>
-            </ul>
-        </div>
-
         <div th:if="${battleStats}" class="card">
             <h2 th:text="#{stats.heading}"></h2>
             <th:block th:if="${battleStats.total() > 0}">
@@ -159,6 +144,24 @@
             <div class="card-notes">
                 <p th:replace="~{fragments/layout :: notice(#{battlelog.notice})}"></p>
             </div>
+        </div>
+
+        <!--/*
+          育成途中のプレイヤーには「最大レベル 0/29枚(0%)」が並ぶだけになりやすいので、デッキ・戦績・対戦履歴の後ろに置く。
+        */-->
+        <div th:if="${cardCollection}" class="card">
+            <h2 th:text="#{cardCollection.heading}"></h2>
+            <p th:replace="~{fragments/layout :: notice(#{cardCollection.notice(${cardCollection.maxedPercent()})})}"></p>
+            <!--/* 割合は文言で読めるので、バーは見た目の補助として読み上げから外す */-->
+            <ul class="collection-list">
+                <li th:each="r : ${cardCollection.rarities()}">
+                    <div class="collection-head">
+                        <span class="collection-rarity" th:text="${r.rarityLabel()}"></span>
+                        <span class="collection-count" th:text="#{cardCollection.rarity.value(${r.maxedCards()}, ${r.totalCards()}, ${r.maxedPercent()})}"></span>
+                    </div>
+                    <div class="progress" aria-hidden="true"><span th:style="'--percent: ' + ${r.maxedPercent()} + '%'"></span></div>
+                </li>
+            </ul>
         </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
