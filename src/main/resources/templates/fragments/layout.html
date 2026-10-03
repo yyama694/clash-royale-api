@@ -705,6 +705,23 @@
 </div>
 
 <!--/*
+  トッププレイヤーの1人分のデッキ(順位・名前・レーティング、8枚とタワーユニット、指標とコピーボタン)。
+  デッキ画面とカード詳細画面で使う。外側の枠(top-deck)は使う側で付ける(デッキ画面は1人1枚のカード、カード詳細画面は1枚のカードの中に並べる)。
+*/-->
+<th:block th:fragment="topDeck(d)">
+    <div class="top-deck-head">
+        <span class="top-deck-rank" th:text="#{decks.rank(${d.rank()})}"></span>
+        <a th:href="@{/player/{tag}(tag=${d.pathTag()})}"><bdi th:text="${d.name()}"></bdi></a>
+        <span class="top-deck-rating" th:text="#{decks.rating(${d.rating()})}"></span>
+    </div>
+    <div th:replace="~{fragments/layout :: deckGrid(${d.cards()})}"></div>
+    <th:block th:if="${not #lists.isEmpty(d.supportCards())}">
+        <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${d.supportCards()})}"></div>
+    </th:block>
+    <div th:replace="~{fragments/layout :: deckMeta(${d.meta()})}"></div>
+</th:block>
+
+<!--/*
   対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。
   クラウン数は中央に大きく出すので、ここでは読み上げ用にだけ残す。
 */-->

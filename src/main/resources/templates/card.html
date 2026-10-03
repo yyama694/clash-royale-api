@@ -61,11 +61,24 @@
                 <p th:replace="~{fragments/layout :: notice(#{cardUsage.partners.notice})}"></p>
             </th:block>
 
-            <p><a th:href="@{/decks(card=${card.id()})}" th:text="#{cardUsage.decksLink}"></a></p>
             <p th:replace="~{fragments/layout :: notice(#{cardUsage.notice(${usage.sampleSize()})})}"></p>
             <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
                 <time th:replace="~{fragments/layout :: localTime(${usage.collectedAt()})}"></time></p>
         </div>
+
+        <!--/*
+          このカードを使っているトッププレイヤーのうち、順位の高い人のデッキ。全員分はデッキ画面(カードで絞り込み)へつなぐ。
+          誰も使っていないカードと、初回の集計が終わる前は出さない(使用率の欄に人数が出ているので、空の欄は置かない)。
+        */-->
+        <section class="card" id="top-decks" th:if="${topDecks != null and not #lists.isEmpty(topDecks)}">
+            <h2 th:text="#{decks.heading.card(${card.name()})}"></h2>
+            <p th:text="#{cardDecks.lead}"></p>
+            <div class="top-deck top-deck-item" th:each="d : ${topDecks}">
+                <th:block th:replace="~{fragments/layout :: topDeck(${d})}"></th:block>
+            </div>
+            <a class="btn btn-secondary card-action" th:if="${topDecksTotal > #lists.size(topDecks)}"
+               th:href="@{/decks(card=${card.id()})}" th:text="#{cardDecks.all(${topDecksTotal})}"></a>
+        </section>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>

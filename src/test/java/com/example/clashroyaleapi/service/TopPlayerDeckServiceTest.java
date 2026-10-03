@@ -71,6 +71,22 @@ class TopPlayerDeckServiceTest {
     }
 
     @Test
+    void カード詳細画面用に1ページの人数を変えられる() {
+        given(List.of(
+                deck(4, List.of(GOLDEN_KNIGHT), null),
+                deck(1, List.of(GOLDEN_KNIGHT), null),
+                deck(2, List.of(3), null),
+                deck(3, List.of(GOLDEN_KNIGHT), null)));
+
+        TopPlayerDeckService.Page page = service.page(GOLDEN_KNIGHT, 1, 2).orElseThrow();
+
+        // 使っている人のうち順位の高い2人だけ。全体の人数は絞り込み後の3人のまま(「すべて見る」に使う)。
+        assertEquals(List.of(1, 3), ranks(page));
+        assertEquals(3, page.total());
+        assertTrue(page.hasNext());
+    }
+
+    @Test
     void 該当者がいなければ0人のページを返す() {
         given(List.of(deck(1, List.of(1), null)));
 

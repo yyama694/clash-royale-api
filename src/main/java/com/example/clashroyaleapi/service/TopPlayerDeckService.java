@@ -35,13 +35,18 @@ public class TopPlayerDeckService {
                        boolean hasNext, int sampleSize, Integer topRank) {
     }
 
+    public Optional<Page> page(Integer cardId, int page) {
+        return page(cardId, page, PAGE_SIZE);
+    }
+
     /**
      * まだ一度も集計していない、または誰のデッキかを持たない古い形式の集計しか無いときは空。
+     * カード詳細画面は、このカードを使っている人の上位だけを出すため、1ページの人数を小さくして先頭のページを使う。
      *
      * @param cardId 指定されたら、そのカード(タワーユニットを含む)を使っている人だけにする
      * @param page   1始まり。範囲外は最後のページとして扱う
      */
-    public Optional<Page> page(Integer cardId, int page) {
+    public Optional<Page> page(Integer cardId, int page, int pageSize) {
         return usageService.topDecks().flatMap(topDecks -> {
             List<TopDecks.SampledDeck> ranked = topDecks.decks().stream()
                     .filter(deck -> deck.player() != null)
@@ -52,10 +57,10 @@ public class TopPlayerDeckService {
             }
             List<TopDecks.SampledDeck> matched = cardId == null ? ranked
                     : ranked.stream().filter(deck -> deck.contains(cardId)).toList();
-            int lastPage = Math.max(1, (matched.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+            int lastPage = Math.max(1, (matched.size() + pageSize - 1) / pageSize);
             int current = Math.min(Math.max(page, 1), lastPage);
-            int start = (current - 1) * PAGE_SIZE;
-            int end = Math.min(start + PAGE_SIZE, matched.size());
+            int start = (current - 1) * pageSize;
+            int end = Math.min(start + pageSize, matched.size());
             return Optional.of(new Page(topDecks.collectedAt(), matched.subList(start, end), matched.size(), current,
                     matched.isEmpty() ? 0 : start + 1, current < lastPage, ranked.size(),
                     matched.isEmpty() ? null : matched.get(0).player().rank()));

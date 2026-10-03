@@ -894,6 +894,13 @@ td.cell-action {
     color: var(--color-text-muted);
 }
 
+/* カード詳細画面では1枚のカードの中に数人分を並べるので、区切り線で分ける。 */
+.top-deck-item + .top-deck-item {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
 .page-summary {
     font-size: 0.9rem;
     line-height: 1.6;

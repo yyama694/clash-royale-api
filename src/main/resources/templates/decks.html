@@ -34,16 +34,7 @@
         <th:block th:if="${decks != null and not #lists.isEmpty(decks)}">
             <p class="pager-range" th:text="#{decks.range(${from}, ${to}, ${total})}"></p>
             <div class="card top-deck" th:each="d : ${decks}">
-                <div class="top-deck-head">
-                    <span class="top-deck-rank" th:text="#{decks.rank(${d.rank()})}"></span>
-                    <a th:href="@{/player/{tag}(tag=${d.pathTag()})}"><bdi th:text="${d.name()}"></bdi></a>
-                    <span class="top-deck-rating" th:text="#{decks.rating(${d.rating()})}"></span>
-                </div>
-                <div th:replace="~{fragments/layout :: deckGrid(${d.cards()})}"></div>
-                <th:block th:if="${not #lists.isEmpty(d.supportCards())}">
-                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${d.supportCards()})}"></div>
-                </th:block>
-                <div th:replace="~{fragments/layout :: deckMeta(${d.meta()})}"></div>
+                <th:block th:replace="~{fragments/layout :: topDeck(${d})}"></th:block>
             </div>
             <nav class="pager" th:if="${prevPage != null or nextPage != null}">
                 <a class="btn btn-secondary" th:if="${prevPage != null}"
