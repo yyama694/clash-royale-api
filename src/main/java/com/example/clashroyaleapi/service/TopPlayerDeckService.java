@@ -25,12 +25,14 @@ public class TopPlayerDeckService {
     }
 
     /**
-     * @param total   絞り込み後の人数
-     * @param from    このページの先頭が何人目か(1始まり)。該当者がいなければ0
-     * @param hasNext 次のページがあるか
+     * @param total      絞り込み後の人数
+     * @param from       このページの先頭が何人目か(1始まり)。該当者がいなければ0
+     * @param hasNext    次のページがあるか
+     * @param sampleSize 絞り込む前の人数(集計した全員)
+     * @param topRank    絞り込み後の最上位の順位。該当者がいなければ null
      */
     public record Page(Instant collectedAt, List<TopDecks.SampledDeck> decks, int total, int page, int from,
-                       boolean hasNext) {
+                       boolean hasNext, int sampleSize, Integer topRank) {
     }
 
     /**
@@ -55,7 +57,8 @@ public class TopPlayerDeckService {
             int start = (current - 1) * PAGE_SIZE;
             int end = Math.min(start + PAGE_SIZE, matched.size());
             return Optional.of(new Page(topDecks.collectedAt(), matched.subList(start, end), matched.size(), current,
-                    matched.isEmpty() ? 0 : start + 1, current < lastPage));
+                    matched.isEmpty() ? 0 : start + 1, current < lastPage, ranked.size(),
+                    matched.isEmpty() ? null : matched.get(0).player().rank()));
         });
     }
 }

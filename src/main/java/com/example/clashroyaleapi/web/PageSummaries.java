@@ -7,7 +7,11 @@ import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.CardUsageView;
 
+import com.ibm.icu.text.ListFormatter;
+import com.ibm.icu.util.ULocale;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -19,12 +23,15 @@ import java.util.Locale;
 import java.util.OptionalLong;
 
 /**
- * プレイヤー情報画面・クラン情報画面の、ページごとのタイトルと要約文。
- * 要約文は検索結果の説明文(meta description・OGP)と、本文の先頭の1段落を兼ねる。
+ * プレイヤー情報・クラン情報・カード詳細・トッププレイヤーのデッキの各画面の、ページごとのタイトルと要約文。
+ * 要約文は検索結果の説明文(meta description・OGP)を兼ね、プレイヤー・クラン画面では本文の先頭の1段落にもなる。
  * 全ページ共通の説明文だと、検索エンジンからは同じ中身のページに見えやすいため(TODO.mdの「ページビュー向上」)。
  */
 @Component
 public class PageSummaries {
+
+    // 説明文は検索結果で120〜160字ほどしか出ないので、一緒に使われるカードは上位だけにする。
+    private static final int SUMMARY_PARTNER_LIMIT = 3;
 
     private final LabelResolver labels;
     private final Clock clock;
@@ -92,6 +99,68 @@ public class PageSummaries {
             sentences.add(labels.message("clan.summary.war", locale, war.membersBattledToday(), war.members().size()));
         }
         return join(sentences, locale);
+    }
+
+    public String cardTitle(String cardName, Locale locale) {
+        return labels.message("card.seo.title", locale, cardName);
+    }
+
+    public String cardSummary(String cardName, CardUsageView usage, Locale locale) {
+        List<String> sentences = new ArrayList<>();
+        if (usage.users() > 0) {
+            sentences.add(labels.message("card.summary.usage", locale, cardName, usage.sampleSize(), usage.users(),
+                    usage.percent(), usage.rank(), usage.rankedOf()));
+        } else {
+            sentences.add(labels.message("card.summary.unused", locale, cardName, usage.sampleSize()));
+        }
+        if (!usage.partners().isEmpty()) {
+            List<String> names = usage.partners().stream()
+                    .limit(SUMMARY_PARTNER_LIMIT)
+                    .map(CardUsageView.PartnerView::name)
+                    .toList();
+            sentences.add(labels.message("card.summary.partners", locale,
+                    ListFormatter.getInstance(ULocale.forLocale(locale)).format(names)));
+        }
+        sentences.add(labels.message("card.summary.daily", locale));
+        return join(sentences, locale);
+    }
+
+    /** @param cardName 絞り込んでいなければ null */
+    public String decksHeading(String cardName, Locale locale) {
+        return cardName == null ? labels.message("decks.pageTitle", locale)
+                : labels.message("decks.heading.card", locale, cardName);
+    }
+
+    /**
+     * 使っている人数はタイトルにも入れる。カードごとに違う数字になり、検索結果で中身の量も伝わるため。
+     *
+     * @param cardName 絞り込んでいなければ null
+     * @param page     まだ集計していなければ null
+     */
+    public String decksTitle(String cardName, TopPlayerDeckService.Page page, Locale locale) {
+        if (cardName == null || page == null || page.total() == 0) {
+            return decksHeading(cardName, locale);
+        }
+        return labels.message("decks.seo.title.card", locale, cardName, page.total());
+    }
+
+    /**
+     * @param cardName 絞り込んでいなければ null
+     * @param page     まだ集計していなければ null
+     * @return 載せる中身が無ければ null(サイト共通の説明文になる)
+     */
+    public String decksSummary(String cardName, TopPlayerDeckService.Page page, Locale locale) {
+        if (page == null) {
+            return null;
+        }
+        if (cardName == null) {
+            return labels.message("decks.summary.all", locale, page.sampleSize());
+        }
+        if (page.total() == 0) {
+            return null;
+        }
+        return labels.message("decks.summary.card", locale, page.sampleSize(), cardName, page.total(),
+                page.topRank());
     }
 
     // 日本語は文の区切りに空白を入れない。

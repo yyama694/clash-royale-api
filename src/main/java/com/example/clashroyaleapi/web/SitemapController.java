@@ -1,6 +1,8 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.service.CardService;
+import com.example.clashroyaleapi.service.CardUsageService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -22,11 +24,14 @@ public class SitemapController {
     private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players");
 
     private final CardService cardService;
+    private final CardUsageService cardUsageService;
     private final GlobalModelAttributes modelAttributes;
     private final LabelResolver labels;
 
-    public SitemapController(CardService cardService, GlobalModelAttributes modelAttributes, LabelResolver labels) {
+    public SitemapController(CardService cardService, CardUsageService cardUsageService,
+            GlobalModelAttributes modelAttributes, LabelResolver labels) {
         this.cardService = cardService;
+        this.cardUsageService = cardUsageService;
         this.modelAttributes = modelAttributes;
         this.labels = labels;
     }
@@ -40,7 +45,8 @@ public class SitemapController {
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" "
                 + "xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
-        Stream.concat(STATIC_PATHS.stream(), cardPaths())
+        Stream.of(STATIC_PATHS.stream(), cardPaths(), cardDeckPaths())
+                .flatMap(paths -> paths)
                 .forEach(path -> appendUrl(xml, base, path, languageCodes));
         xml.append("</urlset>\n");
         return xml.toString();
@@ -102,18 +108,40 @@ public class SitemapController {
     }
 
     private Stream<String> cardPaths() {
+        return catalogCardIds().map(id -> "/card/" + id);
+    }
+
+    /**
+     * カード別のデッキ画面。「ホグライダー デッキ」のようなカード名での検索の入口にする。
+     * トップ層で誰も使っていないカードは中身が空なので載せない(画面側もnoindexにしている)。
+     * 集計がまだ無いとき(デプロイ直後の1時間ほど)は、どのカードが空か分からないので1件も載せない。
+     */
+    private Stream<String> cardDeckPaths() {
+        return cardUsageService.current().stream()
+                .flatMap(usage -> catalogCardIds().filter(id -> usage.usageOf(id).users() > 0))
+                .map(id -> "/decks?card=" + id);
+    }
+
+    private Stream<Integer> catalogCardIds() {
         return cardService.catalog().stream()
                 .flatMap(group -> group.cards().stream())
-                .map(card -> "/card/" + card.id());
+                .map(CardsResponse.Card::id);
     }
 
     private void appendUrl(StringBuilder xml, String base, String path, List<String> languageCodes) {
         String loc = base + path;
+        String langSeparator = path.contains("?") ? "&" : "?";
         xml.append("  <url>\n");
-        xml.append("    <loc>").append(loc).append("</loc>\n");
+        xml.append("    <loc>").append(xmlEscape(loc)).append("</loc>\n");
         languageCodes.forEach(code -> xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"").append(code)
-                .append("\" href=\"").append(loc).append("?lang=").append(code).append("\"/>\n"));
-        xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(loc).append("\"/>\n");
+                .append("\" href=\"").append(xmlEscape(loc + langSeparator + "lang=" + code)).append("\"/>\n"));
+        xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(xmlEscape(loc))
+                .append("\"/>\n");
         xml.append("  </url>\n");
+    }
+
+    // クエリ付きのURLの「&」は、XMLではそのままだと不正になる。
+    private static String xmlEscape(String url) {
+        return url.replace("&", "&amp;");
     }
 }

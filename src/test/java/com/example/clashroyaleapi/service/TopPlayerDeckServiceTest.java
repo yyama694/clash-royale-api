@@ -13,6 +13,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -78,6 +79,22 @@ class TopPlayerDeckServiceTest {
         assertTrue(page.decks().isEmpty());
         assertEquals(0, page.total());
         assertEquals(0, page.from());
+        assertEquals(1, page.sampleSize());
+        assertNull(page.topRank());
+    }
+
+    @Test
+    void 絞り込む前の人数と絞り込み後の最上位の順位を返す() {
+        List<TopDecks.SampledDeck> decks = new ArrayList<>();
+        IntStream.rangeClosed(1, 150).forEach(rank -> decks.add(deck(rank, List.of(rank < 5 ? 1 : 2), null)));
+        given(decks);
+
+        TopPlayerDeckService.Page second = service.page(2, 2).orElseThrow();
+
+        assertEquals(150, second.sampleSize());
+        assertEquals(146, second.total());
+        // 2ページ目を開いても、そのページの先頭ではなく絞り込んだ全員の中の最上位
+        assertEquals(5, second.topRank());
     }
 
     @Test

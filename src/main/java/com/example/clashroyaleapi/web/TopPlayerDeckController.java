@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 @Controller
 public class TopPlayerDeckController {
@@ -19,13 +20,15 @@ public class TopPlayerDeckController {
     private final CardService cardService;
     private final ViewMapper viewMapper;
     private final TimeFormatter timeFormatter;
+    private final PageSummaries pageSummaries;
 
     public TopPlayerDeckController(TopPlayerDeckService topPlayerDeckService, CardService cardService,
-            ViewMapper viewMapper, TimeFormatter timeFormatter) {
+            ViewMapper viewMapper, TimeFormatter timeFormatter, PageSummaries pageSummaries) {
         this.topPlayerDeckService = topPlayerDeckService;
         this.cardService = cardService;
         this.viewMapper = viewMapper;
         this.timeFormatter = timeFormatter;
+        this.pageSummaries = pageSummaries;
     }
 
     @GetMapping("/decks")
@@ -34,10 +37,19 @@ public class TopPlayerDeckController {
         Map<Integer, CardsResponse.Card> cardsById = cardService.allById();
         // 一覧に無いカードIDは、絞り込まずに全員を出す(0件の画面を出さないため)。
         Integer selected = card != null && cardsById.containsKey(card) ? card : null;
+        String cardName = selected == null ? null : viewMapper.cardName(cardsById.get(selected), locale);
         model.addAttribute("cardOptions", viewMapper.toCardOptions(cardsById.values(), locale));
         model.addAttribute("selectedCard", selected);
-        // 初回の集計が終わるまで(デプロイ直後の1時間ほど)は、一覧の代わりに案内文を出す。
-        topPlayerDeckService.page(selected, page).ifPresent(result -> {
+
+        // 初回の集計が終わるまで(デプロイ直後の1時間ほど)は空で、一覧の代わりに案内文を出す。
+        Optional<TopPlayerDeckService.Page> found = topPlayerDeckService.page(selected, page);
+        TopPlayerDeckService.Page pageOrNull = found.orElse(null);
+        model.addAttribute("heading", pageSummaries.decksHeading(cardName, locale));
+        model.addAttribute("pageTitle", pageSummaries.decksTitle(cardName, pageOrNull, locale));
+        model.addAttribute("pageDescription", pageSummaries.decksSummary(cardName, pageOrNull, locale));
+        // トップ層で誰も使っていないカードの画面は中身が空なので、検索結果に出さない(sitemapからも外している)。
+        model.addAttribute("noindex", cardName != null && pageOrNull != null && pageOrNull.total() == 0);
+        found.ifPresent(result -> {
             model.addAttribute("decks", result.decks().stream()
                     .map(deck -> viewMapper.toTopPlayerDeck(deck, cardsById, locale))
                     .toList());

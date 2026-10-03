@@ -6,6 +6,8 @@ import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.CardUsageView;
 
 import org.junit.jupiter.api.Test;
 
@@ -16,6 +18,8 @@ import java.util.List;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** 実際の messages*.properties を読んで、組み立てた文を確かめる。 */
 class PageSummariesTest {
@@ -115,5 +119,93 @@ class PageSummariesTest {
         assertEquals(expected, summaries.clanSummary(clan, "Clan", null, Locale.JAPANESE));
         assertEquals(expected, summaries.clanSummary(clan, "Clan", new ClanWarParticipation(false, List.of()),
                 Locale.JAPANESE));
+    }
+
+    private static CardUsageView usage(int users, Integer rank, List<String> partnerNames) {
+        List<CardUsageView.PartnerView> partners = partnerNames.stream()
+                .map(name -> new CardUsageView.PartnerView(0, name, null, 50))
+                .toList();
+        return new CardUsageView(Math.round(users * 1000.0 / 988) / 10.0, users, 988, rank, 122, null, partners);
+    }
+
+    private static TopPlayerDeckService.Page decksPage(int total, Integer topRank) {
+        return new TopPlayerDeckService.Page(Instant.parse("2026-10-02T13:20:00Z"), List.of(), total, 1,
+                total == 0 ? 0 : 1, false, 988, topRank);
+    }
+
+    @Test
+    void カード詳細のタイトルに検索で打たれる語を入れる() {
+        assertEquals(FSI + "ホグライダー" + PDI + "の使用率と一緒に使われるカード【クラロワ】",
+                summaries.cardTitle("ホグライダー", Locale.JAPANESE));
+        assertEquals(FSI + "Hog Rider" + PDI + ": Clash Royale usage rate and common pairings",
+                summaries.cardTitle("Hog Rider", Locale.ENGLISH));
+    }
+
+    @Test
+    void カード詳細の要約に使用率と一緒に使われるカードの上位3枚を入れる() {
+        CardUsageView usage = usage(88, 29, List.of("スケルトン", "ローリングウッド", "アイススピリット", "ロケット砲士", "マイティディガー"));
+
+        assertEquals("クラロワの" + FSI + "ホグライダー" + PDI + "は、ランク戦の世界ランキング上位988人のうち88人(8.9%)の"
+                        + "デッキに入っていて、使われていた122枚中29位。一緒に使われることが多いのはスケルトン、ローリングウッド、"
+                        + "アイススピリット。毎日更新。",
+                summaries.cardSummary("ホグライダー", usage, Locale.JAPANESE));
+    }
+
+    @Test
+    void 誰も使っていないカードは使っていないことを書き一緒に使われるカードを省く() {
+        assertEquals("In Clash Royale, " + FSI + "Mirror" + PDI + " is not in the decks of any of the 988 top players"
+                        + " in the global Rank Battle ranking. Updated daily.",
+                summaries.cardSummary("Mirror", usage(0, null, List.of()), Locale.ENGLISH));
+    }
+
+    @Test
+    void 英語のカード詳細の要約は単複を合わせ一緒に使われるカードを英語の並べ方でつなぐ() {
+        assertEquals("In Clash Royale, " + FSI + "Hog Rider" + PDI + " is in the decks of 1 player out of 988 top players"
+                        + " in the global Rank Battle ranking (0.1%), #100 of 122 cards used."
+                        + " Often paired with Skeletons and Ice Spirit. Updated daily.",
+                summaries.cardSummary("Hog Rider", usage(1, 100, List.of("Skeletons", "Ice Spirit")), Locale.ENGLISH));
+    }
+
+    @Test
+    void カードで絞り込んだデッキ画面はカード名と使っている人数をタイトルに入れる() {
+        TopPlayerDeckService.Page page = decksPage(88, 6);
+
+        assertEquals(FSI + "ホグライダー" + PDI + "入りのデッキ", summaries.decksHeading("ホグライダー", Locale.JAPANESE));
+        assertEquals(FSI + "ホグライダー" + PDI + "入りのデッキ(世界トップ層の88人が使用中)【クラロワ】",
+                summaries.decksTitle("ホグライダー", page, Locale.JAPANESE));
+        assertEquals("クラロワのランク戦の世界ランキング上位988人のうち、" + FSI + "ホグライダー" + PDI
+                        + "を入れている88人のデッキを順位の順に紹介。最上位は世界6位。平均エリクサーも分かり、"
+                        + "そのままゲームにコピーできます。毎日更新。",
+                summaries.decksSummary("ホグライダー", page, Locale.JAPANESE));
+    }
+
+    @Test
+    void 絞り込んだカードを誰も使っていないか集計前なら人数を書かず説明文はサイト共通にする() {
+        String heading = FSI + "Mirror" + PDI + " decks";
+
+        assertEquals(heading, summaries.decksTitle("Mirror", decksPage(0, null), Locale.ENGLISH));
+        assertNull(summaries.decksSummary("Mirror", decksPage(0, null), Locale.ENGLISH));
+        assertEquals(heading, summaries.decksTitle("Mirror", null, Locale.ENGLISH));
+        assertNull(summaries.decksSummary("Mirror", null, Locale.ENGLISH));
+    }
+
+    @Test
+    void 絞り込まないデッキ画面は画面名をタイトルにし集計した人数を説明文に入れる() {
+        TopPlayerDeckService.Page page = decksPage(988, 1);
+
+        assertEquals("トッププレイヤーのデッキ", summaries.decksHeading(null, Locale.JAPANESE));
+        assertEquals("トッププレイヤーのデッキ", summaries.decksTitle(null, page, Locale.JAPANESE));
+        assertEquals("クラロワのランク戦の世界ランキング上位988人が、直近のランク戦で使ったデッキを順位の順に紹介。"
+                        + "平均エリクサーも分かり、カードで絞り込んで、そのままゲームにコピーできます。毎日更新。",
+                summaries.decksSummary(null, page, Locale.JAPANESE));
+    }
+
+    @Test
+    void ロシア語のデッキ画面の要約は人数に合わせて動詞と名詞を変える() {
+        String summary = summaries.decksSummary("Всадник на кабане", decksPage(2, 6), Locale.forLanguageTag("ru"))
+                .replace(' ', ' ');
+
+        assertTrue(summary.startsWith("Из 988 топ-игроков мирового рейтинга Clash Royale в рейтинговом режиме карту "
+                + FSI + "Всадник на кабане" + PDI + " используют 2 игрока."), summary);
     }
 }

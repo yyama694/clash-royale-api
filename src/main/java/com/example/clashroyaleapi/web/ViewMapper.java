@@ -226,6 +226,10 @@ public class ViewMapper {
                 .toList();
     }
 
+    public String cardName(CardsResponse.Card card, Locale locale) {
+        return labels.cardName(card.name(), locale);
+    }
+
     /**
      * 画面に出せるキングタワーレベル。導入(2026-05-26のアップデート)以降ログインしていないアカウントは公式APIが0を返すが、
      * ゲーム内の最小は1なので、そのときは null にして「-」と出す(2026-09-30、育成途中の24人中9人)。
