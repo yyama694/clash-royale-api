@@ -230,4 +230,44 @@ else
         echo "除外後: 0件(除外前も0件。ビーコンの仕組み自体が動いているか確認すること)"
     fi
 fi
+
+# 検索エンジンから来た訪問(2026-10-04追加、TODO.mdの「ページビュー向上」12)。検索対策の効果はこれで測る。
+# リファラが検索エンジンのページ表示を拾い、同じIPからビーコンが来ていれば「実訪問」とする。
+# Googleの先読み(逆引きがgooglezip・google-proxy)はHTMLだけ取りに来る。本人が実際に開いたときの
+# ビーコンは本人の回線のIPから来るため、ここでは結び付けられず「ビーコンなし」になる。
+# search.google.com はSearch Console(管理者の画面)なので数えない。
+# awkの-vはバックスラッシュを解釈してしまうので、正規表現は環境変数で渡す。
+SEARCH_REF_REGEX='^(https?://([a-z0-9-]+\.)*(google|bing|duckduckgo|yahoo|yandex|ecosia|naver|baidu|qwant|seznam|startpage)\.[a-z.]+(/|$)|https?://search\.brave\.com/|android-app://com\.google\.android\.googlequicksearchbox)'
+SEARCH_RE="$SEARCH_REF_REGEX" awk -F'"' '
+{
+    split($1, a, " "); split($2, r, " "); path = r[2]; ref = $4;
+    if (path ~ /^\/beacon/ || path ~ /\.(css|js|png|ico|jpg|jpeg|webp|svg|txt|xml|html)(\?|$)/) next;
+    if (ref ~ /^https?:\/\/search\.google\.com\//) next;
+    if (ref !~ ENVIRON["SEARCH_RE"]) next;
+    host = ref; sub(/^[a-z-]+:\/\//, "", host); sub(/\/.*/, "", host);
+    print a[1], substr(a[4], 2), path, host;
+}' /tmp/access-check-clean.log > /tmp/access-check-search.log || true
+awk '{print $1}' /tmp/access-check-beacon.log | sort -u > /tmp/access-check-beacon-ips.txt
+
+echo
+echo "== 検索エンジン経由の訪問 =="
+if [ -s /tmp/access-check-search.log ]; then
+    echo "(時刻はUTC。先頭の * はデータセンター由来。「ビーコンあり」は同じIPからブラウザでの表示が記録されたもの)"
+    while read -r ip time path host; do
+        if grep -qxF "$ip" /tmp/access-check-machine-ips.txt; then mark='*'; else mark=' '; fi
+        if grep -qxF "$ip" /tmp/access-check-beacon-ips.txt; then shown='ビーコンあり'; else shown='ビーコンなし'; fi
+        printf '%s %-16s %s %s %s %s (%s)\n' "$mark" "$ip" "$time" "$shown" "$host" "$path" \
+            "$(grep -m1 -P "^$ip\t" /tmp/access-check-rdns.txt | cut -f2)"
+    done < /tmp/access-check-search.log
+    echo "-- 実訪問(データセンター以外で、ビーコンあり) --"
+    awk '{print $1}' /tmp/access-check-search.log | sort -u \
+      | grep -vxFf /tmp/access-check-machine-ips.txt \
+      | grep -xFf /tmp/access-check-beacon-ips.txt > /tmp/access-check-search-real-ips.txt || true
+    echo "人数(ユニークIP): $(wc -l < /tmp/access-check-search-real-ips.txt)"
+    echo "検索から開いたページ数: $(awk 'NR == FNR {real[$1]; next} ($1 in real)' /tmp/access-check-search-real-ips.txt /tmp/access-check-search.log | wc -l)"
+    echo "-- 検索エンジン別(全件) --"
+    awk '{print $4}' /tmp/access-check-search.log | sort | uniq -c | sort -rn
+else
+    echo "(なし)"
+fi
 REMOTE

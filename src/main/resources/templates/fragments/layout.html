@@ -25,6 +25,8 @@
               th:href="@{${pageUrl}(lang=${code})}">
         <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
     </th:block>
+    <!--/* 正規URL(GlobalModelAttributes#canonicalUrl)。検索結果に出さない(noindexの)画面には付けない。 */-->
+    <link rel="canonical" th:if="${canonicalUrl != null and noindex != true}" th:href="${canonicalUrl}">
     <!--/*
       SNSでリンクを貼ったときのカード表示用(OGP)。titleと説明文は<title>・meta descriptionと同じものを使う。
       画像は正方形(630x630)なので、1.91:1を前提とするtwitter:cardは"summary"(正方形サムネイル)にする。
