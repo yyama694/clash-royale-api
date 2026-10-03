@@ -1223,12 +1223,15 @@ td.cell-action {
     stroke-width: 1.6;
 }
 
-/* 水滴は下側がふくらんでいるので、数字は中心より下に置く。 */
+/*
+  数字は水滴の形の重心(丸い部分の中心より少し上)に合わせる。丸い部分の中心に置くと、上がとがっている分だけ下に寄って見えた。
+  top は数字の行の上端で、数字の見た目の中心が重心(高さ26pxのうち15px)に来る値。
+*/
 .elixir-value {
     position: absolute;
     left: 0;
     right: 0;
-    top: 37%;
+    top: 31%;
     font-size: 0.75rem;
     font-weight: 700;
     line-height: 1;
