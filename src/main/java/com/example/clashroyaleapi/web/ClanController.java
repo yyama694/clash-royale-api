@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.SortDirection;
 import com.example.clashroyaleapi.service.ClanService;
+import com.example.clashroyaleapi.web.view.ClanJoinView;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -73,10 +74,13 @@ public class ClanController {
         SortDirection direction = SortDirection.from(sortDir);
         String clanName = GameText.stripFormatting(clan.name());
         String clanPathTag = Tags.toPathSegment(clan.tag());
+        ClanJoinView join = viewMapper.toClanJoin(clan, locale);
 
         model.addAttribute("clan", clan);
         model.addAttribute("clanName", clanName);
         model.addAttribute("clanPathTag", clanPathTag);
+        model.addAttribute("join", join);
+        model.addAttribute("shareText", pageSummaries.clanShareText(clanName, join, locale));
         model.addAttribute("favorite",
                 favoriteCookies.refreshName(request, response, FavoriteKind.CLAN, clanPathTag, clanName)
                         .contains(clanPathTag));
@@ -101,7 +105,7 @@ public class ClanController {
         }
 
         model.addAttribute("pageTitle", pageSummaries.clanTitle(clan, clanName, locale));
-        model.addAttribute("pageDescription", pageSummaries.clanSummary(clan, clanName, war, locale));
+        model.addAttribute("pageDescription", pageSummaries.clanSummary(clan, clanName, join, war, locale));
         return "clan";
     }
 }

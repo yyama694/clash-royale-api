@@ -124,7 +124,7 @@ class RankingServiceTest {
     }
 
     private static ClanResponse clanDetail(int warTrophies) {
-        return new ClanResponse("#TAG", "clan", "", 140000, warTrophies, 50, List.of());
+        return new ClanResponse("#TAG", "clan", "", 140000, warTrophies, 50, List.of(), null, 0, 0, null);
     }
 
     private static PlayerRankingResponse.RankedPlayer rankedPlayer(int rank, String tag) {

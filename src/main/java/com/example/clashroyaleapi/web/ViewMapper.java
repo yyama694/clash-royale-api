@@ -14,6 +14,7 @@ import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.CardUsage;
+import com.example.clashroyaleapi.domain.ClanType;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.CurrentDeck;
@@ -37,6 +38,7 @@ import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.CardView;
+import com.example.clashroyaleapi.web.view.ClanJoinView;
 import com.example.clashroyaleapi.web.view.ClanMemberView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
@@ -330,6 +332,13 @@ public class ViewMapper {
                             timeFormatter.apiTimestamp(member.lastSeen(), locale).iso());
                 })
                 .toList();
+    }
+
+    public ClanJoinView toClanJoin(ClanResponse clan, Locale locale) {
+        Optional<ClanType> type = ClanType.from(clan.type());
+        return new ClanJoinView(type.map(t -> labels.message(t.messageKey(), locale)).orElse(null),
+                clan.requiredTrophies(), locationName(clan.location(), locale), clan.donationsPerWeek(),
+                type.map(t -> t.openSlots(clan.members())).orElse(0));
     }
 
     public ClanWarView toClanWar(ClanWarParticipation war) {

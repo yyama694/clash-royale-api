@@ -15,6 +15,7 @@ import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardView;
+import com.example.clashroyaleapi.web.view.ClanJoinView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.FavoriteClanView;
@@ -280,8 +281,18 @@ class ViewMapperTest {
     }
 
     @Test
+    void クランの参加条件はタイプが分からなければラベルも空きも出さない() {
+        when(labels.message(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        ClanResponse open = new ClanResponse("#XXX", "償い", "", 120000, 0, 47, List.of(), "open", 6000, 800, null);
+        ClanResponse unknown = new ClanResponse("#YYY", "謎", "", 120000, 0, 10, List.of(), "secret", 0, 0, null);
+
+        assertEquals(new ClanJoinView("clan.type.open", 6000, null, 800, 3), viewMapper.toClanJoin(open, Locale.JAPANESE));
+        assertEquals(new ClanJoinView(null, 0, null, 0, 0), viewMapper.toClanJoin(unknown, Locale.JAPANESE));
+    }
+
+    @Test
     void お気に入りクランは見つかった取得できないを区別する() {
-        ClanResponse found = new ClanResponse("#XXX", "償い", "", 120000, 0, 40, List.of());
+        ClanResponse found = new ClanResponse("#XXX", "償い", "", 120000, 0, 40, List.of(), null, 0, 0, null);
 
         List<FavoriteClanView> rows = viewMapper.toFavoriteClanRows(List.of(
                 new FavoriteFetch.Found<>("XXX", "償い", found),

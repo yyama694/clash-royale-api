@@ -205,7 +205,7 @@ class ClanServiceTest {
     @Test
     void クラン対戦の参加状況はメンバー一覧と突き合わせて返す() {
         ClanResponse clan = new ClanResponse("#2XYZ456", "Royals", "", 100, 0, 1,
-                List.of(new ClanResponse.Member("#A", "Alice", "member", 5000, 0, null)));
+                List.of(new ClanResponse.Member("#A", "Alice", "member", 5000, 0, null)), null, 0, 0, null);
         when(apiClient.getCurrentRiverRace("#2XYZ456")).thenReturn(new CurrentRiverRaceResponse("warDay",
                 new CurrentRiverRaceResponse.Clan("#2XYZ456",
                         List.of(new CurrentRiverRaceResponse.Participant("#A", "Alice", 6, 2)))));
@@ -224,7 +224,7 @@ class ClanServiceTest {
     }
 
     private static ClanResponse clan(String tag, String name) {
-        return new ClanResponse(tag, name, "", 100, 0, 1, List.of());
+        return new ClanResponse(tag, name, "", 100, 0, 1, List.of(), null, 0, 0, null);
     }
 
     private static ClanSearchResponse.ClanSummary summary(String tag, String name, int score, int members) {

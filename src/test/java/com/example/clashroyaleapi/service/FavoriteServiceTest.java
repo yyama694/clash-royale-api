@@ -105,6 +105,6 @@ class FavoriteServiceTest {
     }
 
     private static ClanResponse clan(String tag, String name) {
-        return new ClanResponse(tag, name, "", 0, 0, 0, List.of());
+        return new ClanResponse(tag, name, "", 0, 0, 0, List.of(), null, 0, 0, null);
     }
 }

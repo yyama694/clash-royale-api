@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
+/** location はクランランキングと同じ形なので、型を共用している。 */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ClanResponse(
         String tag,
@@ -12,7 +13,11 @@ public record ClanResponse(
         int clanScore,
         int clanWarTrophies,
         int members,
-        List<Member> memberList
+        List<Member> memberList,
+        String type,
+        int requiredTrophies,
+        int donationsPerWeek,
+        ClanRankingResponse.Location location
 ) {
     // lastSeen は "20260915T092124.000Z" 形式(UTC)。非アクティブ日数の算出に使う。
     @JsonIgnoreProperties(ignoreUnknown = true)

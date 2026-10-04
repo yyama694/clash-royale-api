@@ -8,6 +8,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.CardUsageView;
+import com.example.clashroyaleapi.web.view.ClanJoinView;
 
 import org.junit.jupiter.api.Test;
 
@@ -95,30 +96,43 @@ class PageSummariesTest {
     }
 
     @Test
-    void クランの要約に活動中のメンバー数とクラン対戦の状況を入れる() {
+    void クランの要約に参加条件と活動中のメンバー数とクラン対戦の状況を入れる() {
         List<ClanResponse.Member> members = List.of(
                 new ClanResponse.Member("#A", "a", "leader", 9000, 100, "20260927T010000.000Z"),
                 new ClanResponse.Member("#B", "b", "member", 9000, 0, "20260926T010000.000Z"),
                 new ClanResponse.Member("#C", "c", "member", 9000, 0, "20260901T010000.000Z"));
-        ClanResponse clan = new ClanResponse("#CLAN1", "Clan", "", 133292, 0, 3, members);
+        ClanResponse clan = new ClanResponse("#CLAN1", "Clan", "", 133292, 0, 3, members, "open", 13000, 900, null);
+        ClanJoinView join = new ClanJoinView("参加自由", 13000, "日本", 900, 47);
         ClanWarParticipation war = new ClanWarParticipation(true, List.of(
                 new ClanWarParticipation.Member("#A", "a", 4, 12),
                 new ClanWarParticipation.Member("#B", "b", 0, 8),
                 new ClanWarParticipation.Member("#C", "c", 0, 0)));
 
         assertEquals(FSI + "Clan" + PDI + "(#CLAN1)はクラロワのクランです。クランスコア133,292、メンバー3/50人。"
+                        + "所在地は日本、タイプは参加自由、必要トロフィー数は13,000。"
                         + "直近7日以内にアクセスしたメンバーは3人中2人。今日のクラン対戦は3人中1人が攻撃済み。",
-                summaries.clanSummary(clan, "Clan", war, Locale.JAPANESE));
+                summaries.clanSummary(clan, "Clan", join, war, Locale.JAPANESE));
     }
 
     @Test
-    void クラン対戦の攻撃できない日と不参加なら対戦の文を省く() {
-        ClanResponse clan = new ClanResponse("#CLAN1", "Clan", "", 100, 0, 0, List.of());
+    void クラン対戦の攻撃できない日と不参加なら対戦の文を省き_タイプか所在地が分からなければ参加条件の文を省く() {
+        ClanResponse clan = new ClanResponse("#CLAN1", "Clan", "", 100, 0, 0, List.of(), null, 0, 0, null);
+        ClanJoinView unknown = new ClanJoinView(null, 0, "日本", 0, 0);
         String expected = FSI + "Clan" + PDI + "(#CLAN1)はクラロワのクランです。クランスコア100、メンバー0/50人。";
 
-        assertEquals(expected, summaries.clanSummary(clan, "Clan", null, Locale.JAPANESE));
-        assertEquals(expected, summaries.clanSummary(clan, "Clan", new ClanWarParticipation(false, List.of()),
-                Locale.JAPANESE));
+        assertEquals(expected, summaries.clanSummary(clan, "Clan", unknown, null, Locale.JAPANESE));
+        assertEquals(expected, summaries.clanSummary(clan, "Clan", unknown,
+                new ClanWarParticipation(false, List.of()), Locale.JAPANESE));
+    }
+
+    @Test
+    void 空きがあるクランの共有文は募集の文面にし_満員や参加不可なら通常の文面にする() {
+        assertEquals("クラン「Clan」メンバー募集中(参加自由・あと3人・必要トロフィー数13,000)",
+                summaries.clanShareText("Clan", new ClanJoinView("参加自由", 13000, "日本", 0, 3), Locale.JAPANESE));
+        assertEquals("Clan Clan is recruiting on Clash Royale (Invite Only, 1 spot left, 6,000 trophies required)",
+                summaries.clanShareText("Clan", new ClanJoinView("Invite Only", 6000, null, 0, 1), Locale.ENGLISH));
+        assertEquals("クラン「Clan」のメンバー・活動状況・クラン対戦の参加状況",
+                summaries.clanShareText("Clan", new ClanJoinView("参加自由", 13000, "日本", 0, 0), Locale.JAPANESE));
     }
 
     private static CardUsageView usage(int users, Integer rank, List<String> partnerNames) {

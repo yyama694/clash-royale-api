@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.CardUsageView;
+import com.example.clashroyaleapi.web.view.ClanJoinView;
 
 import com.ibm.icu.text.ListFormatter;
 import com.ibm.icu.util.ULocale;
@@ -80,12 +81,22 @@ public class PageSummaries {
         return labels.message("clan.seo.title", locale, clanName, Tags.toPathSegment(clan.tag()));
     }
 
-    /** @param war クラン対戦の参加状況。不参加・取得失敗なら null */
-    public String clanSummary(ClanResponse clan, String clanName, ClanWarParticipation war, Locale locale) {
+    /**
+     * 参加条件(所在地・タイプ・必要トロフィー数)は、クラン名で検索した人やXで共有されたカードを見た人が
+     * 入れるかどうかを先に知りたい情報なので、基本の文のすぐ後に置く。
+     *
+     * @param war クラン対戦の参加状況。不参加・取得失敗なら null
+     */
+    public String clanSummary(ClanResponse clan, String clanName, ClanJoinView join, ClanWarParticipation war,
+            Locale locale) {
         List<ClanResponse.Member> members = clan.memberList() == null ? List.of() : clan.memberList();
         List<String> sentences = new ArrayList<>();
         sentences.add(labels.message("clan.summary.base", locale, clanName, Tags.toPathSegment(clan.tag()),
                 clan.clanScore(), clan.members()));
+        if (join.typeLabel() != null && join.locationName() != null) {
+            sentences.add(labels.message("clan.summary.join", locale, join.locationName(), join.typeLabel(),
+                    join.requiredTrophies()));
+        }
         if (!members.isEmpty()) {
             Instant now = clock.instant();
             long active = members.stream()
@@ -99,6 +110,15 @@ public class PageSummaries {
             sentences.add(labels.message("clan.summary.war", locale, war.membersBattledToday(), war.members().size()));
         }
         return join(sentences, locale);
+    }
+
+    /** 空きがあって入れるクランは、リーダーがクラン募集にそのまま貼れるよう、募集の文面にする。 */
+    public String clanShareText(String clanName, ClanJoinView join, Locale locale) {
+        if (join.recruiting() && join.typeLabel() != null) {
+            return labels.message("share.clan.recruiting", locale, clanName, join.typeLabel(), join.openSlots(),
+                    join.requiredTrophies());
+        }
+        return labels.message("share.clan.text", locale, clanName);
     }
 
     public String cardTitle(String cardName, Locale locale) {

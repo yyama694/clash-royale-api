@@ -14,11 +14,16 @@
             </div>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
             <p class="page-summary" th:text="${pageDescription}"></p>
-            <div th:replace="~{fragments/layout :: shareButtons(#{share.clan.text(${clanName})}, '/clan/' + ${clanPathTag})}"></div>
+            <div th:replace="~{fragments/layout :: shareButtons(${shareText}, '/clan/' + ${clanPathTag})}"></div>
             <p class="clan-description" th:if="${clan.description()}" th:text="${clan.description()}"></p>
+            <!--/* 参加条件(タイプ・必要トロフィー数・所在地)は、入れるクランを探している人が最初に知りたいので、基本情報と並べる */-->
             <ul class="stat-grid">
                 <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{clan.score}"></span></span><span class="value" th:text="${#numbers.formatInteger(clan.clanScore(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">👥</span> <span th:text="#{clan.memberCount}"></span></span><span class="value" th:text="${clan.members()}"></span></li>
+                <li th:if="${join.typeLabel()}"><span class="label"><span aria-hidden="true">🚪</span> <span th:text="#{clan.type}"></span></span><span class="value" th:text="${join.typeLabel()}"></span></li>
+                <li><span class="label"><span aria-hidden="true">🔑</span> <span th:text="#{clan.requiredTrophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(join.requiredTrophies(), 1, 'DEFAULT')}"></span></li>
+                <li th:if="${join.locationName()}"><span class="label"><span aria-hidden="true">📍</span> <span th:text="#{clan.location}"></span></span><span class="value" th:text="${join.locationName()}"></span></li>
+                <li><span class="label"><span aria-hidden="true">🎁</span> <span th:text="#{clan.donationsPerWeek}"></span></span><span class="value" th:text="${#numbers.formatInteger(join.donationsPerWeek(), 1, 'DEFAULT')}"></span></li>
             </ul>
         </div>
 
