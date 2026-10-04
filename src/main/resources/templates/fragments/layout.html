@@ -567,7 +567,11 @@
         </label>
         <button type="submit" th:text="#{action.search}"></button>
     </form>
-    <p class="notice" th:if="${nameSearchEnabled}" th:text="#{home.player.nameHint}"></p>
+    <!--/* 部分一致はしないので、名前の途中の文字で探して「いない」と思われないよう、検索する前に伝える。 */-->
+    <p class="notice" th:if="${nameSearchEnabled}">
+        <span th:text="#{home.player.nameHint}"></span><br>
+        <span th:text="#{home.player.nameMatch}"></span>
+    </p>
 </div>
 
 <!--/* 検索結果が見つかった画面の上部に置く、見出しなしの再検索フォーム。 */-->
