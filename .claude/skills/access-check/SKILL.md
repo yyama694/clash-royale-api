@@ -38,7 +38,8 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    - 2026-09-30に送信のタイミングを`load`から`DOMContentLoaded`に早めた(フェーズ1.101)。それまでは
      iPhoneのXアプリから来た人の約2割(27人中6人)で、HTMLとCSSは取得したのにビーコンが来ていなかった。
      取りこぼしの割合は`scripts/beacon-miss-check.sh "<開始(UTC)>"`で確かめられる(X経由の訪問ごとに、
-     同じIPから120秒以内にビーコンが来たかを突き合わせる)。
+     同じIPから120秒以内にビーコンが来たかを突き合わせる)。変更後(9/30〜10/4)は8人中0人になったので、
+     取りこぼしていたのは「すぐ閉じた人」だったとみている(人数が少ないので断定はしない)。
 
 3. 深いページへの到達が見つかった場合は、送信元IPをそのまま実訪問者と決めつけず、
    - 送信元がクラウド/データセンターのIP帯(Google `34.x`/`35.x`/`66.249.x`、AWS、DigitalOcean、Linode、Vultr等)でないか
