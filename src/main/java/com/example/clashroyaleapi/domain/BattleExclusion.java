@@ -21,8 +21,9 @@ public enum BattleExclusion {
     BOAT_DEFENSE;
 
     // type の値は2026-09-27に42人・約1,150戦で確かめた。clanMate は全戦が同じクランの相手だった。
+    // clanMate2v2(クランの仲間との2v2)は2026-10-04に20戦で確かめ、全戦が4人とも同じクランで、トロフィーの増減も無かった。
     // "unknown" の特殊ルール戦(RR_*_Friendly など)は名前に Friendly と付くが、相手は全戦が他クランで対象外。
-    private static final Set<String> FRIENDLY_TYPES = Set.of("clanMate", "friendly");
+    private static final Set<String> FRIENDLY_TYPES = Set.of("clanMate", "clanMate2v2", "friendly");
 
     public static Optional<BattleExclusion> of(BattleLogEntry battle) {
         if (FRIENDLY_TYPES.contains(battle.type())) {

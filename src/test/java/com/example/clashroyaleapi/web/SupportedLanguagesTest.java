@@ -82,6 +82,16 @@ class SupportedLanguagesTest {
     }
 
     @Test
+    void 文の区切りは日本語と中国語だけ空白を入れない() {
+        assertEquals("", SupportedLanguages.sentenceSeparator(Locale.JAPANESE));
+        assertEquals("", SupportedLanguages.sentenceSeparator(Locale.forLanguageTag("zh")));
+        assertEquals("", SupportedLanguages.sentenceSeparator(Locale.forLanguageTag("zh-TW")));
+        assertEquals(" ", SupportedLanguages.sentenceSeparator(Locale.KOREAN));
+        assertEquals(" ", SupportedLanguages.sentenceSeparator(Locale.forLanguageTag("tr")));
+        assertEquals(" ", SupportedLanguages.sentenceSeparator(Locale.ENGLISH));
+    }
+
+    @Test
     void 表示用ロケールは対応言語に寄せる() {
         assertEquals(Locale.JAPANESE, SupportedLanguages.displayLocale(Locale.JAPAN));
         assertEquals(Locale.forLanguageTag("de"), SupportedLanguages.displayLocale(Locale.GERMAN));

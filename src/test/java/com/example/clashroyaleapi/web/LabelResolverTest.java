@@ -122,6 +122,7 @@ class LabelResolverTest {
     void 辞書に無い特殊ルールのフレンドバトルとトーナメントは種別で解決する() {
         assertEquals("フレンドバトル", labels.gameMode("friendly", "Chaos_1v1_Draft", Locale.JAPANESE));
         assertEquals("フレンドバトル", labels.gameMode("clanMate", "Crazy_Arena_SuddenDeath", Locale.JAPANESE));
+        assertEquals("フレンドバトル", labels.gameMode("clanMate2v2", "TeamVsTeam_FutureMode", Locale.JAPANESE));
         assertEquals("トーナメント", labels.gameMode("tournament", "Chaos_1v1_MegaDraft_All", Locale.JAPANESE));
     }
 
