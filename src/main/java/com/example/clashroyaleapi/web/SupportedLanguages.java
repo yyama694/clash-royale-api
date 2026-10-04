@@ -22,9 +22,11 @@ public final class SupportedLanguages {
 
     // ポルトガル語の訳はブラジル向け(ゲーム内と同じ)だが、pt-PTの訪問者にも英語より読みやすいので言語だけで照合する。
     // 独・仏・伊・露は2026-09-19に追加(巡回データの国別集計で上位だった言語、TODO.mdの「対応言語の追加」参照)。
+    // トルコ語・韓国語は2026-10-04に追加(同じ集計で次に多かった言語)。
     public static final List<Locale> SUPPORTED = List.of(Locale.JAPANESE, Locale.ENGLISH,
             Locale.forLanguageTag("es"), Locale.forLanguageTag("pt"), Locale.forLanguageTag("de"),
-            Locale.forLanguageTag("fr"), Locale.forLanguageTag("it"), Locale.forLanguageTag("ru"));
+            Locale.forLanguageTag("fr"), Locale.forLanguageTag("it"), Locale.forLanguageTag("ru"),
+            Locale.forLanguageTag("tr"), Locale.KOREAN);
 
     // 文の区切りに空白を入れない文字の種類。漢字かな交じり(日本語)・簡体字・繁体字。
     private static final Set<String> SCRIPTS_WITHOUT_SENTENCE_SPACE = Set.of("Jpan", "Hans", "Hant");

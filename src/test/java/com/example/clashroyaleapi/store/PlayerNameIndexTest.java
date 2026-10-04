@@ -46,6 +46,16 @@ class PlayerNameIndexTest {
     }
 
     @Test
+    void 正規化はトルコ語の点の無いiと点のあるiを区別しない() {
+        // 大文字で登録された名前を小文字で打っても、小文字で登録された名前を大文字で打っても当たる。
+        assertEquals("kilic", PlayerNameIndex.normalize("KILIÇ"));
+        assertEquals("kilic", PlayerNameIndex.normalize("kılıç"));
+        assertEquals("istanbul", PlayerNameIndex.normalize("istanbul"));
+        // ハングルは分解して組み立て直しても元のまま。
+        assertEquals("클래시", PlayerNameIndex.normalize("클래시"));
+    }
+
+    @Test
     void 完全一致は全員を数え最近確認した順に並べ_残りの枠を前方一致で埋める() throws IOException {
         write(2,
                 add("bob", "#AAA", "Bob", "2026-09-18T10:00:00Z"),

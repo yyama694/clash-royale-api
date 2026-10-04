@@ -30,17 +30,21 @@ class SupportedLanguagesTest {
         assertEquals(Locale.forLanguageTag("fr"), SupportedLanguages.match(Locale.forLanguageTag("fr-CA")).orElseThrow());
         assertEquals(Locale.forLanguageTag("it"), SupportedLanguages.match(Locale.forLanguageTag("it-CH")).orElseThrow());
         assertEquals(Locale.forLanguageTag("ru"), SupportedLanguages.match(Locale.forLanguageTag("ru-KZ")).orElseThrow());
-        assertTrue(SupportedLanguages.match(Locale.KOREAN).isEmpty());
+        assertEquals(Locale.forLanguageTag("tr"), SupportedLanguages.match(Locale.forLanguageTag("tr-TR")).orElseThrow());
+        assertEquals(Locale.KOREAN, SupportedLanguages.match(Locale.KOREA).orElseThrow());
+        assertTrue(SupportedLanguages.match(Locale.forLanguageTag("pl")).isEmpty());
         assertTrue(SupportedLanguages.match(null).isEmpty());
     }
 
     @Test
     void 先頭が未対応言語でも後ろの候補に対応言語があればそれを選ぶ() {
-        assertEquals(Locale.JAPANESE, fromHeader("ko,ja;q=0.9"));
+        assertEquals(Locale.JAPANESE, fromHeader("pl,ja;q=0.9"));
         assertEquals(Locale.JAPANESE, fromHeader("zh-TW,ja;q=0.8"));
-        assertEquals(Locale.ENGLISH, fromHeader("ko-KR,en;q=0.5,ja;q=0.3"));
+        assertEquals(Locale.ENGLISH, fromHeader("pl-PL,en;q=0.5,ja;q=0.3"));
         assertEquals(Locale.forLanguageTag("pt"), fromHeader("pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"));
-        assertEquals(Locale.forLanguageTag("es"), fromHeader("ko-KR,es;q=0.8,en;q=0.5"));
+        assertEquals(Locale.forLanguageTag("es"), fromHeader("pl-PL,es;q=0.8,en;q=0.5"));
+        assertEquals(Locale.KOREAN, fromHeader("ko-KR,ko;q=0.9,en-US;q=0.8"));
+        assertEquals(Locale.forLanguageTag("tr"), fromHeader("tr-TR,tr;q=0.9,en;q=0.5"));
         assertEquals(Locale.forLanguageTag("de"), fromHeader("de-DE,en;q=0.5,ja;q=0.3"));
         assertEquals(Locale.forLanguageTag("it"), fromHeader("it-IT,es;q=0.8,en;q=0.5"));
     }
@@ -54,7 +58,7 @@ class SupportedLanguagesTest {
     void 希望が無い場合も対応言語が一つも無い場合も英語() {
         assertEquals(Locale.ENGLISH, fromHeader(null));
         assertEquals(Locale.ENGLISH, fromHeader(" "));
-        assertEquals(Locale.ENGLISH, fromHeader("ko"));
+        assertEquals(Locale.ENGLISH, fromHeader("pl"));
     }
 
     @Test
@@ -68,7 +72,8 @@ class SupportedLanguagesTest {
         assertEquals(Locale.forLanguageTag("ru"), SupportedLanguages.fromParameter("ru").orElseThrow());
         // 正規URLやhreflangが言語コードだけで作られるため、地域付きの書き方は受け付けない。
         assertTrue(SupportedLanguages.fromParameter("ja-JP").isEmpty());
-        assertTrue(SupportedLanguages.fromParameter("ko").isEmpty());
+        assertEquals(Locale.KOREAN, SupportedLanguages.fromParameter("ko").orElseThrow());
+        assertTrue(SupportedLanguages.fromParameter("pl").isEmpty());
         assertTrue(SupportedLanguages.fromParameter("").isEmpty());
         assertTrue(SupportedLanguages.fromParameter(null).isEmpty());
     }
@@ -78,7 +83,9 @@ class SupportedLanguagesTest {
         assertEquals("en_US", SupportedLanguages.ogLocale(Locale.ENGLISH));
         assertEquals("es_ES", SupportedLanguages.ogLocale(Locale.forLanguageTag("es")));
         assertEquals("pt_BR", SupportedLanguages.ogLocale(Locale.forLanguageTag("pt")));
-        assertEquals("en_US", SupportedLanguages.ogLocale(Locale.KOREAN));
+        assertEquals("tr_TR", SupportedLanguages.ogLocale(Locale.forLanguageTag("tr")));
+        assertEquals("ko_KR", SupportedLanguages.ogLocale(Locale.KOREAN));
+        assertEquals("en_US", SupportedLanguages.ogLocale(Locale.forLanguageTag("pl")));
     }
 
     @Test
@@ -95,6 +102,7 @@ class SupportedLanguagesTest {
     void 表示用ロケールは対応言語に寄せる() {
         assertEquals(Locale.JAPANESE, SupportedLanguages.displayLocale(Locale.JAPAN));
         assertEquals(Locale.forLanguageTag("de"), SupportedLanguages.displayLocale(Locale.GERMAN));
-        assertEquals(Locale.ENGLISH, SupportedLanguages.displayLocale(Locale.KOREAN));
+        assertEquals(Locale.KOREAN, SupportedLanguages.displayLocale(Locale.KOREA));
+        assertEquals(Locale.ENGLISH, SupportedLanguages.displayLocale(Locale.forLanguageTag("pl")));
     }
 }

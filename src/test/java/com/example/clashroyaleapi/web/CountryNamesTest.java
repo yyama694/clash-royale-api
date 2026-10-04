@@ -29,7 +29,9 @@ class CountryNamesTest {
 
     @Test
     void 対応していない表示言語の国名は英語にする() {
-        assertEquals("Germany", countryNames.countryName("DE", "Germany", Locale.KOREAN));
+        assertEquals("Germany", countryNames.countryName("DE", "Germany", Locale.forLanguageTag("pl")));
+        assertEquals("독일", countryNames.countryName("DE", "Germany", Locale.KOREAN));
+        assertEquals("Almanya", countryNames.countryName("DE", "Germany", Locale.forLanguageTag("tr")));
     }
 
     @Test

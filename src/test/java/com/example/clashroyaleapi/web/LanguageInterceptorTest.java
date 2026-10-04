@@ -40,7 +40,7 @@ class LanguageInterceptorTest {
 
     @Test
     void 対応外の言語は保存せずsetlangを外したURLへ転送する() {
-        MockHttpServletRequest request = request("/", "setlang=ko");
+        MockHttpServletRequest request = request("/", "setlang=pl");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         assertFalse(interceptor.preHandle(request, response, new Object()));
@@ -78,7 +78,7 @@ class LanguageInterceptorTest {
 
     @Test
     void langが無いか対応外ならCookieの言語を使う() {
-        MockHttpServletRequest request = request("/player/ABC", "lang=ko");
+        MockHttpServletRequest request = request("/player/ABC", "lang=pl");
         request.setCookies(new Cookie(WebConstants.LANGUAGE_PARAM, "es"));
 
         assertEquals(Locale.forLanguageTag("es"), localeResolver.resolveLocale(request));

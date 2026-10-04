@@ -44,7 +44,7 @@ public class PlayerNameIndex {
      * {@link #normalize} の規則の版。規則を変えたら上げる。索引を作ったときの版と違えば、
      * {@link PlayerIndexCompactor} が by-tag から作り直す(古い規則のキーでは新しい規則の検索語に当たらないため)。
      */
-    static final int NORMALIZATION_VERSION = 2;
+    static final int NORMALIZATION_VERSION = 3;
 
     private static final Pattern SPACES = Pattern.compile("\\s+");
     // ラテン文字・キリル文字などのアクセント記号。日本語の濁点(U+3099)はこの範囲に無いので「ガ」は「カ」にならない。
@@ -69,6 +69,7 @@ public class PlayerNameIndex {
      * 索引のキー。保存時と検索時で必ずこれを通す。ルールを変えたら {@link #NORMALIZATION_VERSION} を上げる。
      * アクセント記号の有無(José/Jose)と、ひらがな・カタカナの違い(ゆうき/ユウキ)は区別しない。
      * 名前の正確な表記を知らずに探す人が多いため。カード一覧の絞り込み(cards.html)と同じ寄せ方にしている。
+     * トルコ語の点の無い ı も i に寄せる。小文字化で「KILIÇ」は「kilic」になるので、「kılıç」と打った人が見つけられないため。
      */
     public static String normalize(String name) {
         if (name == null) {
@@ -77,14 +78,18 @@ public class PlayerNameIndex {
         String text = Normalizer.normalize(GameText.stripFormatting(name), Normalizer.Form.NFKD);
         text = Normalizer.normalize(COMBINING_DIACRITICS.matcher(text).replaceAll(""), Normalizer.Form.NFKC)
                 .toLowerCase(Locale.ROOT);
-        return SPACES.matcher(toKatakana(text)).replaceAll(" ").strip();
+        return SPACES.matcher(foldLetters(text)).replaceAll(" ").strip();
     }
 
-    private static String toKatakana(String text) {
+    private static String foldLetters(String text) {
         StringBuilder result = new StringBuilder(text.length());
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            result.append(c >= 'ぁ' && c <= 'ゖ' ? (char) (c + 0x60) : c);
+            if (c >= 'ぁ' && c <= 'ゖ') {
+                result.append((char) (c + 0x60));
+            } else {
+                result.append(c == 'ı' ? 'i' : c);
+            }
         }
         return result.toString();
     }

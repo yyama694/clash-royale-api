@@ -144,8 +144,10 @@ class LabelResolverTest {
     void 役職はロケールごとの表記に解決する() {
         assertEquals("サブリーダー", labels.role("coLeader", Locale.JAPANESE));
         assertEquals("Co-leader", labels.role("coLeader", Locale.ENGLISH));
+        assertEquals("공동 대표", labels.role("coLeader", Locale.KOREAN));
+        assertEquals("Lider Yardımcısı", labels.role("coLeader", Locale.forLanguageTag("tr")));
         // 未整備の言語はデフォルト(英語)にフォールバックする。
-        assertEquals("Co-leader", labels.role("coLeader", Locale.KOREAN));
+        assertEquals("Co-leader", labels.role("coLeader", Locale.forLanguageTag("pl")));
     }
 
     @Test
