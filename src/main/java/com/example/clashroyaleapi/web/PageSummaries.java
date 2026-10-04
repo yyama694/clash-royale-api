@@ -183,8 +183,7 @@ public class PageSummaries {
                 page.topRank());
     }
 
-    // 日本語は文の区切りに空白を入れない。
     private static String join(List<String> sentences, Locale locale) {
-        return String.join("ja".equals(locale.getLanguage()) ? "" : " ", sentences);
+        return String.join(SupportedLanguages.sentenceSeparator(locale), sentences);
     }
 }

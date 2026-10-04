@@ -263,13 +263,15 @@ class PlayerBattleStatsTest {
             log.add(battle("clanMate", "Friendly", 0, 3, "Golem"));
         }
         log.add(battle("friendly", "Friendly", 0, 1, "Golem"));
+        // クランの仲間との2v2もフレンドバトル(4人とも同じクランで、トロフィーが動かない)。
+        log.add(battle("clanMate2v2", "TeamVsTeam", 0, 3, "Golem"));
 
         PlayerBattleStats stats = PlayerBattleStats.from(log);
 
         assertEquals(1, stats.total());
         assertEquals(1, stats.wins());
         assertEquals(0, stats.losses());
-        assertEquals(6, stats.friendlyExcluded());
+        assertEquals(7, stats.friendlyExcluded());
         assertTrue(stats.weakCards().isEmpty());
     }
 

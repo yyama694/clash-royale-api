@@ -8,10 +8,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 画面の表示言語として対応している言語の一覧と、要求された言語をそのどれかに寄せる規則。
- * 言語を追加するときは SUPPORTED と messages_xx.properties を足す。
+ * 言語を追加するときは SUPPORTED と messages_xx.properties を足す(手順と確かめることは ハマりどころ.md の「言語を足すとき」)。
  */
 public final class SupportedLanguages {
 
@@ -24,6 +25,9 @@ public final class SupportedLanguages {
     public static final List<Locale> SUPPORTED = List.of(Locale.JAPANESE, Locale.ENGLISH,
             Locale.forLanguageTag("es"), Locale.forLanguageTag("pt"), Locale.forLanguageTag("de"),
             Locale.forLanguageTag("fr"), Locale.forLanguageTag("it"), Locale.forLanguageTag("ru"));
+
+    // 文の区切りに空白を入れない文字の種類。漢字かな交じり(日本語)・簡体字・繁体字。
+    private static final Set<String> SCRIPTS_WITHOUT_SENTENCE_SPACE = Set.of("Jpan", "Hans", "Hant");
 
     /** 言語切替リンクとhreflangに使う言語コードの一覧。 */
     public static List<String> languageCodes() {
@@ -51,6 +55,15 @@ public final class SupportedLanguages {
     public static String ogLocale(Locale locale) {
         ULocale likely = ULocale.addLikelySubtags(ULocale.forLocale(displayLocale(locale)));
         return likely.getLanguage() + "_" + likely.getCountry();
+    }
+
+    /**
+     * 要約文などで文と文の間に入れる区切り。日本語・中国語は空白を入れない(韓国語は入れる)。
+     * 言語コードではなく、CLDRの対応表でその言語の代表的な文字の種類を求めて決める。言語を足しても直さずに済むようにするため。
+     */
+    public static String sentenceSeparator(Locale locale) {
+        String script = ULocale.addLikelySubtags(ULocale.forLocale(locale)).getScript();
+        return SCRIPTS_WITHOUT_SENTENCE_SPACE.contains(script) ? "" : " ";
     }
 
     /** ja-JP のような地域付きの指定も言語だけで照合する。対応していなければ空。 */

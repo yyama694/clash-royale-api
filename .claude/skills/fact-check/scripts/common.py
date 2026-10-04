@@ -14,7 +14,7 @@ SITE = "https://princess-tower.duckdns.org"
 USER_AGENT = "princess-tower-factcheck"
 # ゲーム内のカードレベルの上限(CardLevel.MAX_LEVEL と同じ)。
 MAX_LEVEL = 16
-FRIENDLY_TYPES = {"clanMate", "friendly"}
+FRIENDLY_TYPES = {"clanMate", "clanMate2v2", "friendly"}
 
 
 def token():

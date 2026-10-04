@@ -104,6 +104,16 @@ body {
     word-break: auto-phrase;
 }
 
+/*
+  韓国語(言語を足すときのための準備)。韓国語のフォントを和文フォントより先に当てる(和文フォントにはハングルが無いか、
+  あっても字形が揃わない。漢字も韓国語の字形になる)。ハングルは既定では文字ごとに折り返されるので、単語の途中で折り返さない。
+*/
+:root:lang(ko) body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo",
+        "Noto Sans KR", "Malgun Gothic", sans-serif;
+    word-break: keep-all;
+}
+
 a {
     color: var(--color-link);
 }
