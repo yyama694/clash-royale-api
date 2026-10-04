@@ -52,6 +52,7 @@ import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
+import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 
@@ -240,6 +241,18 @@ public class ViewMapper {
         return player.kingTowerLevel() > 0 ? player.kingTowerLevel() : null;
     }
 
+    public PlayerProgressView toPlayerProgress(PlayerResponse player) {
+        PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
+        return new PlayerProgressView(player.trophies(), player.wins(), player.losses(),
+                ranked == null ? null : ranked.rank(), rankedRating(player));
+    }
+
+    /** ランク戦の順位が無い人のレーティングは0などの意味の無い値なので、順位があるときだけ返す。 */
+    private static Integer rankedRating(PlayerResponse player) {
+        PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
+        return ranked != null && ranked.rank() != null ? ranked.trophies() : null;
+    }
+
     public String toStreakLabel(WinLoseStreak streak, Locale locale) {
         return labels.message("player.streak." + streak.code(), locale, streak.count());
     }
@@ -365,10 +378,8 @@ public class ViewMapper {
         String tag = Tags.normalize(pathTag);
         if (result instanceof FavoriteFetch.Found<PlayerResponse> found) {
             PlayerResponse player = found.value();
-            PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
-            Integer rating = ranked != null && ranked.rank() != null ? ranked.trophies() : null;
             return new FavoritePlayerView(FavoriteRowStatus.FOUND, pathTag, tag,
-                    GameText.stripFormatting(player.name()), player.trophies(), rating,
+                    GameText.stripFormatting(player.name()), player.trophies(), rankedRating(player),
                     player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
                     player.clan() == null ? null : Tags.toPathSegment(player.clan().tag()));
         }

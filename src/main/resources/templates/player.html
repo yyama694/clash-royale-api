@@ -41,6 +41,20 @@
                 <li><span class="label"><span aria-hidden="true">👑</span> <span th:text="#{player.threeCrownWins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.threeCrownWins(), 1, 'DEFAULT')}"></span></li>
                 <th:block th:with="r=${player.bestPathOfLegendSeasonResult()}"><li th:if="${r != null and r.rank() != null}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.best}"></span></span><span class="value" th:text="#{player.ranked.rank(${r.rank()})}"></span><span class="sub" th:text="#{player.ranked.rating(${r.trophies()})}"></span></li></th:block>
             </ul>
+            <!--/* 前回この画面を見たときからの変化。前回の値はブラウザにあるので、末尾のスクリプトで差を出し、変化した項目だけを見せる。 */-->
+            <div id="since-last" class="since-last" hidden
+                 th:data-tag="${playerPathTag}" th:data-trophies="${progress.trophies()}" th:data-wins="${progress.wins()}"
+                 th:data-losses="${progress.losses()}" th:data-rank="${progress.rank()}" th:data-rating="${progress.rankedRating()}">
+                <p class="since-last-heading"><span th:text="#{player.sinceLast.heading}"></span><span class="since-last-when"></span></p>
+                <ul class="since-last-items">
+                    <li data-item="trophies" hidden><span th:text="#{player.trophies}"></span> <span class="delta"></span></li>
+                    <li data-item="wins" hidden><span th:text="#{player.wins}"></span> <span class="delta"></span></li>
+                    <li data-item="losses" hidden><span th:text="#{player.losses}"></span> <span class="delta"></span></li>
+                    <li data-item="rank" hidden><span th:text="#{ranking.col.rank}"></span> <span class="delta"></span></li>
+                    <li data-item="rating" hidden><span th:text="#{player.sinceLast.rating}"></span> <span class="delta"></span></li>
+                    <li data-item="none" hidden th:text="#{player.sinceLast.none}"></li>
+                </ul>
+            </div>
             <div class="card-notes" th:if="${streak}">
                 <p th:replace="~{fragments/layout :: notice(#{player.streak.notice})}"></p>
             </div>
@@ -165,5 +179,108 @@
         </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+    <!--/*
+      「前回見たときからの変化」。プレイヤーごとに、比べる相手(前回の訪問)と最後に見た値を localStorage に残す。
+      30分以内の読み込み直しは同じ訪問とみなして比べる相手を動かさない(読み込み直すたびに「変化なし」になるのを防ぐ)。
+      ランク戦の値がどのシーズンのものかは公式APIから分からないので、シーズンをまたいでもそのまま比べる。
+    */-->
+    <script>
+        (function () {
+            var box = document.getElementById('since-last');
+            if (!box || !window.Intl || !Intl.RelativeTimeFormat) {
+                return;
+            }
+            var storageKey = 'playerSnapshots';
+            var sameVisitMs = 30 * 60 * 1000;
+            var maxPlayers = 100;
+            function value(name) {
+                var raw = box.dataset[name];
+                return raw === undefined || raw === '' ? null : Number(raw);
+            }
+            var now = Date.now();
+            var current = {at: now, trophies: value('trophies'), wins: value('wins'), losses: value('losses'),
+                rank: value('rank'), rating: value('rating')};
+            var all;
+            try {
+                all = JSON.parse(localStorage.getItem(storageKey));
+            } catch (e) {
+                return;
+            }
+            if (!all || typeof all !== 'object' || Array.isArray(all)) {
+                all = {};
+            }
+            var tag = box.dataset.tag;
+            var entry = all[tag] || {};
+            if (entry.last && now - entry.last.at >= sameVisitMs) {
+                entry.previous = entry.last;
+            }
+            var base = entry.previous;
+            entry.last = current;
+            all[tag] = entry;
+            function lastSeen(key) {
+                return all[key] && all[key].last ? all[key].last.at || 0 : 0;
+            }
+            Object.keys(all).sort(function (a, b) { return lastSeen(b) - lastSeen(a); })
+                    .slice(maxPlayers).forEach(function (key) { delete all[key]; });
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(all));
+            } catch (e) {
+                // 容量の上限などで保存できなくても、今回の表示はできる
+            }
+            if (!base) {
+                return;
+            }
+
+            var lang = document.documentElement.lang;
+            var numbers = new Intl.NumberFormat(lang);
+            var shown = 0;
+            function diff(name) {
+                return current[name] === null || base[name] == null ? 0 : current[name] - base[name];
+            }
+            function signed(n) {
+                return (n > 0 ? '+' : '') + numbers.format(n);
+            }
+            function show(item, text, direction) {
+                var row = box.querySelector('[data-item="' + item + '"]');
+                row.querySelector('.delta').textContent = text;
+                if (direction) {
+                    row.classList.add(direction > 0 ? 'up' : 'down');
+                }
+                row.hidden = false;
+                shown++;
+            }
+            var trophies = diff('trophies');
+            if (trophies) {
+                show('trophies', signed(trophies), trophies);
+            }
+            ['wins', 'losses'].forEach(function (name) {
+                var count = diff(name);
+                if (count) {
+                    show(name, signed(count));
+                }
+            });
+            // 順位は数字が小さくなるほど上がる
+            var climbed = -diff('rank');
+            if (climbed) {
+                show('rank', (climbed > 0 ? '↑' : '↓') + numbers.format(Math.abs(climbed)), climbed);
+            }
+            var rating = diff('rating');
+            if (rating) {
+                show('rating', signed(rating), rating);
+            }
+            if (!shown) {
+                box.querySelector('[data-item="none"]').hidden = false;
+            }
+
+            var minutes = Math.floor((now - base.at) / 60000);
+            var relative = new Intl.RelativeTimeFormat(lang);
+            var when = minutes < 60 ? relative.format(-minutes, 'minute')
+                    : minutes < 60 * 24 ? relative.format(-Math.floor(minutes / 60), 'hour')
+                    : relative.format(-Math.floor(minutes / 60 / 24), 'day');
+            box.querySelector('.since-last-when').textContent = '(' + when + ')';
+            box.hidden = false;
+        })();
+    </script>
 </body>
 </html>

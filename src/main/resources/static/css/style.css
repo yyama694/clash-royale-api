@@ -548,6 +548,47 @@ button:hover, .btn:hover {
     font-size: 1rem;
 }
 
+/* プレイヤー情報画面の「前回見たときからの変化」。項目は横に流し、増減だけを太字と色で目立たせる。 */
+.since-last {
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    background: var(--color-bg);
+    font-size: 0.85rem;
+}
+
+.since-last-heading {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.since-last-when {
+    margin-left: 0.3em;
+    font-weight: 400;
+}
+
+.since-last-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+}
+
+.since-last-items .delta {
+    font-weight: 700;
+}
+
+.since-last-items .up .delta {
+    color: var(--color-win);
+}
+
+.since-last-items .down .delta {
+    color: var(--color-lose);
+}
+
 /* カードコレクション。割合はバーで見せ、正確な数は文言で添える。 */
 .collection-list {
     list-style: none;
