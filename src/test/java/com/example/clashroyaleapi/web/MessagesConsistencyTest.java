@@ -29,9 +29,10 @@ class MessagesConsistencyTest {
 
     /**
      * 英語(基本ファイル)には無くてよいキー。カード名は公式APIの英語名をそのまま使い、
-     * 国名の読み仮名は漢字の読みが要る言語に、カードの通称は通称が定着している言語にだけある。
+     * 国名・カード名の読み仮名は漢字の読みが要る言語に、カードの通称は通称が定着している言語にだけある。
      */
-    private static final List<String> LANGUAGE_SPECIFIC_PREFIXES = List.of("card.", "cardalias.", "country.reading.");
+    private static final List<String> LANGUAGE_SPECIFIC_PREFIXES =
+            List.of("cardalias.", "cardreading.", "country.reading.");
 
     private static Properties load(String name) throws IOException {
         try (InputStream in = MessagesConsistencyTest.class.getResourceAsStream("/" + name)) {
@@ -41,8 +42,10 @@ class MessagesConsistencyTest {
         }
     }
 
+    // card.pageTitle のような画面用のキーは全言語に要るので、カード名(英語名がキー)だけを除く。
     private static Set<String> sharedKeys(Properties properties) {
         return properties.stringPropertyNames().stream()
+                .filter(key -> !isCardName(key))
                 .filter(key -> LANGUAGE_SPECIFIC_PREFIXES.stream().noneMatch(key::startsWith))
                 .collect(Collectors.toCollection(TreeSet::new));
     }
@@ -97,11 +100,30 @@ class MessagesConsistencyTest {
         }
     }
 
-    // card.pageTitle のような画面用のキーと区別するため、英語名(大文字か数字で始まる)のものだけを数える。
     private static Set<String> cardKeys(Properties properties) {
         return properties.stringPropertyNames().stream()
-                .filter(key -> key.matches("card\\.[A-Z0-9].*"))
+                .filter(MessagesConsistencyTest::isCardName)
                 .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    // card.pageTitle のような画面用のキーと区別するため、英語名(大文字か数字で始まる)のものだけをカード名とみなす。
+    private static boolean isCardName(String key) {
+        return key.matches("card\\.[A-Z0-9].*");
+    }
+
+    @Test
+    void 漢字で始まるカード名にはすべて読み仮名がある() throws IOException {
+        Properties japanese = load("messages_ja.properties");
+        Set<String> missing = new TreeSet<>();
+        for (String key : cardKeys(japanese)) {
+            String name = japanese.getProperty(key);
+            String rawName = key.substring("card.".length());
+            if (UScript.getScript(name.codePointAt(0)) == UScript.HAN
+                    && !japanese.containsKey("cardreading." + rawName)) {
+                missing.add(rawName + "=" + name);
+            }
+        }
+        assertTrue(missing.isEmpty(), "読み仮名(cardreading.*)が無いカード: " + missing);
     }
 
     @Test

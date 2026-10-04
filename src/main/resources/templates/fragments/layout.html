@@ -30,13 +30,17 @@
     <!--/*
       SNSでリンクを貼ったときのカード表示用(OGP)。titleと説明文は<title>・meta descriptionと同じものを使う。
       画像は正方形(630x630)なので、1.91:1を前提とするtwitter:cardは"summary"(正方形サムネイル)にする。
+      og:urlは正規URLと同じにする(?lang=ja のページで言語の無いURLを示すと、カードが英語版で作られるため)。
     */-->
     <meta property="og:type" content="website">
     <meta property="og:site_name" th:content="#{app.name}">
     <meta property="og:title" th:content="#{title.format(${title}, #{app.name})}">
     <meta property="og:description" th:content="${pageDescription} ?: #{app.description}">
-    <meta property="og:url" th:if="${siteBaseUrl != null and currentUri != null}"
-          th:content="${siteBaseUrl + currentUri}">
+    <meta property="og:url" th:if="${canonicalUrl != null}" th:content="${canonicalUrl}">
+    <th:block th:if="${ogLocale != null}">
+        <meta property="og:locale" th:content="${ogLocale}">
+        <meta property="og:locale:alternate" th:each="alternate : ${ogLocaleAlternates}" th:content="${alternate}">
+    </th:block>
     <meta property="og:image" th:if="${siteBaseUrl != null}"
           th:content="${siteBaseUrl} + @{/images/og-image.jpg}">
     <meta name="twitter:card" content="summary">
@@ -204,11 +208,14 @@
                 });
             }
 
-            // 戻った先はブラウザのキャッシュから復元されるため、途中で言語を切り替えていると古い言語のまま出る。
-            // 最後に表示した言語を覚えておき、履歴で戻ってきて食い違っていたら読み直す。
+            // 戻った先はブラウザのキャッシュから復元されるため、途中で言語メニューから言語を変えていると古い言語のまま出る。
+            // 言語メニューで選んだ時刻を覚えておき、この画面を表示した時点の値と食い違っていたら読み直す。
+            // ?lang= 付きのリンクで来ただけの画面は、言語の設定を変えていないので読み直さない。
+            var languageKey = 'languageRenderedAt:' + location.pathname;
             function languageChanged() {
-                var last = storage(function (s) { return s.getItem('lastLang'); });
-                return last && last !== document.documentElement.lang;
+                return storage(function (s) {
+                    return (s.getItem(languageKey) || '') !== (s.getItem('languageChangedAt') || '');
+                });
             }
             // URLに ?lang= が残っているとそちらが優先されて元の言語に戻るため、外してから開き直す。
             function reloadWithoutLangParam() {
@@ -217,7 +224,7 @@
                 location.replace(url.href);
             }
             function rememberLanguage() {
-                storage(function (s) { s.setItem('lastLang', document.documentElement.lang); });
+                storage(function (s) { s.setItem(languageKey, s.getItem('languageChangedAt') || ''); });
             }
             var navigation = performance.getEntriesByType('navigation')[0];
             if (navigation && navigation.type === 'back_forward' && languageChanged()) {
@@ -228,6 +235,12 @@
             window.addEventListener('pageshow', function (event) {
                 if (event.persisted && languageChanged()) {
                     reloadWithoutLangParam();
+                }
+            });
+            // 下の遷移の置き換えより先に登録する(置き換えは既定の動作を止めるため)。
+            document.addEventListener('click', function (event) {
+                if (event.target.closest('.lang-menu a[href]')) {
+                    storage(function (s) { s.setItem('languageChangedAt', String(Date.now())); });
                 }
             });
 
@@ -491,6 +504,7 @@
       言語が増えてもヘッダーの幅が変わらないよう、現在の言語だけを出して一覧は開いたときに見せる。
       今の言語が読めない人でも言語の切替だと分かるよう、地球儀のアイコンを付ける。
       details/summary なのでスクリプトが無くても開閉できる(閉じる操作の補助はheadのスクリプト)。
+      ここで選んだ言語だけをCookieに保存する(?setlang=。サーバーが保存して ?lang= のURLへ転送する)。
     */-->
     <nav class="lang-menu" th:aria-label="#{nav.language}">
         <details>
@@ -501,7 +515,7 @@
             <ul>
                 <!--/* リンク文字列は常にその言語自身の表記なので、読み上げが正しい言語になるようlangを付ける。 */-->
                 <li th:each="code : ${languageCodes}">
-                    <a th:href="@{${currentUri}(lang=${code})}" th:text="#{'lang.' + ${code}}"
+                    <a th:href="@{${currentUri}(setlang=${code})}" th:text="#{'lang.' + ${code}}"
                        th:lang="${code}" th:hreflang="${code}"
                        th:attr="aria-current=${#locale.language == code} ? 'true' : null"></a>
                 </li>
@@ -534,12 +548,13 @@
 </span>
 
 <!--/*
-  共有ボタン。pathは"/player/XXXX"のようなパス。共有されたURLから来た表示をビーコンで数えられるよう ?from=share を付け、
-  受け取った人がその人の言語で読めるよう lang は付けない。
+  共有ボタン。pathは"/player/XXXX"のようなパス。共有されたURLから来た表示をビーコンで数えられるよう ?from=share を付ける。
+  lang も今の言語で付ける。Xのカード表示(OGP)を投稿文と同じ言語にするため。lang はその画面の表示だけに使い
+  Cookieには保存しないので、受け取った人の言語の設定は変わらない。
   リンクのコピーはClipboard APIが使えるときだけ出す(JSが動かない環境では押しても何も起きないため)。
 */-->
 <div th:fragment="shareButtons(text, path)" class="share-buttons"
-     th:with="shareUrl=${siteBaseUrl + path + '?from=share'}">
+     th:with="shareUrl=@{${siteBaseUrl + path}(lang=${#locale.language},from='share')}">
     <a class="btn btn-secondary btn-small" target="_blank" rel="noopener noreferrer"
        th:href="@{https://x.com/intent/post(text=${text},url=${shareUrl},hashtags=#{share.hashtags})}"
        th:text="#{share.x}"></a>

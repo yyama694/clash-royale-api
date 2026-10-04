@@ -66,6 +66,12 @@ PYTHONIOENCODING=utf-8 python .claude/skills/fact-check/scripts/compare_pages.py
 
 - ゲーム内の用語・カード名: ゲームデータの`texts.csv`(`HastyarSeamand/csv_logic-for-CR`)。ただし2025年10月時点で、2026年の新用語(キングタワーレベルなど)は無い。その場合はSupercell公式サポートポータルの記事タイトルなどで裏付ける(フェーズ1.98)
 - 注記の説明(「公式APIでは〜できない」「毎週〜にリセット」など): 手順1のデータや実測で確かめる
+- **訳の無いカード名・モード名**: 本番のログに`LabelResolver`の警告が出ている(辞書に無い値に初めて出会ったときに1回)。毎回数える。カード一覧に無いイベント専用カードは`MessagesConsistencyTest`では気づけない
+  ```bash
+  ssh -i "/c/Users/Norio Fukuchi/.ssh/oci_clash_royale_api" opc@161.33.136.175 \
+    'sudo journalctl -u clash-royale-api --since "7 days ago" --no-pager -o cat | grep -oE "No ([a-z]{2} translation for card|label for game mode).*$" | sort -u'
+  ```
+  - 見つかったら`texts.csv`で訳を裏付けて足す。モード名は`game_modes.csv`の`Name`→`TID`→`texts.csv`の順に引く(フェーズ1.123)。ゲームデータに無いもの(2026年の新モードなど)は、今の「その他」のままにして記録する
 
 ### 5. 記録する
 
@@ -94,7 +100,8 @@ PYTHONIOENCODING=utf-8 python .claude/skills/fact-check/scripts/compare_pages.py
 | 収録人数(トップページ) | `crawler-status`の保存済みタグ数 | ○ 9/30は37,999,250件(「3000万人以上」) |
 | 寄付数のリセット時刻の注記 | 曜日を変えた実測 | △ 10/1から時刻を書かない「週に1回リセット」。時刻は未確定(`TODO.md`) |
 | カードコレクションの注記 | 育成途中のプレイヤーの`cards`の枚数 | ○ 10/1から「所持しているカードのうち、最大レベルは〇%」(APIは所持カードだけを返す。育成途中の人は8〜64枚/123枚) |
-| 対戦履歴のモード名 | `semantics.py`の対戦種別の内訳 | ○ 10/1から名前の辞書に無い`trail`と`RR_*`は「イベント」、特殊ルールのフレンドバトル・トーナメントも種別の名前で出す(それまでは「通常バトル」「その他」) |
+| 対戦履歴のモード名 | `semantics.py`の対戦種別の内訳 | ○ 10/1から名前の辞書に無い`trail`と`RR_*`は「イベント」、特殊ルールのフレンドバトル・トーナメントも種別の名前で出す(それまでは「通常バトル」「その他」)。10/4に本番ログで訳の無かった24のモード名(`type=unknown`のドラフト系など)を`game_modes.csv`の公式名で足した。Chaos・Crazy Arena系はゲームデータに無く「その他」のまま |
+| イベント専用カードの名前 | 本番ログの`LabelResolver`の警告 | ○ 10/4にスーパーネクロマンサーなど11枚の訳を足した(それまでは英語以外の7言語で英語のまま) |
 
 新しい画面や項目を足したときは、この表と照合スクリプトに足す。
 

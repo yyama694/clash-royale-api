@@ -49,6 +49,13 @@ class LabelResolverTest {
     }
 
     @Test
+    void 並べ替えのキーは漢字で始まる日本語名だけ読み仮名にする() {
+        assertEquals("タイホウ", labels.cardSortKey("Cannon", Locale.JAPANESE));
+        assertEquals("ナイト", labels.cardSortKey("Knight", Locale.JAPANESE));
+        assertEquals("Cannon", labels.cardSortKey("Cannon", Locale.ENGLISH));
+    }
+
+    @Test
     void 通称は定着している言語にだけあり無ければnull() {
         assertEquals("ペッカ", labels.cardAlias("P.E.K.K.A", Locale.JAPANESE));
         assertEquals("ミニペッカ", labels.cardAlias("Mini P.E.K.K.A", Locale.JAPANESE));
@@ -112,10 +119,18 @@ class LabelResolverTest {
     }
 
     @Test
-    void 特殊ルールのフレンドバトルとトーナメントは種別で解決する() {
-        assertEquals("フレンドバトル", labels.gameMode("friendly", "Draft_Competitive", Locale.JAPANESE));
-        assertEquals("フレンドバトル", labels.gameMode("clanMate", "Duel_1v1_Friendly", Locale.JAPANESE));
+    void 辞書に無い特殊ルールのフレンドバトルとトーナメントは種別で解決する() {
+        assertEquals("フレンドバトル", labels.gameMode("friendly", "Chaos_1v1_Draft", Locale.JAPANESE));
+        assertEquals("フレンドバトル", labels.gameMode("clanMate", "Crazy_Arena_SuddenDeath", Locale.JAPANESE));
         assertEquals("トーナメント", labels.gameMode("tournament", "Chaos_1v1_MegaDraft_All", Locale.JAPANESE));
+    }
+
+    @Test
+    void 種別がunknownでもゲームデータにあるモード名は公式の表記で出す() {
+        assertEquals("トリプルドラフト", labels.gameMode("unknown", "Draft_Competitive", Locale.JAPANESE));
+        assertEquals("メガドラフトチャレンジ", labels.gameMode("unknown", "PickMode", Locale.JAPANESE));
+        assertEquals("訓練キャンプ", labels.gameMode("PvE", "Training", Locale.JAPANESE));
+        assertEquals("Mega-Auswahlherausforderung", labels.gameMode("unknown", "PickMode", Locale.GERMAN));
     }
 
     @Test

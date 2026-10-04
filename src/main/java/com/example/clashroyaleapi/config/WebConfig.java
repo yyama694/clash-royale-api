@@ -1,30 +1,32 @@
 package com.example.clashroyaleapi.config;
 
 import com.example.clashroyaleapi.web.CrossSiteRequestGuard;
+import com.example.clashroyaleapi.web.GlobalModelAttributes;
+import com.example.clashroyaleapi.web.LanguageInterceptor;
 import com.example.clashroyaleapi.web.SupportedLanguages;
 import com.example.clashroyaleapi.web.WebConstants;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.i18n.LocaleContext;
+import org.springframework.context.i18n.SimpleLocaleContext;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpHeaders;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.CookieLocaleResolver;
-import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
-import org.springframework.web.servlet.resource.ResourceHttpRequestHandler;
 import org.springframework.web.servlet.resource.VersionResourceResolver;
 
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
- * 表示言語は ?lang=ja / ?lang=es のように切り替え、Cookieに保持する。
- * 未選択の訪問者にはAccept-Languageから対応言語を選ぶ。対応言語の一覧は SupportedLanguages に集約している。
+ * 表示言語は ?lang=ja / ?lang=es でその画面だけ切り替え、言語メニューで選んだ言語(?setlang=)はCookieに保持する
+ * (LanguageInterceptor)。どちらも無い訪問者にはAccept-Languageから対応言語を選ぶ。
+ * 対応言語の一覧は SupportedLanguages に集約している。
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -34,6 +36,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     private static final Duration STATIC_CACHE_MAX_AGE = Duration.ofDays(365);
 
+    private final GlobalModelAttributes modelAttributes;
+
+    public WebConfig(GlobalModelAttributes modelAttributes) {
+        this.modelAttributes = modelAttributes;
+    }
+
+    /** 表示言語は ?lang= > Cookie(言語メニューで選んだ言語) > Accept-Language > 英語 の順に決める。 */
     @Bean
     public LocaleResolver localeResolver() {
         CookieLocaleResolver resolver = new CookieLocaleResolver(WebConstants.LANGUAGE_PARAM) {
@@ -41,6 +50,18 @@ public class WebConfig implements WebMvcConfigurer {
             @Override
             protected Locale parseLocaleValue(String value) {
                 return SupportedLanguages.match(super.parseLocaleValue(value)).orElse(null);
+            }
+
+            // ?lang= はその画面の表示にだけ使い、Cookieには書かない(保存は LanguageInterceptor の ?setlang=)。
+            @Override
+            public Locale resolveLocale(HttpServletRequest request) {
+                return requestedLanguage(request).orElseGet(() -> super.resolveLocale(request));
+            }
+
+            @Override
+            public LocaleContext resolveLocaleContext(HttpServletRequest request) {
+                return requestedLanguage(request).<LocaleContext>map(SimpleLocaleContext::new)
+                        .orElseGet(() -> super.resolveLocaleContext(request));
             }
         };
         resolver.setCookieMaxAge(LANGUAGE_COOKIE_MAX_AGE);
@@ -50,40 +71,14 @@ public class WebConfig implements WebMvcConfigurer {
         return resolver;
     }
 
-    @Bean
-    public LocaleChangeInterceptor localeChangeInterceptor() {
-        LocaleChangeInterceptor interceptor = new LocaleChangeInterceptor() {
-            // 対応外の言語・壊れた値は例外にし、setIgnoreInvalidLocale で黙って無視させる
-            // (既定では500になり、エラー画面への転送でも同じ例外が出てTomcatの素のエラーページになる)。
-            @Override
-            protected Locale parseLocaleValue(String localeValue) {
-                return SupportedLanguages.match(super.parseLocaleValue(localeValue))
-                        .orElseThrow(() -> new IllegalArgumentException("unsupported language: " + localeValue));
-            }
-
-            // 同じURLでもCookieとAccept-Languageで返す言語が変わるため、共有キャッシュに言語違いを混ぜさせない。
-            @Override
-            public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
-                    throws jakarta.servlet.ServletException {
-                // CSS・画像は言語で内容が変わらない。Vary: Cookie を付けるとブラウザがお気に入りや言語のCookieが
-                // 変わるたびに再取得してしまい、内容ハッシュ付きURLの長期キャッシュが効かなくなる。
-                // エラー画面への転送でもう一度通るため、重複しても付けない。
-                if (!(handler instanceof ResourceHttpRequestHandler)
-                        && !response.getHeaders(HttpHeaders.VARY).contains(HttpHeaders.ACCEPT_LANGUAGE)) {
-                    response.addHeader(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE);
-                    response.addHeader(HttpHeaders.VARY, HttpHeaders.COOKIE);
-                }
-                return super.preHandle(request, response, handler);
-            }
-        };
-        interceptor.setParamName(WebConstants.LANGUAGE_PARAM);
-        interceptor.setIgnoreInvalidLocale(true);
-        return interceptor;
+    // 対応外の言語・壊れた値は指定が無かったものとして扱う(Cookie・Accept-Languageで決まる)。
+    private static Optional<Locale> requestedLanguage(HttpServletRequest request) {
+        return SupportedLanguages.fromParameter(request.getParameter(WebConstants.LANGUAGE_PARAM));
     }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(localeChangeInterceptor());
+        registry.addInterceptor(new LanguageInterceptor(localeResolver(), modelAttributes));
         registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**");
     }
 

@@ -46,6 +46,15 @@ public class LabelResolver {
         return messageSource.getMessage(key, null, rawName, locale);
     }
 
+    /**
+     * 名前順に並べるときの比較キー。日本語のCollatorは漢字の読みを知らず、「大砲」「墓石」などが五十音の後ろに
+     * まとめて並ぶため、漢字で始まる名前だけ読み仮名(cardreading.*)で比べる。
+     */
+    public String cardSortKey(String rawName, Locale locale) {
+        String name = cardName(rawName, locale);
+        return isEmpty(rawName) ? name : messageSource.getMessage("cardreading." + rawName, null, name, locale);
+    }
+
     /** 公式名とは別にプレイヤーの間で通っている呼び名(日本語の「ペッカ」など)。無ければ null。 */
     public String cardAlias(String rawName, Locale locale) {
         return isEmpty(rawName) ? null : messageSource.getMessage("cardalias." + rawName, null, null, locale);

@@ -6,8 +6,13 @@ import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import java.util.List;
+import java.util.Locale;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GlobalModelAttributesTest {
 
@@ -57,6 +62,21 @@ class GlobalModelAttributesTest {
                 attributes.canonicalUrl(request("/player/ABC", "lang=es&from=xreply")));
         assertEquals("http://localhost/player/ABC", attributes.canonicalUrl(request("/player/ABC", "from=share")));
         assertEquals("http://localhost/", attributes.canonicalUrl(request("/", "lang=xx")));
+    }
+
+    @Test
+    void 言語メニューのsetlangも取り除く() {
+        assertEquals("/clan/ABC?sortBy=name", attributes.currentUri(request("/clan/ABC", "sortBy=name&setlang=ja")));
+    }
+
+    @Test
+    void OGPの言語は地域付きで書き_他の対応言語を代わりの言語として並べる() {
+        assertEquals("ja_JP", attributes.ogLocale(Locale.JAPANESE));
+        assertEquals("pt_BR", attributes.ogLocale(Locale.forLanguageTag("pt")));
+        List<String> alternates = attributes.ogLocaleAlternates(Locale.JAPANESE);
+        assertEquals(SupportedLanguages.SUPPORTED.size() - 1, alternates.size());
+        assertTrue(alternates.contains("en_US"));
+        assertFalse(alternates.contains("ja_JP"));
     }
 
     @Test

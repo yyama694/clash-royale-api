@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import com.ibm.icu.util.ULocale;
 import org.springframework.http.HttpHeaders;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,6 +31,26 @@ public final class SupportedLanguages {
     }
 
     private SupportedLanguages() {
+    }
+
+    /**
+     * URLの ?lang= の値。hreflang・canonical・言語メニューが出す言語コード(ja/en…)と完全に一致するものだけを受け付ける。
+     * ja-JP のような書き方まで受け付けると、その画面の正規URLが言語の無いURLになり、中身と食い違うため。
+     */
+    public static Optional<Locale> fromParameter(String value) {
+        if (value == null) {
+            return Optional.empty();
+        }
+        return SUPPORTED.stream().filter(locale -> locale.getLanguage().equals(value)).findFirst();
+    }
+
+    /**
+     * OGPの og:locale に書く形(ja_JP・pt_BR など)。地域はCLDRの対応表(likely subtags)でその言語の代表的な国にする。
+     * ポルトガル語の訳はブラジル向けなので pt_BR になり、訳の中身とも合う。
+     */
+    public static String ogLocale(Locale locale) {
+        ULocale likely = ULocale.addLikelySubtags(ULocale.forLocale(displayLocale(locale)));
+        return likely.getLanguage() + "_" + likely.getCountry();
     }
 
     /** ja-JP のような地域付きの指定も言語だけで照合する。対応していなければ空。 */

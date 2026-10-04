@@ -40,7 +40,15 @@ public class PlayerNameIndex {
 
     static final String INDEX_FILE = "index.tsv";
 
+    /**
+     * {@link #normalize} の規則の版。規則を変えたら上げる。索引を作ったときの版と違えば、
+     * {@link PlayerIndexCompactor} が by-tag から作り直す(古い規則のキーでは新しい規則の検索語に当たらないため)。
+     */
+    static final int NORMALIZATION_VERSION = 2;
+
     private static final Pattern SPACES = Pattern.compile("\\s+");
+    // ラテン文字・キリル文字などのアクセント記号。日本語の濁点(U+3099)はこの範囲に無いので「ガ」は「カ」にならない。
+    private static final Pattern COMBINING_DIACRITICS = Pattern.compile("[\\u0300-\\u036f]");
     private static final Comparator<PlayerNameMatch> RECENT_FIRST = Comparator
             .comparing(PlayerNameMatch::lastSeen, Comparator.nullsLast(Comparator.reverseOrder()))
             .thenComparing(PlayerNameMatch::tag);
@@ -58,16 +66,27 @@ public class PlayerNameIndex {
     }
 
     /**
-     * 索引のキー。保存時と検索時で必ずこれを通す。
-     * ルールを変えたら by-name の作り直しが要る(by-name を消せば、次の整理バッチが by-tag から作り直す)。
+     * 索引のキー。保存時と検索時で必ずこれを通す。ルールを変えたら {@link #NORMALIZATION_VERSION} を上げる。
+     * アクセント記号の有無(José/Jose)と、ひらがな・カタカナの違い(ゆうき/ユウキ)は区別しない。
+     * 名前の正確な表記を知らずに探す人が多いため。カード一覧の絞り込み(cards.html)と同じ寄せ方にしている。
      */
     public static String normalize(String name) {
         if (name == null) {
             return "";
         }
-        String text = Normalizer.normalize(GameText.stripFormatting(name), Normalizer.Form.NFKC)
+        String text = Normalizer.normalize(GameText.stripFormatting(name), Normalizer.Form.NFKD);
+        text = Normalizer.normalize(COMBINING_DIACRITICS.matcher(text).replaceAll(""), Normalizer.Form.NFKC)
                 .toLowerCase(Locale.ROOT);
-        return SPACES.matcher(text).replaceAll(" ").strip();
+        return SPACES.matcher(toKatakana(text)).replaceAll(" ").strip();
+    }
+
+    private static String toKatakana(String text) {
+        StringBuilder result = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            result.append(c >= 'ぁ' && c <= 'ゖ' ? (char) (c + 0x60) : c);
+        }
+        return result.toString();
     }
 
     /**

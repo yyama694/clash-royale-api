@@ -164,6 +164,23 @@ class PlayerIndexCompactorTest {
         assertEquals(List.of("#AAA"), tagsFound("alicia"));
     }
 
+    @Test
+    void 正規化の規則を変えた後は全件作り直して規則の版を記録する() throws IOException {
+        inbox("20260919-10.tsv", "#AAA\tJosé\t2026-09-19T10:00:00Z");
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+        assertEquals(List.of("#AAA"), tagsFound("jose"));
+        // 版を記録する前の(古い規則の)索引を再現する。by-tagだけを変えておき、作り直されたことを確かめる。
+        Files.delete(dir.resolve("by-name.version"));
+        Files.write(dir.resolve("by-tag").resolve(String.format("%04d.tsv", PlayerIndexCompactor.shardOf("#AAA"))),
+                List.of("#AAA\tJosefina\t2026-09-19T11:00:00Z"), StandardCharsets.UTF_8);
+
+        new PlayerIndexCompactor(dir, CLOCK).compact();
+
+        assertEquals(List.of("#AAA"), tagsFound("josefina"));
+        assertEquals(Integer.toString(PlayerNameIndex.NORMALIZATION_VERSION),
+                Files.readString(dir.resolve("by-name.version"), StandardCharsets.UTF_8));
+    }
+
     private List<String> tagsFound(String name) {
         return new PlayerNameIndex(dir).search(name, 0, 50).exact().stream().map(PlayerNameMatch::tag).toList();
     }

@@ -13,6 +13,7 @@ import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
+import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
@@ -203,6 +204,24 @@ class ViewMapperTest {
         assertNull(groups.get(0).cards().get(0).elixirCost());
         assertEquals("5", groups.get(0).cards().get(1).elixir().text());
         assertNull(groups.get(1).cards().get(0).elixir());
+    }
+
+    @Test
+    void カードの選択肢は読み仮名の五十音順に並べる() {
+        Map<String, String> japanese = Map.of("Cannon", "大砲", "Knight", "ナイト", "Archers", "アーチャー");
+        Map<String, String> readings = Map.of("Cannon", "タイホウ");
+        when(labels.cardName(anyString(), any())).thenAnswer(invocation -> japanese.get(invocation.<String>getArgument(0)));
+        when(labels.cardSortKey(anyString(), any())).thenAnswer(invocation -> readings.getOrDefault(
+                invocation.<String>getArgument(0), japanese.get(invocation.<String>getArgument(0))));
+
+        List<String> names = viewMapper.toCardOptions(List.of(
+                        new CardsResponse.Card(1, "Cannon", 14, null, 3, "common", null),
+                        new CardsResponse.Card(2, "Knight", 16, null, 3, "common", null),
+                        new CardsResponse.Card(3, "Archers", 16, null, 3, "common", null)),
+                Locale.JAPANESE).stream().map(CardOptionView::name).toList();
+
+        // 読みが無いと漢字の「大砲」は仮名の後ろ(ナイトの後)に回る。
+        assertEquals(List.of("アーチャー", "大砲", "ナイト"), names);
     }
 
     @Test

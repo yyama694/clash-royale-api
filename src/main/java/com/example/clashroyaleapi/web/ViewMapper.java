@@ -55,9 +55,10 @@ import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 
+import com.ibm.icu.text.Collator;
+import com.ibm.icu.util.ULocale;
 import org.springframework.stereotype.Component;
 
-import java.text.Collator;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -217,12 +218,13 @@ public class ViewMapper {
         };
     }
 
-    /** カードで絞り込むときの選択肢。表示言語の名前の順に並べる。 */
+    /** カードで絞り込むときの選択肢。表示言語の名前の順に並べる(漢字で始まる日本語名は読み仮名で。国名と同じ)。 */
     public List<CardOptionView> toCardOptions(Collection<CardsResponse.Card> cards, Locale locale) {
-        Collator collator = Collator.getInstance(locale);
+        Collator collator = Collator.getInstance(ULocale.forLocale(SupportedLanguages.displayLocale(locale)));
         return cards.stream()
+                .sorted(Comparator.comparing((CardsResponse.Card card) -> labels.cardSortKey(card.name(), locale),
+                        collator))
                 .map(card -> new CardOptionView(card.id(), labels.cardName(card.name(), locale)))
-                .sorted(Comparator.comparing(CardOptionView::name, collator))
                 .toList();
     }
 

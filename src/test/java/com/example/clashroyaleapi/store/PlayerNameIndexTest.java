@@ -26,12 +26,23 @@ class PlayerNameIndexTest {
 
     @Test
     void 正規化は装飾タグ_全角半角_大文字小文字_空白の違いを吸収する() {
-        // ルールを変えると索引の作り直しになるので、ここで固定する。
+        // ルールを変えると索引の作り直しになるので、ここで固定する(変えたら NORMALIZATION_VERSION も上げる)。
         assertEquals("abc 1", PlayerNameIndex.normalize("<c2>ＡＢＣ　 １"));
         assertEquals("taro yamada", PlayerNameIndex.normalize("  Taro   YAMADA "));
-        assertEquals("かいと", PlayerNameIndex.normalize("かいと"));
         assertEquals("カイト", PlayerNameIndex.normalize("ｶｲﾄ"));
         assertEquals("", PlayerNameIndex.normalize(null));
+    }
+
+    @Test
+    void 正規化はアクセント記号とひらがなカタカナの違いも吸収する() {
+        assertEquals("jose", PlayerNameIndex.normalize("José"));
+        assertEquals("francois muller", PlayerNameIndex.normalize("François Müller"));
+        assertEquals("istanbul", PlayerNameIndex.normalize("İstanbul"));
+        assertEquals("カイト", PlayerNameIndex.normalize("かいと"));
+        assertEquals("ガンダム", PlayerNameIndex.normalize("がんだむ"));
+        // 濁点・半濁点は文字の違いなので残す(「ガ」と「カ」は別の名前)。
+        assertEquals("パン", PlayerNameIndex.normalize("ぱん"));
+        assertEquals("ハン", PlayerNameIndex.normalize("はん"));
     }
 
     @Test

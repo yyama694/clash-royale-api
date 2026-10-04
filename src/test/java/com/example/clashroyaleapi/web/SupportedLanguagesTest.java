@@ -63,6 +63,25 @@ class SupportedLanguagesTest {
     }
 
     @Test
+    void URLのlangは言語コードに完全に一致するものだけ受け付ける() {
+        assertEquals(Locale.JAPANESE, SupportedLanguages.fromParameter("ja").orElseThrow());
+        assertEquals(Locale.forLanguageTag("ru"), SupportedLanguages.fromParameter("ru").orElseThrow());
+        // 正規URLやhreflangが言語コードだけで作られるため、地域付きの書き方は受け付けない。
+        assertTrue(SupportedLanguages.fromParameter("ja-JP").isEmpty());
+        assertTrue(SupportedLanguages.fromParameter("ko").isEmpty());
+        assertTrue(SupportedLanguages.fromParameter("").isEmpty());
+        assertTrue(SupportedLanguages.fromParameter(null).isEmpty());
+    }
+
+    @Test
+    void OGPの言語は対応言語ごとに代表的な国を付ける() {
+        assertEquals("en_US", SupportedLanguages.ogLocale(Locale.ENGLISH));
+        assertEquals("es_ES", SupportedLanguages.ogLocale(Locale.forLanguageTag("es")));
+        assertEquals("pt_BR", SupportedLanguages.ogLocale(Locale.forLanguageTag("pt")));
+        assertEquals("en_US", SupportedLanguages.ogLocale(Locale.KOREAN));
+    }
+
+    @Test
     void 表示用ロケールは対応言語に寄せる() {
         assertEquals(Locale.JAPANESE, SupportedLanguages.displayLocale(Locale.JAPAN));
         assertEquals(Locale.forLanguageTag("de"), SupportedLanguages.displayLocale(Locale.GERMAN));

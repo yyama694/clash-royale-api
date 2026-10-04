@@ -57,6 +57,8 @@ public class PlayerIndexCompactor {
     private final Path byTagDir;
     private final Path byNameDir;
     private final Path nameRebuildMarker;
+    // by-nameの中に置くと、参照されていないファイルとして消されるため外に置く。
+    private final Path nameVersionFile;
     private final Path workDir;
     private final PlayerNameIndexWriter nameIndexWriter;
     private final Clock clock;
@@ -75,6 +77,7 @@ public class PlayerIndexCompactor {
         this.byTagDir = dir.resolve("by-tag");
         this.byNameDir = dir.resolve("by-name");
         this.nameRebuildMarker = dir.resolve("by-name.rebuild");
+        this.nameVersionFile = dir.resolve("by-name.version");
         this.workDir = dir.resolve("work-compact");
         this.nameIndexWriter = new PlayerNameIndexWriter(byNameDir, nameChunkLines);
         this.clock = clock;
@@ -94,19 +97,38 @@ public class PlayerIndexCompactor {
     }
 
     /**
-     * by-nameが使えない状態(初回、以前の形式、前回の反映途中で落ちた)なら、定時を待たずに起動の1分後に作り直す。
-     * 待つと、それまで名前検索が0件になるため。起動直後の混み合う時間を避けて1分置く。
+     * by-nameが使えない状態(初回、以前の形式、正規化の規則が変わった、前回の反映途中で落ちた)なら、
+     * 定時を待たずに起動の1分後に作り直す。待つと、それまで名前検索が0件か、一部の名前が見つからないため。
+     * 起動直後の混み合う時間を避けて1分置く。作り直しの間も、差し替えるまでは古い索引で検索できる。
      */
     @Scheduled(initialDelay = 1, timeUnit = TimeUnit.MINUTES)
     public void rebuildNamesIfNeeded() {
-        if (needsNameRebuild()) {
-            compactOnSchedule();
+        try {
+            if (needsNameRebuild()) {
+                compactOnSchedule();
+            }
+        } catch (IOException e) {
+            log.warn("could not check the player name index (will retry next time): {}", e.toString());
         }
     }
 
-    // by-nameが無い(初回、または目次の無い以前の形式)か、前回by-nameに反映し終える前に落ちた場合は、差分では直せない。
-    private boolean needsNameRebuild() {
-        return !Files.exists(byNameDir.resolve(PlayerNameIndex.INDEX_FILE)) || Files.exists(nameRebuildMarker);
+    // by-nameが無い(初回、または目次の無い以前の形式)か、正規化の規則が変わったか、前回by-nameに反映し終える前に
+    // 落ちた場合は、差分では直せない。
+    private boolean needsNameRebuild() throws IOException {
+        return !Files.exists(byNameDir.resolve(PlayerNameIndex.INDEX_FILE)) || Files.exists(nameRebuildMarker)
+                || builtNormalizationVersion() != PlayerNameIndex.NORMALIZATION_VERSION;
+    }
+
+    // 版を記録する前に作った索引は、最初の規則(版1)で作られている。
+    private int builtNormalizationVersion() throws IOException {
+        if (!Files.exists(nameVersionFile)) {
+            return 1;
+        }
+        try {
+            return Integer.parseInt(Files.readString(nameVersionFile, StandardCharsets.UTF_8).strip());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     synchronized void compact() throws IOException {
@@ -139,6 +161,10 @@ public class PlayerIndexCompactor {
         }
         int nameFiles = nameIndexWriter.apply(nameDiffFile, workDir.resolve("name-sort"), rebuildNames,
                 Long.toString(clock.millis()));
+        if (rebuildNames) {
+            Files.writeString(nameVersionFile, Integer.toString(PlayerNameIndex.NORMALIZATION_VERSION),
+                    StandardCharsets.UTF_8);
+        }
         Files.delete(nameRebuildMarker);
 
         for (Path file : inbox) {

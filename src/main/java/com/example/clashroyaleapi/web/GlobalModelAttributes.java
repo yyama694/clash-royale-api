@@ -10,6 +10,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -46,15 +47,33 @@ public class GlobalModelAttributes {
         }
         String kept = Arrays.stream(query.split("&"))
                 .filter(param -> !param.startsWith(WebConstants.LANGUAGE_PARAM + "="))
+                .filter(param -> !param.startsWith(WebConstants.SAVE_LANGUAGE_PARAM + "="))
                 .filter(param -> !param.startsWith(WebConstants.SOURCE_PARAM + "="))
                 .collect(Collectors.joining("&"));
         return kept.isEmpty() ? uri : uri + "?" + kept;
     }
 
+    /** SNSのカード表示(OGP)の言語。ポルトガル語は訳がブラジル向けなので pt_BR のように、地域まで付けた形で書く。 */
+    @ModelAttribute("ogLocale")
+    public String ogLocale(Locale locale) {
+        return SupportedLanguages.ogLocale(locale);
+    }
+
+    /** 同じページを他の言語でも出せること(og:locale:alternate)。 */
+    @ModelAttribute("ogLocaleAlternates")
+    public List<String> ogLocaleAlternates(Locale locale) {
+        String current = ogLocale(locale);
+        return SupportedLanguages.SUPPORTED.stream()
+                .map(SupportedLanguages::ogLocale)
+                .filter(alternate -> !alternate.equals(current))
+                .toList();
+    }
+
     /**
-     * 検索エンジンに示す正規URL(canonical)。?from=x 付きのURLがXなどに貼られて巡回されても、
-     * 評価が別々のURLに割れないよう、fromを除いたURLにする。言語はhreflangの各言語のURLに合わせ、
-     * 対応言語のlangが指定されていれば残す(無ければx-defaultのURL)。エラー画面には出さないので null。
+     * 検索エンジンに示す正規URL(canonical)。SNSのカード表示のURL(og:url)も同じにする。
+     * ?from=x 付きのURLがXなどに貼られて巡回されても、評価が別々のURLに割れないよう、fromを除いたURLにする。
+     * 言語はhreflangの各言語のURLに合わせ、対応言語のlangが指定されていれば残す(無ければx-defaultのURL)。
+     * エラー画面には出さないので null。
      */
     @ModelAttribute("canonicalUrl")
     public String canonicalUrl(HttpServletRequest request) {
@@ -62,11 +81,10 @@ public class GlobalModelAttributes {
             return null;
         }
         String url = siteBaseUrl(request) + currentUri(request);
-        String lang = request.getParameter(WebConstants.LANGUAGE_PARAM);
-        if (lang == null || !SupportedLanguages.languageCodes().contains(lang)) {
-            return url;
-        }
-        return url + (url.contains("?") ? "&" : "?") + WebConstants.LANGUAGE_PARAM + "=" + lang;
+        return SupportedLanguages.fromParameter(request.getParameter(WebConstants.LANGUAGE_PARAM))
+                .map(locale -> url + (url.contains("?") ? "&" : "?") + WebConstants.LANGUAGE_PARAM + "="
+                        + locale.getLanguage())
+                .orElse(url);
     }
 
     @ModelAttribute("languageCodes")

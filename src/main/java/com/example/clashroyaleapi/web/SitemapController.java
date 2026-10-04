@@ -10,7 +10,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -128,16 +130,24 @@ public class SitemapController {
                 .map(CardsResponse.Card::id);
     }
 
+    /**
+     * 1つの画面について、各言語のURLとx-defaultのURLをそれぞれ<url>として載せ、どの<url>にも全言語の対応を並べる
+     * (Googleの説明どおりの形)。言語のURLを<xhtml:link>の中にだけ書くと、検索エンジンが巡回する対象として
+     * 扱われる保証が無い。
+     */
     private void appendUrl(StringBuilder xml, String base, String path, List<String> languageCodes) {
         String loc = base + path;
         String langSeparator = path.contains("?") ? "&" : "?";
-        xml.append("  <url>\n");
-        xml.append("    <loc>").append(xmlEscape(loc)).append("</loc>\n");
-        languageCodes.forEach(code -> xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"").append(code)
-                .append("\" href=\"").append(xmlEscape(loc + langSeparator + "lang=" + code)).append("\"/>\n"));
-        xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"x-default\" href=\"").append(xmlEscape(loc))
-                .append("\"/>\n");
-        xml.append("  </url>\n");
+        Map<String, String> alternates = new LinkedHashMap<>();
+        languageCodes.forEach(code -> alternates.put(code, loc + langSeparator + "lang=" + code));
+        alternates.put("x-default", loc);
+        for (String url : alternates.values()) {
+            xml.append("  <url>\n");
+            xml.append("    <loc>").append(xmlEscape(url)).append("</loc>\n");
+            alternates.forEach((hreflang, href) -> xml.append("    <xhtml:link rel=\"alternate\" hreflang=\"")
+                    .append(hreflang).append("\" href=\"").append(xmlEscape(href)).append("\"/>\n"));
+            xml.append("  </url>\n");
+        }
     }
 
     // クエリ付きのURLの「&」は、XMLではそのままだと不正になる。
