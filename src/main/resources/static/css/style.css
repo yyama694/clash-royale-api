@@ -291,6 +291,23 @@ a {
     margin: 0;
 }
 
+.site-footer p + p {
+    margin-top: 0.4rem;
+}
+
+/* プライバシーポリシーのような読ませる文章。項目の区切りが分かるよう、見出しの上と箇条の間を空ける。 */
+.policy h2 {
+    margin-top: 1.75rem;
+}
+
+.policy ul {
+    padding-left: 1.25rem;
+}
+
+.policy li + li {
+    margin-top: 0.6rem;
+}
+
 .back-link {
     display: inline-block;
     margin-bottom: 1rem;
@@ -1230,7 +1247,10 @@ td.cell-action {
     margin: 0.75rem 0;
 }
 
+/* 前へ・次へを1行目に並べ、順位の範囲はその下の行にまとめる(範囲の列が長く、間に挟むと前へ・次へが上下に離れるため)。 */
 .ranking-pages {
+    order: 1;
+    flex-basis: 100%;
     list-style: none;
     display: flex;
     flex-wrap: wrap;

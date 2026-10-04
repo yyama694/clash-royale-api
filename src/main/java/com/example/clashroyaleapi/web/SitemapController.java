@@ -23,7 +23,8 @@ import java.util.stream.Stream;
 @RestController
 public class SitemapController {
 
-    private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players");
+    private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players",
+            "/privacy");
 
     private final CardService cardService;
     private final CardUsageService cardUsageService;
