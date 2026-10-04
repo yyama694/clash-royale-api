@@ -44,7 +44,7 @@
 
 ## jarのサイズ(優先度低)
 
-ICU4Jでjarが24.8MB→40.0MBに増えた(大半は全言語分のロケールデータ)。案: (1)現状維持 (2)ICU4Jを外してJava標準に置き換える(`IcuMessageSource`の複数形、`CountryNames`、`CountryPreference`の3〜4か所)。
+ICU4Jでjarが24.8MB→40.0MBに増えた(大半は全言語分のロケールデータ)。案: (1)現状維持 (2)ICU4Jを外してJava標準に置き換える(`IcuMessageSource`の複数形、`CountryNames`、`CountryPreference`、`PageSummaries`のリスト表記、`ViewMapper`のカード名の並び、`SupportedLanguages.ogLocale`の6〜7か所)。
 
 ## サービスの方向性(参考情報)
 
@@ -106,6 +106,8 @@ ICU4Jでjarが24.8MB→40.0MBに増えた(大半は全言語分のロケール�
 `fact-check`スキルで見つけた問題をここに書く。2026-10-01の時点で未対応のものは無い(寄付数のリセット時刻だけ、上の「日付つきの確認」にある)。これまでの結果は進捗ログの1.90・1.99・1.103、修正は1.91・1.107・1.108。
 
 - 対応不要と判断したもの: **現在トロフィー・ベストトロフィーが14,000で止まる**(10/1にユーザー判断。「ゲーム画面もそうだから」)。それ以上の値は`progress`の`seasonal-trophy-road-YYYYMM`にある。クラン情報画面のメンバー一覧も同じ
+- **対戦の`type=clanMate2v2`がフレンドバトルか未確認**(1.123)。`clanMate`と同じく全員が同じクランなら、連勝・戦績の集計から外す(`BattleExclusion`)べきで、今は数えている。確かめ方は`clanMate`のとき(1.107)と同じく、対戦履歴で4人のクランを見る。モード名(`TeamVsTeam_*`)は公式名で出ているので、表示上の問題は無い
+- **ゲームデータに無いモード名が「その他」になる**(1.123): `Chaos_1v1_Draft`・`Chaos_1v1_TripleDraft`・`Chaos_1v1_MegaDraft_All`・`Crazy_Arena_EpicOnly`・`Crazy_Arena_InfiniteElixir`・`Crazy_Arena_SuddenDeath`(多くは`type=unknown`)。2025年10月版の`texts.csv`・`game_modes.csv`に無い。新しいゲームデータか公式ブログの各言語版で名前を裏付けられたら足す
 
 ## 機能面の改善候補
 
