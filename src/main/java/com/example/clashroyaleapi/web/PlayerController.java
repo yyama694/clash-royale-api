@@ -84,6 +84,7 @@ public class PlayerController {
         String playerPathTag = Tags.toPathSegment(player.tag());
         model.addAttribute("player", player);
         model.addAttribute("kingTowerLevel", viewMapper.kingTowerLevel(player));
+        model.addAttribute("progress", viewMapper.toPlayerProgress(player));
         model.addAttribute("playerName", playerName);
         model.addAttribute("playerPathTag", playerPathTag);
         model.addAttribute("favorite",

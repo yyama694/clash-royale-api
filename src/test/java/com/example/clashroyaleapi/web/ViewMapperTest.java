@@ -21,6 +21,7 @@ import com.example.clashroyaleapi.web.view.FavoritePlayerView;
 import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
+import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -243,6 +244,20 @@ class ViewMapperTest {
         assertEquals("三郎", rows.get(2).name());
         assertFalse(rows.get(3).found());
         assertFalse(rows.get(3).notFound());
+    }
+
+    @Test
+    void 前回からの変化の元の値はランク戦の順位が無ければ順位もレーティングも持たない() {
+        PlayerResponse ranked = new PlayerResponse("#AAA", "太郎", 10, 14000, 14000, 900, 400, 100, null,
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(7, 3100, 25), null, List.of());
+        PlayerResponse noRank = new PlayerResponse("#BBB", "次郎", 5, 1000, 1000, 30, 20, 2, null,
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(3, 0, null), null, List.of());
+        PlayerResponse noResult = new PlayerResponse("#CCC", "三郎", 1, 0, 0, 0, 0, 0, null,
+                List.of(), List.of(), null, null, List.of());
+
+        assertEquals(new PlayerProgressView(14000, 900, 400, 25, 3100), viewMapper.toPlayerProgress(ranked));
+        assertEquals(new PlayerProgressView(1000, 30, 20, null, null), viewMapper.toPlayerProgress(noRank));
+        assertEquals(new PlayerProgressView(0, 0, 0, null, null), viewMapper.toPlayerProgress(noResult));
     }
 
     @Test
