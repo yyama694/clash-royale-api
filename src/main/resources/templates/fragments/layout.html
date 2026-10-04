@@ -770,9 +770,23 @@
        th:text="${label}"></a>
 </th>
 
+<!--/*
+  ランキングのページ送り。表の上下に置き、順位の範囲(1–100 など)のリンクで目当ての順位のページへ直接移れるようにする。
+  国別タブのリンクには国を付けてあるので、移った先でも同じタブが開く。
+*/-->
+<nav th:fragment="rankingPager(pager)" class="ranking-pager" th:aria-label="#{ranking.pager.label}">
+    <a th:if="${pager.prevHref() != null}" class="btn btn-secondary btn-small" th:href="@{${pager.prevHref()}}" th:text="#{ranking.pager.prev}"></a>
+    <ol class="ranking-pages">
+        <li th:each="p : ${pager.pages()}"><a th:href="@{${p.href()}}" th:text="${p.label()}"
+               th:classappend="${p.current()} ? 'is-current'" th:attr="aria-current=${p.current()} ? 'page' : null"></a></li>
+    </ol>
+    <a th:if="${pager.nextHref() != null}" class="btn btn-secondary btn-small" th:href="@{${pager.nextHref()}}" th:text="#{ranking.pager.next}"></a>
+</nav>
+
 <!--/* クランランキングの表。グローバル/ローカルの両タブで共用する(国の列はグローバルのみ)。 */-->
-<div th:fragment="rankingTable(rows, showLocation)">
+<div th:fragment="rankingTable(rows, showLocation, pager)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
         <table class="table-ranking">
             <thead>
@@ -802,11 +816,13 @@
             </tbody>
         </table>
     </div>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
 </div>
 
 <!--/* 個人ランキングの表。トップページの概要(detailed=false)と詳細画面(detailed=true)で共用する。 */-->
-<div th:fragment="playerRankingTable(rows, detailed)">
+<div th:fragment="playerRankingTable(rows, detailed, pager)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
         <table class="table-ranking">
             <thead>
@@ -835,6 +851,7 @@
             </tbody>
         </table>
     </div>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
 </div>
 
 <!--/*

@@ -22,6 +22,7 @@ import com.example.clashroyaleapi.domain.Deck;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
+import com.example.clashroyaleapi.domain.PageSlice;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.TopDecks;
@@ -57,12 +58,14 @@ import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
+import com.example.clashroyaleapi.web.view.RankingPagerView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.util.ULocale;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.text.NumberFormat;
 import java.time.Instant;
@@ -366,6 +369,38 @@ public class ViewMapper {
                         GameText.stripFormatting(clan.name()), clan.clanScore(), clan.members(),
                         locationName(clan.location(), locale), warTrophiesByTag.get(clan.tag())))
                 .toList();
+    }
+
+    /**
+     * @param countryCode 国別タブなら国コード、グローバルタブなら null。リンクに付けると、移った先でも同じタブが開く(RankingScope)
+     * @return 1ページに収まるなら null
+     */
+    public RankingPagerView toRankingPager(String basePath, String countryCode, PageSlice<?> slice) {
+        if (slice.pageCount() <= 1) {
+            return null;
+        }
+        List<RankingPagerView.PageLink> pages = new ArrayList<>();
+        for (int page = 1; page <= slice.pageCount(); page++) {
+            int first = (page - 1) * slice.pageSize() + 1;
+            int last = Math.min(page * slice.pageSize(), slice.total());
+            pages.add(new RankingPagerView.PageLink(first + "–" + last, rankingPageHref(basePath, countryCode, page),
+                    page == slice.page()));
+        }
+        return new RankingPagerView(pages,
+                slice.page() > 1 ? rankingPageHref(basePath, countryCode, slice.page() - 1) : null,
+                slice.page() < slice.pageCount() ? rankingPageHref(basePath, countryCode, slice.page() + 1) : null);
+    }
+
+    /** 1ページ目は page を付けない(付けたURLと付けないURLが別のページとして扱われないように)。 */
+    private static String rankingPageHref(String basePath, String countryCode, int page) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromPath(basePath);
+        if (countryCode != null) {
+            builder.queryParam("country", countryCode);
+        }
+        if (page > 1) {
+            builder.queryParam("page", page);
+        }
+        return builder.toUriString();
     }
 
     private String locationName(ClanRankingResponse.Location location, Locale locale) {
