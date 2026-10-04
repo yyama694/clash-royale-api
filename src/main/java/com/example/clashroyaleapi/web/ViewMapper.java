@@ -25,6 +25,7 @@ import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.TopDecks;
+import com.example.clashroyaleapi.domain.TrophyChange;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
@@ -57,11 +58,13 @@ import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
+import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.util.ULocale;
 import org.springframework.stereotype.Component;
 
+import java.text.NumberFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -107,8 +110,8 @@ public class ViewMapper {
                 battle.battleTime(),
                 timeFormatter.apiTimestamp(battle.battleTime(), locale),
                 gameModeOf(battle, locale),
-                toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, viewerTag, locale),
-                toParticipants(battle.opponent(), teamResult.opposite(), viewerTag, locale));
+                toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, battle.type(), viewerTag, locale),
+                toParticipants(battle.opponent(), teamResult.opposite(), battle.type(), viewerTag, locale));
     }
 
     /** デッキが空(公式APIが返さなかった)の場合は、画面に案内文を出すため空を返す。 */
@@ -449,7 +452,19 @@ public class ViewMapper {
                 BattleResult.crownsOf(battle.team()),
                 BattleResult.crownsOf(battle.opponent()),
                 toOpponents(battle.opponent()),
-                toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()));
+                toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()),
+                battle.team().stream().filter(p -> isViewer(p, viewerTag)).findFirst()
+                        .map(viewer -> toTrophyChange(battle.type(), viewer, locale)).orElse(null));
+    }
+
+    private TrophyChangeView toTrophyChange(String battleType, BattleLogEntry.Participant participant, Locale locale) {
+        return TrophyChange.of(battleType, participant.trophyChange())
+                .map(change -> new TrophyChangeView(
+                        labels.message(change.kind() == TrophyChange.Kind.TROPHIES
+                                ? "battlelog.change.trophies" : "battlelog.change.rating", locale),
+                        (change.gained() ? "+" : "") + NumberFormat.getIntegerInstance(locale).format(change.amount()),
+                        change.gained()))
+                .orElse(null);
     }
 
     private static List<PlayerLinkView> toLinks(List<BattleLogEntry.Participant> participants) {
@@ -480,7 +495,7 @@ public class ViewMapper {
     }
 
     private List<ParticipantView> toParticipants(List<BattleLogEntry.Participant> side, BattleResult result,
-            String viewerTag, Locale locale) {
+            String battleType, String viewerTag, Locale locale) {
         return side.stream()
                 .map(participant -> new ParticipantView(
                         participant.tag(),
@@ -491,7 +506,8 @@ public class ViewMapper {
                         toCards(participant.cards(), false, locale),
                         toCards(participant.supportCards(), true, locale),
                         toDeckMeta(participant.cards(), participant.supportCards()),
-                        isViewer(participant, viewerTag)))
+                        isViewer(participant, viewerTag),
+                        toTrophyChange(battleType, participant, locale)))
                 .toList();
     }
 

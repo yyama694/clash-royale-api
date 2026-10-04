@@ -749,10 +749,14 @@
 <div th:fragment="matchupSide(side)" class="side">
     <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">
         <a th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.name()}"></bdi></a>
+        <th:block th:if="${p.trophyChange()}"><span th:replace="~{fragments/layout :: trophyChange(${p.trophyChange()})}"></span></th:block>
     </div>
     <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
     <div class="visually-hidden" th:text="#{battle.crowns(${side[0].crowns()})}"></div>
 </div>
+
+<!--/* 1戦でのトロフィー(ランク戦ではレーティング)の増減。対戦履歴の行と対戦詳細で共用する。 */-->
+<span th:fragment="trophyChange(change)" class="trophy-change" th:classappend="${change.gained()} ? 'up' : 'down'"><span th:text="${change.label()}"></span> <strong th:text="${change.amount()}"></strong></span>
 
 <!--/*
   クランメンバー一覧のソート用ヘッダ。同じ列をクリックすると昇順/降順が反転する。

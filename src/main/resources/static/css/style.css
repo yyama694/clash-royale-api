@@ -877,6 +877,26 @@ td.cell-action {
     font-size: inherit;
 }
 
+/* 1戦でのトロフィー(レーティング)の増減。数字だけを勝敗と同じ色で目立たせる。 */
+.trophy-change strong {
+    font-weight: 700;
+}
+
+.trophy-change.up strong {
+    color: var(--color-win);
+}
+
+.trophy-change.down strong {
+    color: var(--color-lose);
+}
+
+.matchup .side .trophy-change {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
 .badge {
     display: inline-block;
     padding: 0.15rem 0.6rem;

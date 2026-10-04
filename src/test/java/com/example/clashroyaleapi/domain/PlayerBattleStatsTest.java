@@ -336,7 +336,7 @@ class PlayerBattleStatsTest {
 
     private static BattleLogEntry.Participant participant(String tag, String name, int crowns,
             List<BattleLogEntry.Card> cards) {
-        return new BattleLogEntry.Participant(tag, name, crowns, cards, List.of());
+        return new BattleLogEntry.Participant(tag, name, crowns, cards, List.of(), null);
     }
 
     // カードIDは名前ごとに一意であればよいので、名前のハッシュから作る(詳細画面へのリンクに使う値)。

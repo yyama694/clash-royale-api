@@ -14,8 +14,10 @@ public record BattleLogEntry(
         List<Participant> opponent,
         String boatBattleSide
 ) {
+    /** trophyChange は入らない対戦がある(フレンドバトル・クラン対戦、ランク戦の一部など)ので null になりうる。 */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Participant(String tag, String name, int crowns, List<Card> cards, List<Card> supportCards) {
+    public record Participant(String tag, String name, int crowns, List<Card> cards, List<Card> supportCards,
+            Integer trophyChange) {
     }
 
     /**

@@ -143,7 +143,7 @@ class PlayerServiceTest {
 
     @Test
     void 片側が欠けた対戦は一覧に出さないのでbattleTimeを指定されても見つからない扱いにする() {
-        BattleLogEntry.Participant self = new BattleLogEntry.Participant("#SELF", "Self", 3, List.of(), List.of());
+        BattleLogEntry.Participant self = new BattleLogEntry.Participant("#SELF", "Self", 3, List.of(), List.of(), null);
         when(apiClient.getBattleLog(anyString())).thenReturn(List.of(new BattleLogEntry("PvP",
                 "20260101T000000.000Z", new BattleLogEntry.GameMode("Ladder"), List.of(self), List.of(), null)));
 
@@ -161,8 +161,8 @@ class PlayerServiceTest {
     }
 
     private static BattleLogEntry battle(String battleTime) {
-        BattleLogEntry.Participant self = new BattleLogEntry.Participant("#SELF", "Self", 3, List.of(), List.of());
-        BattleLogEntry.Participant opponent = new BattleLogEntry.Participant("#OPP", "Opp", 0, List.of(), List.of());
+        BattleLogEntry.Participant self = new BattleLogEntry.Participant("#SELF", "Self", 3, List.of(), List.of(), null);
+        BattleLogEntry.Participant opponent = new BattleLogEntry.Participant("#OPP", "Opp", 0, List.of(), List.of(), null);
         return new BattleLogEntry("PvP", battleTime, new BattleLogEntry.GameMode("Ladder"),
                 List.of(self), List.of(opponent), null);
     }

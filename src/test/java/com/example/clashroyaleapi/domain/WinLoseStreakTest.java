@@ -89,8 +89,8 @@ class WinLoseStreakTest {
 
     private static BattleLogEntry battle(String type, String boatBattleSide, int selfCrowns, int opponentCrowns) {
         return new BattleLogEntry(type, "20260101T000000.000Z", null,
-                List.of(new BattleLogEntry.Participant("#SELF", "Self", selfCrowns, List.of(), List.of())),
-                List.of(new BattleLogEntry.Participant("#OPP", "Opponent", opponentCrowns, List.of(), List.of())),
+                List.of(new BattleLogEntry.Participant("#SELF", "Self", selfCrowns, List.of(), List.of(), null)),
+                List.of(new BattleLogEntry.Participant("#OPP", "Opponent", opponentCrowns, List.of(), List.of(), null)),
                 boatBattleSide);
     }
 }

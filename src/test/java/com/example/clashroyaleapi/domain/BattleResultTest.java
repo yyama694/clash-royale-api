@@ -57,6 +57,6 @@ class BattleResultTest {
     }
 
     private static BattleLogEntry.Participant participant(int crowns) {
-        return new BattleLogEntry.Participant("#TAG", "name", crowns, List.of(), List.of());
+        return new BattleLogEntry.Participant("#TAG", "name", crowns, List.of(), List.of(), null);
     }
 }
