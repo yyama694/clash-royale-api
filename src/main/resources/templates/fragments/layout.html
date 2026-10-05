@@ -568,6 +568,7 @@
         <span th:text="#{footer.unofficial}"></span>
         <a th:href="#{footer.policyUrl}" th:text="#{footer.policyLink}" rel="noopener"></a>
     </p>
+    <p><a th:href="@{/privacy}" th:text="#{footer.privacy}"></a></p>
 </footer>
 
 <!--/* トップページと、見つからなかったときの画面で共用する検索フォーム。value は再検索時に入力値を残すために使う。 */-->
@@ -749,10 +750,14 @@
 <div th:fragment="matchupSide(side)" class="side">
     <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">
         <a th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.name()}"></bdi></a>
+        <th:block th:if="${p.trophyChange()}"><span th:replace="~{fragments/layout :: trophyChange(${p.trophyChange()})}"></span></th:block>
     </div>
     <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
     <div class="visually-hidden" th:text="#{battle.crowns(${side[0].crowns()})}"></div>
 </div>
+
+<!--/* 1戦でのトロフィー(ランク戦ではレーティング)の増減。対戦履歴の行と対戦詳細で共用する。 */-->
+<span th:fragment="trophyChange(change)" class="trophy-change" th:classappend="${change.gained()} ? 'up' : 'down'"><span th:text="${change.label()}"></span> <strong th:text="${change.amount()}"></strong></span>
 
 <!--/*
   クランメンバー一覧のソート用ヘッダ。同じ列をクリックすると昇順/降順が反転する。
@@ -766,9 +771,23 @@
        th:text="${label}"></a>
 </th>
 
+<!--/*
+  ランキングのページ送り。表の上下に置き、順位の範囲(1–100 など)のリンクで目当ての順位のページへ直接移れるようにする。
+  国別タブのリンクには国を付けてあるので、移った先でも同じタブが開く。
+*/-->
+<nav th:fragment="rankingPager(pager)" class="ranking-pager" th:aria-label="#{ranking.pager.label}">
+    <a th:if="${pager.prevHref() != null}" class="btn btn-secondary btn-small" th:href="@{${pager.prevHref()}}" th:text="#{ranking.pager.prev}"></a>
+    <ol class="ranking-pages">
+        <li th:each="p : ${pager.pages()}"><a th:href="@{${p.href()}}" th:text="${p.label()}"
+               th:classappend="${p.current()} ? 'is-current'" th:attr="aria-current=${p.current()} ? 'page' : null"></a></li>
+    </ol>
+    <a th:if="${pager.nextHref() != null}" class="btn btn-secondary btn-small" th:href="@{${pager.nextHref()}}" th:text="#{ranking.pager.next}"></a>
+</nav>
+
 <!--/* クランランキングの表。グローバル/ローカルの両タブで共用する(国の列はグローバルのみ)。 */-->
-<div th:fragment="rankingTable(rows, showLocation)">
+<div th:fragment="rankingTable(rows, showLocation, pager)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
         <table class="table-ranking">
             <thead>
@@ -798,11 +817,13 @@
             </tbody>
         </table>
     </div>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
 </div>
 
 <!--/* 個人ランキングの表。トップページの概要(detailed=false)と詳細画面(detailed=true)で共用する。 */-->
-<div th:fragment="playerRankingTable(rows, detailed)">
+<div th:fragment="playerRankingTable(rows, detailed, pager)">
     <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
     <div th:unless="${rows.isEmpty()}" class="table-scroll">
         <table class="table-ranking">
             <thead>
@@ -831,6 +852,7 @@
             </tbody>
         </table>
     </div>
+    <th:block th:if="${pager != null}"><nav th:replace="~{fragments/layout :: rankingPager(${pager})}"></nav></th:block>
 </div>
 
 <!--/*

@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -30,12 +31,15 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 class MessagesConsistencyTest {
 
+    private static final String PRIVACY_PREFIX = "privacy.";
+
     /**
      * 英語(基本ファイル)には無くてよいキー。カード名は公式APIの英語名をそのまま使い、
      * 国名・カード名の読み仮名は漢字の読みが要る言語に、カードの通称は通称が定着している言語にだけある。
+     * プライバシーポリシーの本文は英語と日本語にだけあり、他の言語では英語版が出る(下のテストで英語と日本語をそろえる)。
      */
     private static final List<String> LANGUAGE_SPECIFIC_PREFIXES =
-            List.of("cardalias.", "cardreading.", "country.reading.");
+            List.of("cardalias.", "cardreading.", "country.reading.", PRIVACY_PREFIX);
 
     private static Properties load(String name) throws IOException {
         try (InputStream in = MessagesConsistencyTest.class.getResourceAsStream("/" + name)) {
@@ -62,6 +66,24 @@ class MessagesConsistencyTest {
         return locale.equals(SupportedLanguages.INTERNATIONAL)
                 ? "messages.properties"
                 : "messages_" + locale.getLanguage() + ".properties";
+    }
+
+    @Test
+    void プライバシーポリシーの本文は英語と日本語だけにそろって持つ() throws IOException {
+        Set<String> english = privacyKeys(load("messages.properties"));
+
+        assertFalse(english.isEmpty());
+        for (String file : bundleFiles()) {
+            Set<String> keys = privacyKeys(load(file));
+            assertEquals(file.equals("messages_ja.properties") || file.equals("messages.properties") ? english : Set.of(),
+                    keys, file);
+        }
+    }
+
+    private static Set<String> privacyKeys(Properties properties) {
+        return properties.stringPropertyNames().stream()
+                .filter(key -> key.startsWith(PRIVACY_PREFIX))
+                .collect(Collectors.toCollection(TreeSet::new));
     }
 
     @Test

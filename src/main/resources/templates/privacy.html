@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{footer.privacy})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <article class="card policy" th:lang="${policyLanguage}">
+            <h1 th:text="#{footer.privacy}"></h1>
+            <p class="notice" th:text="#{privacy.effective}"></p>
+            <p class="notice" th:text="#{privacy.languageNote}"></p>
+            <p th:text="#{privacy.intro}"></p>
+
+            <h2 th:text="#{privacy.collect.heading}"></h2>
+            <ul>
+                <li th:text="#{privacy.collect.logs}"></li>
+                <li th:text="#{privacy.collect.beacon}"></li>
+                <li th:text="#{privacy.collect.players}"></li>
+            </ul>
+
+            <h2 th:text="#{privacy.storage.heading}"></h2>
+            <ul>
+                <li th:text="#{privacy.storage.cookies}"></li>
+                <li th:text="#{privacy.storage.local}"></li>
+            </ul>
+            <p th:text="#{privacy.storage.control}"></p>
+
+            <h2 th:text="#{privacy.external.heading}"></h2>
+            <ul>
+                <li th:text="#{privacy.external.images}"></li>
+                <li th:text="#{privacy.external.share}"></li>
+                <li th:text="#{privacy.external.analytics}"></li>
+            </ul>
+
+            <h2 th:text="#{privacy.thirdParty.heading}"></h2>
+            <p th:text="#{privacy.thirdParty.body}"></p>
+
+            <h2 th:text="#{privacy.changes.heading}"></h2>
+            <p th:text="#{privacy.changes.body}"></p>
+
+            <h2 th:text="#{privacy.contact.heading}"></h2>
+            <p><span th:text="#{privacy.contact.body}"></span> <a href="https://x.com/princess_tower8" rel="noopener">@princess_tower8</a></p>
+        </article>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

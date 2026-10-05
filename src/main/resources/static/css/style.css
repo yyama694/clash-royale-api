@@ -292,6 +292,23 @@ a {
     margin: 0;
 }
 
+.site-footer p + p {
+    margin-top: 0.4rem;
+}
+
+/* プライバシーポリシーのような読ませる文章。項目の区切りが分かるよう、見出しの上と箇条の間を空ける。 */
+.policy h2 {
+    margin-top: 1.75rem;
+}
+
+.policy ul {
+    padding-left: 1.25rem;
+}
+
+.policy li + li {
+    margin-top: 0.6rem;
+}
+
 .back-link {
     display: inline-block;
     margin-bottom: 1rem;
@@ -878,6 +895,26 @@ td.cell-action {
     font-size: inherit;
 }
 
+/* 1戦でのトロフィー(レーティング)の増減。数字だけを勝敗と同じ色で目立たせる。 */
+.trophy-change strong {
+    font-weight: 700;
+}
+
+.trophy-change.up strong {
+    color: var(--color-win);
+}
+
+.trophy-change.down strong {
+    color: var(--color-lose);
+}
+
+.matchup .side .trophy-change {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
 .badge {
     display: inline-block;
     padding: 0.15rem 0.6rem;
@@ -1200,6 +1237,49 @@ td.cell-action {
 .pager-range {
     font-size: 0.85rem;
     color: var(--color-text-muted);
+}
+
+/* ランキングのページ送り。順位の範囲を小さなリンクで並べ、今のページだけ塗りつぶす。 */
+.ranking-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+/* 前へ・次へを1行目に並べ、順位の範囲はその下の行にまとめる(範囲の列が長く、間に挟むと前へ・次へが上下に離れるため)。 */
+.ranking-pages {
+    order: 1;
+    flex-basis: 100%;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+}
+
+.ranking-pages a {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: var(--color-link);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ranking-pages a:hover {
+    border-color: var(--color-link);
+}
+
+.ranking-pages a.is-current {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
 }
 
 .empty-state {
@@ -1862,24 +1942,38 @@ td.cell-action {
     }
 
     /*
-      ランキングは「順位」を見出し付きの1行にすると冗長なので、順位と名前を1行目にまとめて大きく出す。
-      残りの項目は2行目以降に項目名付きで並べる。
+      ランキングは1件を2行にまとめる。1行目に順位と名前を大きく出し、残りの項目は2行目に項目名付きで横に流す
+      (1項目を1行にすると、1000件のランキングでスマホ幅の画面が14万pxを超えていた)。
+      名前の幅を1行目の残り全部にして、残りの項目が1行目に回り込まないようにしている。
     */
     .table-ranking tbody tr {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        column-gap: 0.75rem;
+        display: flex;
+        flex-wrap: wrap;
         align-items: baseline;
+        column-gap: 0.75rem;
+        row-gap: 0.1rem;
     }
 
     .table-ranking td {
-        grid-column: 1 / -1;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.3rem;
+        padding: 0;
     }
 
-    .table-ranking td.cell-rank,
+    .table-ranking td.is-empty {
+        display: none;
+    }
+
+    .table-ranking td.cell-rank {
+        display: block;
+        flex: 0 0 auto;
+        min-width: 3.5rem;
+    }
+
     .table-ranking td.cell-name {
         display: block;
-        grid-column: auto;
+        flex: 1 1 calc(100% - 4.25rem);
     }
 
     .table-ranking td.cell-rank::before,

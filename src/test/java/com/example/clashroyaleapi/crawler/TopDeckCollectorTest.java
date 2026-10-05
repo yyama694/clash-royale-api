@@ -79,7 +79,7 @@ class TopDeckCollectorTest {
     private static BattleLogEntry battle(String type, List<BattleLogEntry.Card> cards,
             List<BattleLogEntry.Card> support) {
         return new BattleLogEntry(type, "20260926T000000.000Z", null,
-                List.of(new BattleLogEntry.Participant("#P", "name", 1, cards, support)), List.of(), null);
+                List.of(new BattleLogEntry.Participant("#P", "name", 1, cards, support, null)), List.of(), null);
     }
 
     private static BattleLogEntry ranked(List<BattleLogEntry.Card> cards, List<BattleLogEntry.Card> support) {

@@ -133,7 +133,7 @@ class CrawlerTest {
     }
 
     private static BattleLogEntry.Participant participant(String tag) {
-        return new BattleLogEntry.Participant(tag, "name", 0, List.of(), List.of());
+        return new BattleLogEntry.Participant(tag, "name", 0, List.of(), List.of(), null);
     }
 
     private static RiverRaceLogResponse raceLog(RiverRaceLogResponse.Clan... clans) {

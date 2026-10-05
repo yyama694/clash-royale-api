@@ -33,7 +33,7 @@ class CurrentDeckTest {
 
     private static BattleLogEntry battle(String tag, List<BattleLogEntry.Card> deck) {
         return new BattleLogEntry("pathOfLegend", "20260927T000000.000Z", null,
-                List.of(new BattleLogEntry.Participant(tag, "name", 1, deck, List.of())), List.of(), null);
+                List.of(new BattleLogEntry.Participant(tag, "name", 1, deck, List.of(), null)), List.of(), null);
     }
 
     private static List<Integer> ids(CurrentDeck deck) {
@@ -86,8 +86,8 @@ class CurrentDeckTest {
     void 二対二と他人のデッキからは補わない() {
         PlayerResponse player = player(cards(1, 3, 4, 5, 6, 7, 8));
         BattleLogEntry twoVsTwo = new BattleLogEntry("clanMate2v2", "20260927T000000.000Z", null, List.of(
-                new BattleLogEntry.Participant("#ABC", "name", 1, cards(1, CHAMPION, 3, 4, 5, 6, 7, 8), List.of()),
-                new BattleLogEntry.Participant("#MATE", "mate", 1, cards(11, 12, 13, 14, 15, 16, 17, 18), List.of())),
+                new BattleLogEntry.Participant("#ABC", "name", 1, cards(1, CHAMPION, 3, 4, 5, 6, 7, 8), List.of(), null),
+                new BattleLogEntry.Participant("#MATE", "mate", 1, cards(11, 12, 13, 14, 15, 16, 17, 18), List.of(), null)),
                 List.of(), null);
         List<BattleLogEntry> log = List.of(twoVsTwo, battle("#OTHER", cards(1, CHAMPION, 3, 4, 5, 6, 7, 8)));
 

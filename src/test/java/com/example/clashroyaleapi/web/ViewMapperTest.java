@@ -8,6 +8,7 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
+import com.example.clashroyaleapi.domain.PageSlice;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
@@ -24,7 +25,9 @@ import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
+import com.example.clashroyaleapi.web.view.RankingPagerView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
+import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -143,12 +147,48 @@ class ViewMapperTest {
                 card(12, 14), card(12, 14), card(9, 11), card(5, 8));
         BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
                 new BattleLogEntry.GameMode("Ladder"), List.of(participant("#VIEWER", "Viewer")),
-                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of())), null);
+                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of(), null)), null);
 
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
         // ゲーム内表記ではコモン14・レア14・エピック14・レジェンダリー13。生値の平均(11.75)にならないこと。
         assertEquals(13.875, summary.opponents().get(0).averageLevel());
+    }
+
+    @Test
+    void 対戦履歴には見ているプレイヤーのトロフィー増減を符号付きで出す() {
+        when(labels.message(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        BattleLogEntry ladder = new BattleLogEntry("PvP", "20260101T000000.000Z", new BattleLogEntry.GameMode("Ladder"),
+                List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1, List.of(), List.of(), -1030)),
+                List.of(new BattleLogEntry.Participant("#OPP", "Opp", 3, List.of(), List.of(), 1030)), null);
+        BattleLogEntry friendly = new BattleLogEntry("friendly", "20260101T000000.000Z",
+                new BattleLogEntry.GameMode("Friendly"), List.of(participant("#VIEWER", "Viewer")),
+                List.of(participant("#OPP", "Opp")), null);
+
+        List<BattleSummaryView> summaries = viewMapper.toBattleSummaries(List.of(ladder, friendly), "#VIEWER",
+                Locale.JAPANESE);
+
+        assertEquals(new TrophyChangeView("battlelog.change.trophies", "-1,030", false), summaries.get(0).trophyChange());
+        assertNull(summaries.get(1).trophyChange());
+        assertEquals(new TrophyChangeView("battlelog.change.trophies", "+1,030", true),
+                viewMapper.toBattleDetail(ladder, "#VIEWER", Locale.JAPANESE).opponents().get(0).trophyChange());
+    }
+
+    @Test
+    void ランキングのページ送りは順位の範囲を並べ_国別タブのリンクには国を付ける() {
+        List<Integer> ranks = IntStream.rangeClosed(1, 250).boxed().toList();
+
+        RankingPagerView global = viewMapper.toRankingPager("/ranking/players", null, PageSlice.of(ranks, 1, 100));
+        RankingPagerView local = viewMapper.toRankingPager("/ranking/players", "JP", PageSlice.of(ranks, 3, 100));
+
+        assertEquals(List.of("1–100", "101–200", "201–250"),
+                global.pages().stream().map(RankingPagerView.PageLink::label).toList());
+        assertEquals(new RankingPagerView.PageLink("1–100", "/ranking/players", true), global.pages().get(0));
+        assertNull(global.prevHref());
+        assertEquals("/ranking/players?page=2", global.nextHref());
+        assertEquals("/ranking/players?country=JP&page=2", local.prevHref());
+        assertNull(local.nextHref());
+        assertNull(viewMapper.toRankingPager("/ranking", null, PageSlice.of(List.of(1, 2), 1, 100)));
     }
 
     @Test
@@ -170,8 +210,8 @@ class ViewMapperTest {
         BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
                 new BattleLogEntry.GameMode("TeamVsTeam"),
                 List.of(participant("#VIEWER", "Viewer"), participant("#MATE", "Mate")),
-                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of()),
-                        new BattleLogEntry.Participant("#OPP2", "Opp2", 0, deck, List.of())), null);
+                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 0, deck, List.of(), null),
+                        new BattleLogEntry.Participant("#OPP2", "Opp2", 0, deck, List.of(), null)), null);
 
         BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
 
@@ -314,7 +354,7 @@ class ViewMapperTest {
                 new BattleLogEntry.Card(1, "Knight", 16, 16, 3, 1, icons),
                 new BattleLogEntry.Card(2, "Knight", 16, 16, 3, 2, icons),
                 new BattleLogEntry.Card(3, "Knight", 16, 16, 3, null, icons));
-        BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1, cards, List.of())));
+        BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1, cards, List.of(), null)));
 
         List<CardView> views = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0).cards();
 
@@ -332,7 +372,7 @@ class ViewMapperTest {
     void 形の画像が無いカードは通常の画像で出す() {
         BattleLogEntry.IconUrls icons = new BattleLogEntry.IconUrls("normal.png", null, null);
         BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1,
-                List.of(new BattleLogEntry.Card(1, "Zap", 16, 16, 2, 1, icons)), List.of())));
+                List.of(new BattleLogEntry.Card(1, "Zap", 16, 16, 2, 1, icons)), List.of(), null)));
 
         CardView view = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0).cards().get(0);
 
@@ -345,7 +385,7 @@ class ViewMapperTest {
         BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1,
                 List.of(new BattleLogEntry.Card(1, "Knight", 16, 16, 3, null, null),
                         new BattleLogEntry.Card(2, "Mirror", 14, 14, null, null, null)),
-                List.of(new BattleLogEntry.Card(159000000, "Tower Princess", 16, 16, null, null, null)))));
+                List.of(new BattleLogEntry.Card(159000000, "Tower Princess", 16, 16, null, null, null)), null)));
 
         ParticipantView viewer = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0);
 
@@ -385,6 +425,6 @@ class ViewMapperTest {
     }
 
     private static BattleLogEntry.Participant participant(String tag, String name) {
-        return new BattleLogEntry.Participant(tag, name, 1, List.of(), List.of());
+        return new BattleLogEntry.Participant(tag, name, 1, List.of(), List.of(), null);
     }
 }

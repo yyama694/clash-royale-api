@@ -39,8 +39,8 @@
             <p th:text="#{playerRanking.lead(${playerRankingSize})}"></p>
             <!--/* 国を選び直すとページ先頭に戻ってしまうため、送信先にアンカーを付けてランキングの位置に戻す */-->
             <div th:replace="~{fragments/layout :: rankingTabs(
-                     ~{fragments/layout :: playerRankingTable(${globalRanking}, false)},
-                     ~{fragments/layout :: playerRankingTable(${localRanking}, false)},
+                     ~{fragments/layout :: playerRankingTable(${globalRanking}, false, null)},
+                     ~{fragments/layout :: playerRankingTable(${localRanking}, false, null)},
                      '/#player-ranking', null)}"></div>
             <a class="btn btn-secondary card-action" th:href="@{/ranking/players}" th:text="#{playerRanking.link}"></a>
         </div>

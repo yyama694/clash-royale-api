@@ -144,6 +144,7 @@
                         <div class="battle-sub">
                             <span th:text="${b.gameMode()}"></span>
                             <time th:replace="~{fragments/layout :: localTime(${b.time()})}"></time>
+                            <th:block th:if="${b.trophyChange()}"><span th:replace="~{fragments/layout :: trophyChange(${b.trophyChange()})}"></span></th:block>
                             <span th:unless="${#lists.isEmpty(b.teammates())}" class="teammates">
                                 <span th:text="#{battlelog.teammate}"></span>
                                 <span class="name-list">
