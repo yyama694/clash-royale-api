@@ -10,7 +10,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -38,12 +37,13 @@ public class HomeController {
             HttpServletResponse response, Model model, Locale locale) {
         Optional<Country> selected = rankingScope.resolve(country, request, response, model, locale).country();
 
-        model.addAttribute("globalRanking", viewMapper.toPlayerRankingRows(
-                rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE)));
+        model.addAttribute("globalRanking", viewMapper.toPlayerRanking(
+                rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE), locale));
+        // 国が決まらないときは国別のタブ自体を描かない。
         model.addAttribute("localRanking", selected
-                .map(c -> viewMapper.toPlayerRankingRows(rankingService.topPlayers(c.locationId(),
-                        PLAYER_RANKING_SIZE)))
-                .orElseGet(List::of));
+                .map(c -> viewMapper.toPlayerRanking(rankingService.topPlayers(c.locationId(),
+                        PLAYER_RANKING_SIZE), locale))
+                .orElse(null));
         // 注記の「上位n人」を文言に直書きすると定数を変えたときにずれるため、件数も渡す。
         model.addAttribute("playerRankingSize", PLAYER_RANKING_SIZE);
         // トップページでは、訪問者に身近な自国のランキングを最初に見せる(国が決まらないときはグローバル)。

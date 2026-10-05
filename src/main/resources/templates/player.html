@@ -30,7 +30,7 @@
             */-->
             <ul class="stat-highlights">
                 <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{player.trophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.trophies(), 1, 'DEFAULT')}"></span></li>
-                <th:block th:with="r=${player.currentPathOfLegendSeasonResult()}"><li th:if="${r != null and r.rank() != null}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.current}"></span></span><span class="value" th:text="#{player.ranked.rank(${r.rank()})}"></span><span class="sub" th:text="#{player.ranked.rating(${r.trophies()})}"></span></li></th:block>
+                <th:block th:with="r=${player.currentPathOfLegendSeasonResult()}"><li th:if="${r != null and r.hasRank()}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.current}"></span></span><span class="value" th:text="#{player.ranked.rank(${r.rank()})}"></span><span class="sub" th:text="#{player.ranked.rating(${r.trophies()})}"></span></li></th:block>
                 <li th:if="${streak}"><span class="label"><span aria-hidden="true">🔥</span> <span th:text="#{player.streak}"></span></span><span class="value" th:text="${streak}"></span></li>
             </ul>
             <ul class="stat-grid stat-grid-compact">
@@ -39,7 +39,7 @@
                 <li><span class="label"><span aria-hidden="true">⚔️</span> <span th:text="#{player.wins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.wins(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">❌</span> <span th:text="#{player.losses}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.losses(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">👑</span> <span th:text="#{player.threeCrownWins}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.threeCrownWins(), 1, 'DEFAULT')}"></span></li>
-                <th:block th:with="r=${player.bestPathOfLegendSeasonResult()}"><li th:if="${r != null and r.rank() != null}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.best}"></span></span><span class="value" th:text="#{player.ranked.rank(${r.rank()})}"></span><span class="sub" th:text="#{player.ranked.rating(${r.trophies()})}"></span></li></th:block>
+                <th:block th:with="r=${player.bestPathOfLegendSeasonResult()}"><li th:if="${r != null and r.hasRank()}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.best}"></span></span><span class="value" th:text="#{player.ranked.rank(${r.rank()})}"></span><span class="sub" th:text="#{player.ranked.rating(${r.trophies()})}"></span></li></th:block>
             </ul>
             <!--/* 前回この画面を見たときからの変化。前回の値はブラウザにあるので、末尾のスクリプトで差を出し、変化した項目だけを見せる。 */-->
             <div id="since-last" class="since-last" hidden

@@ -38,6 +38,14 @@ public record PlayerResponse(
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record RankedSeasonResult(Integer leagueNumber, Integer trophies, Integer rank) {
+
+        /**
+         * 順位を出してよいか。シーズンが切り替わった直後は trophies が 0 に戻っても rank に前のシーズンの順位が残り、
+         * 「今シーズン1位・レーティング0」と出てしまった(2026-10-05)。
+         */
+        public boolean hasRank() {
+            return rank != null && trophies != null && trophies > 0;
+        }
     }
 
     /**

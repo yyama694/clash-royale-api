@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,23 +66,44 @@ public class RankingService {
      * 個人ランキング(パス・オブ・レジェンドの現在シーズン)。失敗時の扱いはクランランキングと同じ。
      * 画面ごとに件数が違っても、公式APIからは常に最大件数で取得して先頭を切り出す。
      * 件数ごとに取得するとキャッシュのキーが分かれ、同じデータを画面の数だけ取り直すことになるため。
+     *
+     * シーズンが切り替わった直後は今シーズンのランキングが空になる(2026-10-05は日本時間18時の切り替えから空だった)。
+     * その間、グローバルは終わったシーズンの最終順位を返す。国別は終わったシーズンの順位を公式APIが返さない(404)ので空のまま。
      */
-    public List<PlayerRankingResponse.RankedPlayer> topPlayers(String locationId, int limit) {
+    public PlayerRanking topPlayers(String locationId, int limit) {
         if (limit > MAX_PLAYER_RANKING_SIZE) {
             throw new IllegalArgumentException("limit must be <= " + MAX_PLAYER_RANKING_SIZE + ": " + limit);
         }
+        List<PlayerRankingResponse.RankedPlayer> players;
         try {
-            List<PlayerRankingResponse.RankedPlayer> players =
-                    apiClient.getPathOfLegendRankings(locationId, MAX_PLAYER_RANKING_SIZE);
+            players = apiClient.getPathOfLegendRankings(locationId, MAX_PLAYER_RANKING_SIZE);
+        } catch (ClashRoyaleApiException e) {
+            log.warn("player ranking unavailable for location {}: {}", locationId, e.toString());
+            return PlayerRanking.unavailable();
+        }
+        if (!players.isEmpty()) {
             sightingLog.record(players.stream()
                     .map(player -> new PlayerSighting(player.tag(), player.name()))
                     .toList());
-            return players.stream()
-                    .limit(limit)
-                    .toList();
-        } catch (ClashRoyaleApiException e) {
-            log.warn("player ranking unavailable for location {}: {}", locationId, e.toString());
-            return List.of();
+            return PlayerRanking.current(players.stream().limit(limit).toList());
+        }
+        return GLOBAL_LOCATION_ID.equals(locationId) ? latestFinishedSeason(limit) : PlayerRanking.empty();
+    }
+
+    // 代わりに出すだけなので、取れなくても「今シーズンにまだ誰もいない」という事実のほうを伝える。
+    private PlayerRanking latestFinishedSeason(int limit) {
+        try {
+            String seasonId = apiClient.getLatestFinishedSeasonId();
+            if (seasonId == null) {
+                return PlayerRanking.empty();
+            }
+            List<PlayerRankingResponse.RankedPlayer> players =
+                    apiClient.getFinishedSeasonPathOfLegendRankings(seasonId, MAX_PLAYER_RANKING_SIZE);
+            return players.isEmpty() ? PlayerRanking.empty()
+                    : PlayerRanking.finishedSeason(players.stream().limit(limit).toList(), YearMonth.parse(seasonId));
+        } catch (ClashRoyaleApiException | DateTimeParseException e) {
+            log.warn("finished season player ranking unavailable: {}", e.toString());
+            return PlayerRanking.empty();
         }
     }
 

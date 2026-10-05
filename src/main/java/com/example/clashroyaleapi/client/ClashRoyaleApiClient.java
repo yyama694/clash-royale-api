@@ -10,6 +10,7 @@ import com.example.clashroyaleapi.client.dto.LocationsResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.dto.RiverRaceLogResponse;
+import com.example.clashroyaleapi.client.dto.SeasonsResponse;
 import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
 import com.example.clashroyaleapi.client.exception.ApiMaintenanceException;
 import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
@@ -143,6 +144,31 @@ public class ClashRoyaleApiClient {
                 .uri(uriBuilder -> uriBuilder.path("/locations/{locationId}/pathoflegend/players")
                         .queryParam("limit", limit)
                         .build(locationId))
+                .retrieve()
+                .body(PlayerRankingResponse.class));
+        return response == null || response.items() == null ? List.of() : response.items();
+    }
+
+    /** 終わったシーズンのうち最新のもののID("2026-09"など)。一覧が空なら null。 */
+    @Cacheable("finishedSeasons")
+    public String getLatestFinishedSeasonId() {
+        SeasonsResponse response = call(() -> restClient.get()
+                .uri("/locations/global/seasons")
+                .retrieve()
+                .body(SeasonsResponse.class));
+        if (response == null || response.items() == null || response.items().isEmpty()) {
+            return null;
+        }
+        return response.items().getLast().id();
+    }
+
+    /** 終わったシーズンのランク戦の最終順位(グローバルだけ。国別は404になる)。 */
+    @Cacheable("finishedSeasonPlayerRankings")
+    public List<PlayerRankingResponse.RankedPlayer> getFinishedSeasonPathOfLegendRankings(String seasonId, int limit) {
+        PlayerRankingResponse response = call(() -> restClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/locations/global/pathoflegend/{seasonId}/rankings/players")
+                        .queryParam("limit", limit)
+                        .build(seasonId))
                 .retrieve()
                 .body(PlayerRankingResponse.class));
         return response == null || response.items() == null ? List.of() : response.items();

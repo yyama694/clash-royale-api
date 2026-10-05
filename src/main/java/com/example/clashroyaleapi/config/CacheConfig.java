@@ -29,27 +29,32 @@ public class CacheConfig {
     // ランキングは順位が刻々と動き、古さが目に付きやすいので短くする(2026-10-05にユーザーが決定)。
     private static final String RANKING_TTL = "expireAfterWrite=1m";
 
+    private static final String FINISHED_SEASON_TTL = "expireAfterWrite=1h";
+
     // 一覧に無い名前で @Cacheable を足しても動くよう、既定も持っておく。
     private static final String DEFAULT_SPEC = "maximumSize=200," + TTL;
 
-    private static final Map<String, String> SPECS = Map.of(
+    private static final Map<String, String> SPECS = Map.ofEntries(
             // 1件=プレイヤー1人(所持カード約120枚)。
-            "players", "maximumSize=300," + TTL,
+            Map.entry("players", "maximumSize=300," + TTL),
             // 1件=クラン1つ(メンバー50人)。
-            "clans", "maximumSize=200," + TTL,
+            Map.entry("clans", "maximumSize=200," + TTL),
             // 1件=クラン1つの今週のクラン対戦(参加者は元メンバーを含め最大で数十人)。
-            "riverRaces", "maximumSize=200," + TTL,
+            Map.entry("riverRaces", "maximumSize=200," + TTL),
             // 1件=直近25試合分の参加者とデッキ。1件で数百枚のカードになる、最も重いキャッシュ。
-            "battleLogs", "maximumSize=80," + TTL,
-            "clanSearches", "maximumSize=200," + TTL,
+            Map.entry("battleLogs", "maximumSize=80," + TTL),
+            Map.entry("clanSearches", "maximumSize=200," + TTL),
             // 1件=1000クラン / 1000人。国・地域の数だけ増え得るが、同時に見られるのは一部だけ。
-            "clanRankings", "maximumSize=40," + RANKING_TTL,
-            "playerRankings", "maximumSize=40," + RANKING_TTL,
+            Map.entry("clanRankings", "maximumSize=40," + RANKING_TTL),
+            Map.entry("playerRankings", "maximumSize=40," + RANKING_TTL),
+            // 終わったシーズンの順位は変わらない。使うのは新シーズンの開始直後(今シーズンのランキングが空の間)だけ。
+            Map.entry("finishedSeasons", "maximumSize=2," + FINISHED_SEASON_TTL),
+            Map.entry("finishedSeasonPlayerRankings", "maximumSize=4," + FINISHED_SEASON_TTL),
             // 1件=タグ20件の小さなMap。クランランキングの列なので、ランキングと同じ時間で切る。
-            "clanWarTrophies", "maximumSize=200," + RANKING_TTL,
+            Map.entry("clanWarTrophies", "maximumSize=200," + RANKING_TTL),
             // どちらも実質1キーしか無い。
-            "locations", "maximumSize=4," + TTL,
-            "cards", "maximumSize=4," + TTL);
+            Map.entry("locations", "maximumSize=4," + TTL),
+            Map.entry("cards", "maximumSize=4," + TTL));
 
     @Bean
     public CacheManager cacheManager() {

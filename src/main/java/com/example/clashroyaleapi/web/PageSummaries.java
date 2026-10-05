@@ -62,7 +62,7 @@ public class PageSummaries {
         sentences.add(labels.message("player.summary.base", locale, playerName, Tags.toPathSegment(player.tag()),
                 player.trophies(), player.wins()));
         PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
-        if (ranked != null && ranked.rank() != null) {
+        if (ranked != null && ranked.hasRank()) {
             sentences.add(labels.message("player.summary.ranked", locale, ranked.rank()));
         }
         if (streak != null) {

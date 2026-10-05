@@ -28,6 +28,7 @@ import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.domain.TrophyChange;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.CardService;
+import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
@@ -57,6 +58,7 @@ import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
+import com.example.clashroyaleapi.web.view.PlayerRankingView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
@@ -66,9 +68,12 @@ import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -249,13 +254,13 @@ public class ViewMapper {
     public PlayerProgressView toPlayerProgress(PlayerResponse player) {
         PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
         return new PlayerProgressView(player.trophies(), player.wins(), player.losses(),
-                ranked == null ? null : ranked.rank(), rankedRating(player));
+                ranked != null && ranked.hasRank() ? ranked.rank() : null, rankedRating(player));
     }
 
     /** ランク戦の順位が無い人のレーティングは0などの意味の無い値なので、順位があるときだけ返す。 */
     private static Integer rankedRating(PlayerResponse player) {
         PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
-        return ranked != null && ranked.rank() != null ? ranked.trophies() : null;
+        return ranked != null && ranked.hasRank() ? ranked.trophies() : null;
     }
 
     public String toStreakLabel(WinLoseStreak streak, Locale locale) {
@@ -372,7 +377,23 @@ public class ViewMapper {
         return location == null ? null : countryNames.locationName(location.countryCode(), location.name(), locale);
     }
 
-    public List<PlayerRankingRowView> toPlayerRankingRows(List<PlayerRankingResponse.RankedPlayer> players) {
+    public PlayerRankingView toPlayerRanking(PlayerRanking ranking, Locale locale) {
+        String notice = switch (ranking.status()) {
+            case CURRENT_SEASON -> null;
+            case FINISHED_SEASON -> labels.message("playerRanking.finishedSeason", locale,
+                    seasonMonth(ranking.finishedSeason()));
+            case EMPTY -> labels.message("playerRanking.empty", locale);
+            case UNAVAILABLE -> labels.message("ranking.unavailable", locale);
+        };
+        return new PlayerRankingView(toPlayerRankingRows(ranking.players()), notice);
+    }
+
+    // 月名は言語ごとにICUに書かせる(引数は日時)。サーバーのタイムゾーンで前後の月にずれないよう、月の半ばにする。
+    private static Date seasonMonth(YearMonth season) {
+        return Date.from(season.atDay(15).atStartOfDay(ZoneOffset.UTC).toInstant());
+    }
+
+    private List<PlayerRankingRowView> toPlayerRankingRows(List<PlayerRankingResponse.RankedPlayer> players) {
         return players.stream()
                 .map(player -> new PlayerRankingRowView(player.rank(), Tags.toPathSegment(player.tag()), player.tag(),
                         GameText.stripFormatting(player.name()), player.eloRating(),

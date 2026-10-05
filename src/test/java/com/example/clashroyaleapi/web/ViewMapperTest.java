@@ -4,12 +4,15 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
+import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
+import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardService;
+import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
@@ -30,6 +33,7 @@ import com.example.clashroyaleapi.web.view.TrophyChangeView;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -294,10 +298,36 @@ class ViewMapperTest {
                 List.of(), List.of(), new PlayerResponse.RankedSeasonResult(3, 0, null), null, List.of());
         PlayerResponse noResult = new PlayerResponse("#CCC", "三郎", 1, 0, 0, 0, 0, 0, null,
                 List.of(), List.of(), null, null, List.of());
+        // シーズンの切り替え直後は、レーティングが0に戻っても前のシーズンの順位が残る。
+        PlayerResponse justReset = new PlayerResponse("#DDD", "四郎", 16, 14000, 14000, 900, 400, 100, null,
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(1, 0, 1), null, List.of());
 
         assertEquals(new PlayerProgressView(14000, 900, 400, 25, 3100), viewMapper.toPlayerProgress(ranked));
         assertEquals(new PlayerProgressView(1000, 30, 20, null, null), viewMapper.toPlayerProgress(noRank));
         assertEquals(new PlayerProgressView(0, 0, 0, null, null), viewMapper.toPlayerProgress(noResult));
+        assertEquals(new PlayerProgressView(14000, 900, 400, null, null), viewMapper.toPlayerProgress(justReset));
+    }
+
+    @Test
+    void 個人ランキングは今シーズンでなければ表の上に理由を出し終わったシーズンは月を言語ごとに書く() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class));
+        List<PlayerRankingResponse.RankedPlayer> players = List.of(new PlayerRankingResponse.RankedPlayer(
+                "#Y9R22RQ2", "Ian77", 3835, 1, null));
+        PlayerRanking finished = new PlayerRanking(players, PlayerRanking.Status.FINISHED_SEASON, YearMonth.of(2026, 9));
+
+        assertNull(mapper.toPlayerRanking(new PlayerRanking(players, PlayerRanking.Status.CURRENT_SEASON, null),
+                Locale.JAPANESE).notice());
+        assertEquals("今シーズンのランキングにはまだプレイヤーがいないため、前のシーズン(2026年9月)の最終順位を表示しています。",
+                mapper.toPlayerRanking(finished, Locale.JAPANESE).notice());
+        assertEquals(1, mapper.toPlayerRanking(finished, Locale.JAPANESE).rows().size());
+        assertTrue(mapper.toPlayerRanking(finished, Locale.ENGLISH).notice()
+                .contains("this season's ranking yet, so the final standings of the previous season (September 2026)"));
+        assertTrue(mapper.toPlayerRanking(finished, Locale.forLanguageTag("ko")).notice().contains("지난 시즌(2026년 9월)"));
+        assertEquals("今シーズンのランキングには、まだプレイヤーがいません。",
+                mapper.toPlayerRanking(PlayerRanking.empty(), Locale.JAPANESE).notice());
+        assertEquals("ランキングを取得できませんでした。しばらく時間をおいてからお試しください。",
+                mapper.toPlayerRanking(PlayerRanking.unavailable(), Locale.JAPANESE).notice());
     }
 
     @Test

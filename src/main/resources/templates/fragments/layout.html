@@ -806,9 +806,9 @@
 </div>
 
 <!--/* 個人ランキングの表。トップページの概要(detailed=false)と詳細画面(detailed=true)で共用する。 */-->
-<div th:fragment="playerRankingTable(rows, detailed)">
-    <p th:if="${rows.isEmpty()}" class="notice" th:text="#{ranking.unavailable}"></p>
-    <div th:unless="${rows.isEmpty()}" class="table-scroll">
+<div th:fragment="playerRankingTable(ranking, detailed)">
+    <p th:if="${ranking.notice() != null}" class="notice" th:text="${ranking.notice()}"></p>
+    <div th:unless="${ranking.rows().isEmpty()}" class="table-scroll">
         <table class="table-ranking">
             <thead>
                 <tr>
@@ -819,7 +819,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr th:each="row : ${rows}">
+                <tr th:each="row : ${ranking.rows()}">
                     <td class="cell-rank" th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
                     <td class="cell-name" th:attr="data-label=#{playerRanking.col.player}">
                         <a th:href="@{/player/{tag}(tag=${row.pathTag()})}"><bdi th:text="${row.name()}"></bdi></a>

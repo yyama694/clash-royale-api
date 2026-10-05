@@ -65,6 +65,13 @@ class PageSummariesTest {
     }
 
     @Test
+    void シーズンの切り替え直後にレーティング0で前のシーズンの順位が残っていても順位の文を省く() {
+        assertEquals(FSI + "Taro" + PDI + "(#ABC123)のクラロワのプレイヤー情報です。トロフィー9,000、通算3,210勝。",
+                summaries.playerSummary(player(new PlayerResponse.RankedSeasonResult(1, 0, 1)), "Taro", null,
+                        null, null, Locale.JAPANESE));
+    }
+
+    @Test
     void 英語は文を空白で区切り単複を合わせる() {
         String summary = summaries.playerSummary(player(null), "Taro", new WinLoseStreak(false, 1, false), null,
                 stats(1, 2),
