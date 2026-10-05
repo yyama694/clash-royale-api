@@ -10,8 +10,8 @@
         <div class="card">
             <h1 th:text="#{ranking.heading}"></h1>
             <div th:replace="~{fragments/layout :: rankingTabs(
-                     ~{fragments/layout :: rankingTable(${globalRanking}, true, ${globalPager})},
-                     ~{fragments/layout :: rankingTable(${localRanking}, false, ${localPager})},
+                     ~{fragments/layout :: rankingTable(${globalRanking}, true)},
+                     ~{fragments/layout :: rankingTable(${localRanking}, false)},
                      '/ranking', '/ranking/table')}"></div>
             <p th:replace="~{fragments/layout :: notice(#{ranking.notice(${clanRankingSize})})}"></p>
             <p th:replace="~{fragments/layout :: notice(#{ranking.warTrophies.notice(${warTrophiesRankLimit})})}"></p>

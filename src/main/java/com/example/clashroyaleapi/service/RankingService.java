@@ -94,7 +94,7 @@ public class RankingService {
      * それでも「20並行で取得する」処理自体を毎リクエスト実行すると、低スペックVM(1/8 OCPU)では
      * 仮想スレッドの起動コストだけで数秒かかることを本番で確認した(2026-09-19)。
      * ただし一部のクランが取れなかった回と、ランキング自体が取れず clans が空だった回はキャッシュしない。
-     * キーが locationId だけなので、欠けた結果を残すと2分間その列が「―」のままになるため。
+     * キーが locationId だけなので、欠けた結果を残すとキャッシュが切れるまでその列が「―」のままになるため。
      */
     @Cacheable(value = "clanWarTrophies", key = "#locationId",
             unless = "#clans.isEmpty() or #result.size() < T(Math).min(#clans.size(), " + WAR_TROPHIES_RANK_LIMIT + ")")

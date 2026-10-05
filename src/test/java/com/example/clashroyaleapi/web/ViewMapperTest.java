@@ -8,7 +8,6 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
-import com.example.clashroyaleapi.domain.PageSlice;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
@@ -25,7 +24,6 @@ import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
-import com.example.clashroyaleapi.web.view.RankingPagerView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
@@ -35,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -172,23 +169,6 @@ class ViewMapperTest {
         assertNull(summaries.get(1).trophyChange());
         assertEquals(new TrophyChangeView("battlelog.change.trophies", "+1,030", true),
                 viewMapper.toBattleDetail(ladder, "#VIEWER", Locale.JAPANESE).opponents().get(0).trophyChange());
-    }
-
-    @Test
-    void ランキングのページ送りは順位の範囲を並べ_国別タブのリンクには国を付ける() {
-        List<Integer> ranks = IntStream.rangeClosed(1, 250).boxed().toList();
-
-        RankingPagerView global = viewMapper.toRankingPager("/ranking/players", null, PageSlice.of(ranks, 1, 100));
-        RankingPagerView local = viewMapper.toRankingPager("/ranking/players", "JP", PageSlice.of(ranks, 3, 100));
-
-        assertEquals(List.of("1–100", "101–200", "201–250"),
-                global.pages().stream().map(RankingPagerView.PageLink::label).toList());
-        assertEquals(new RankingPagerView.PageLink("1–100", "/ranking/players", true), global.pages().get(0));
-        assertNull(global.prevHref());
-        assertEquals("/ranking/players?page=2", global.nextHref());
-        assertEquals("/ranking/players?country=JP&page=2", local.prevHref());
-        assertNull(local.nextHref());
-        assertNull(viewMapper.toRankingPager("/ranking", null, PageSlice.of(List.of(1, 2), 1, 100)));
     }
 
     @Test

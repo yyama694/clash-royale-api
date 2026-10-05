@@ -26,6 +26,9 @@ public class CacheConfig {
 
     private static final String TTL = "expireAfterWrite=2m";
 
+    // ランキングは順位が刻々と動き、古さが目に付きやすいので短くする(2026-10-05にユーザーが決定)。
+    private static final String RANKING_TTL = "expireAfterWrite=1m";
+
     // 一覧に無い名前で @Cacheable を足しても動くよう、既定も持っておく。
     private static final String DEFAULT_SPEC = "maximumSize=200," + TTL;
 
@@ -40,10 +43,10 @@ public class CacheConfig {
             "battleLogs", "maximumSize=80," + TTL,
             "clanSearches", "maximumSize=200," + TTL,
             // 1件=1000クラン / 1000人。国・地域の数だけ増え得るが、同時に見られるのは一部だけ。
-            "clanRankings", "maximumSize=40," + TTL,
-            "playerRankings", "maximumSize=40," + TTL,
-            // 1件=タグ20件の小さなMap。
-            "clanWarTrophies", "maximumSize=200," + TTL,
+            "clanRankings", "maximumSize=40," + RANKING_TTL,
+            "playerRankings", "maximumSize=40," + RANKING_TTL,
+            // 1件=タグ20件の小さなMap。クランランキングの列なので、ランキングと同じ時間で切る。
+            "clanWarTrophies", "maximumSize=200," + RANKING_TTL,
             // どちらも実質1キーしか無い。
             "locations", "maximumSize=4," + TTL,
             "cards", "maximumSize=4," + TTL);

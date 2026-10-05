@@ -2,11 +2,9 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
-import com.example.clashroyaleapi.domain.PageSlice;
 import com.example.clashroyaleapi.service.LocationService;
 import com.example.clashroyaleapi.service.RankingService;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
-import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,12 +23,6 @@ public class RankingController {
     // トップページ(概要のみ)より多く見せる画面なので、取得できる最大件数をそのまま出す。
     private static final int PLAYER_RANKING_SIZE = RankingService.MAX_PLAYER_RANKING_SIZE;
 
-    // 1000件を1ページに並べるとスマホ幅で14万pxを超えるため、100件ずつに分ける。
-    static final int RANKING_PAGE_SIZE = 100;
-
-    private static final String CLAN_RANKING_PATH = "/ranking";
-    private static final String PLAYER_RANKING_PATH = "/ranking/players";
-
     private final RankingService rankingService;
     private final RankingScope rankingScope;
     private final LocationService locationService;
@@ -44,45 +36,32 @@ public class RankingController {
         this.viewMapper = viewMapper;
     }
 
-    /**
-     * 最初は開いているタブだけを描き、もう一方は切り替えたときに下の table で取りに来る(1ページ目)。
-     * page は開いているタブのページ。国を選び直した直後(country あり)は国別タブ、それ以外はグローバルタブが開く。
-     */
-    @GetMapping(CLAN_RANKING_PATH)
-    public String ranking(@RequestParam(required = false) String country,
-            @RequestParam(required = false, defaultValue = "1") int page, HttpServletRequest request,
+    @GetMapping("/ranking")
+    public String ranking(@RequestParam(required = false) String country, HttpServletRequest request,
             HttpServletResponse response, Model model, Locale locale) {
         RankingScope.Scope scope = rankingScope.resolve(country, request, response, model, locale);
-        model.addAttribute("globalRanking", List.of());
-        model.addAttribute("localRanking", List.of());
-        if (scope.localTabActive()) {
-            scope.country().ifPresent(c -> addClanPage(model, "local",
-                    toClanRankingRows(c.locationId(), locale), c.countryCode(), page));
-        } else {
-            addClanPage(model, "global", toClanRankingRows(RankingService.GLOBAL_LOCATION_ID, locale), null, page);
-        }
+
+        // 1000件×2タブを最初から描くとHTMLが大きくなるため、個人ランキング画面と同じく
+        // 最初は開いているタブだけを描き、もう一方は切り替えたときに下の table で取りに来る。
+        model.addAttribute("globalRanking", scope.localTabActive() ? List.of()
+                : toClanRankingRows(RankingService.GLOBAL_LOCATION_ID, locale));
+        model.addAttribute("localRanking", scope.localTabActive()
+                ? scope.country().map(c -> toClanRankingRows(c.locationId(), locale)).orElseGet(List::of)
+                : List.of());
         // 注記の「上位n件」を文言に直書きすると定数を変えたときにずれるため、件数も渡す。
         model.addAttribute("clanRankingSize", RankingService.CLAN_RANKING_SIZE);
         model.addAttribute("warTrophiesRankLimit", RankingService.WAR_TROPHIES_RANK_LIMIT);
         return "ranking";
     }
 
-    /** タブを切り替えたときに、その国(未指定ならグローバル)の表の1ページ目だけを返す。画面のHTMLは返さない。 */
-    @GetMapping(CLAN_RANKING_PATH + "/table")
+    /** タブを切り替えたときに、その国(未指定ならグローバル)の表だけを返す。画面のHTMLは返さない。 */
+    @GetMapping("/ranking/table")
     public String rankingTable(@RequestParam(required = false) String country, Model model, Locale locale) {
-        boolean global = country == null || country.isBlank();
-        List<ClanRankingRowView> rows = clanLocationIdFor(country).map(id -> toClanRankingRows(id, locale))
-                .orElseGet(List::of);
-        addClanPage(model, "table", rows, global ? null : country.strip(), 1);
+        model.addAttribute("rows", clanLocationIdFor(country).map(id -> toClanRankingRows(id, locale))
+                .orElseGet(List::of));
         // 国別タブはすでにその国に絞っているため、グローバルタブだけ「国・地域」列を出す。
-        model.addAttribute("showLocation", global);
-        return "fragments/layout :: rankingTable(rows=${tableRanking}, showLocation=${showLocation}, pager=${tablePager})";
-    }
-
-    private void addClanPage(Model model, String prefix, List<ClanRankingRowView> rows, String countryCode, int page) {
-        PageSlice<ClanRankingRowView> slice = PageSlice.of(rows, page, RANKING_PAGE_SIZE);
-        model.addAttribute(prefix + "Ranking", slice.items());
-        model.addAttribute(prefix + "Pager", viewMapper.toRankingPager(CLAN_RANKING_PATH, countryCode, slice));
+        model.addAttribute("showLocation", country == null || country.isBlank());
+        return "fragments/layout :: rankingTable(rows=${rows}, showLocation=${showLocation})";
     }
 
     private Optional<String> clanLocationIdFor(String country) {
@@ -98,39 +77,31 @@ public class RankingController {
         return viewMapper.toClanRankingRows(clans, rankingService.warTrophiesOfTopClans(locationId, clans), locale);
     }
 
-    /** 1000人×2タブを最初から描くとHTMLが1.6MBになり、低スペックVMでは表示に数秒かかるため、クランランキングと同じく分けて描く。 */
-    @GetMapping(PLAYER_RANKING_PATH)
-    public String playerRanking(@RequestParam(required = false) String country,
-            @RequestParam(required = false, defaultValue = "1") int page, HttpServletRequest request,
+    @GetMapping("/ranking/players")
+    public String playerRanking(@RequestParam(required = false) String country, HttpServletRequest request,
             HttpServletResponse response, Model model, Locale locale) {
         RankingScope.Scope scope = rankingScope.resolve(country, request, response, model, locale);
-        model.addAttribute("globalRanking", List.of());
-        model.addAttribute("localRanking", List.of());
-        if (scope.localTabActive()) {
-            scope.country().ifPresent(c -> addPlayerPage(model, "local",
-                    rankingService.topPlayers(c.locationId(), PLAYER_RANKING_SIZE), c.countryCode(), page));
-        } else {
-            addPlayerPage(model, "global",
-                    rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE), null, page);
-        }
+
+        // 1000人×2タブを最初から描くとHTMLが1.6MBになり、低スペックVMでは表示に数秒かかる。
+        // 最初は開いているタブだけを描き、もう一方は切り替えたときに下の table で取りに来る。
+        model.addAttribute("globalRanking", scope.localTabActive() ? List.of()
+                : viewMapper.toPlayerRankingRows(
+                        rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE)));
+        model.addAttribute("localRanking", scope.localTabActive()
+                ? scope.country()
+                        .map(c -> viewMapper.toPlayerRankingRows(
+                                rankingService.topPlayers(c.locationId(), PLAYER_RANKING_SIZE)))
+                        .orElseGet(List::of)
+                : List.of());
         model.addAttribute("playerRankingSize", PLAYER_RANKING_SIZE);
         return "player-ranking";
     }
 
-    /** タブを切り替えたときに、その国(未指定ならグローバル)の表の1ページ目だけを返す。画面のHTMLは返さない。 */
-    @GetMapping(PLAYER_RANKING_PATH + "/table")
+    /** タブを切り替えたときに、その国(未指定ならグローバル)の表だけを返す。画面のHTMLは返さない。 */
+    @GetMapping("/ranking/players/table")
     public String playerRankingTable(@RequestParam(required = false) String country, Model model) {
-        boolean global = country == null || country.isBlank();
-        addPlayerPage(model, "table", rankingRowsFor(country), global ? null : country.strip(), 1);
-        return "fragments/layout :: playerRankingTable(rows=${tableRanking}, detailed=true, pager=${tablePager})";
-    }
-
-    private void addPlayerPage(Model model, String prefix, List<PlayerRankingResponse.RankedPlayer> players,
-            String countryCode, int page) {
-        PageSlice<PlayerRankingRowView> slice = PageSlice.of(viewMapper.toPlayerRankingRows(players), page,
-                RANKING_PAGE_SIZE);
-        model.addAttribute(prefix + "Ranking", slice.items());
-        model.addAttribute(prefix + "Pager", viewMapper.toRankingPager(PLAYER_RANKING_PATH, countryCode, slice));
+        model.addAttribute("rows", viewMapper.toPlayerRankingRows(rankingRowsFor(country)));
+        return "fragments/layout :: playerRankingTable(rows=${rows}, detailed=true)";
     }
 
     private List<PlayerRankingResponse.RankedPlayer> rankingRowsFor(String country) {

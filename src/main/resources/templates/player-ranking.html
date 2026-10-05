@@ -10,8 +10,8 @@
         <div class="card">
             <h1 th:text="#{playerRanking.heading}"></h1>
             <div th:replace="~{fragments/layout :: rankingTabs(
-                     ~{fragments/layout :: playerRankingTable(${globalRanking}, true, ${globalPager})},
-                     ~{fragments/layout :: playerRankingTable(${localRanking}, true, ${localPager})},
+                     ~{fragments/layout :: playerRankingTable(${globalRanking}, true)},
+                     ~{fragments/layout :: playerRankingTable(${localRanking}, true)},
                      '/ranking/players', '/ranking/players/table')}"></div>
             <p th:replace="~{fragments/layout :: notice(#{playerRanking.notice(${playerRankingSize})})}"></p>
             <a class="btn btn-secondary" th:href="@{/ranking}" th:text="#{ranking.link}"></a>

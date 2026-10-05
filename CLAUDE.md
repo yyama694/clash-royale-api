@@ -57,7 +57,7 @@
 
 - **APIキーはアクセス元IPの許可制**。今のキーは本番VMとローカル開発機の2つ。作成後にIPを足せないので、足すときはキーを作り直す。開発中に403が出たら、ローカルのグローバルIPが変わっていないかを疑う。
 - **トークンはリポジトリにコミットしない。jarにも入れない**。ローカルは`config/application-local.yml`(`.gitignore`対象。見本は`config.example.yml`。`mvn spring-boot:run`でlocalプロファイルになる)、本番は`/etc/clash-royale-api/env`の`CLASHROYALE_API_TOKEN`。未設定だと起動時に失敗する(`@NotBlank`)。
-- 429は`ApiRateLimitException`で専用の表示にする。応答はCaffeineで2分キャッシュして呼び出し数を抑える。制限値そのものは未確認。
+- 429は`ApiRateLimitException`で専用の表示にする。応答はCaffeineで2分(ランキングは1分)キャッシュして呼び出し数を抑える。制限値そのものは未確認。
 - 返ってくる値の癖(カードレベル・14,000止まり・チャンピオン抜けなど)は`ハマりどころ.md`の「公式APIの仕様」。**APIの値をそのまま出す前に、意味を別のデータで確かめる**。
 
 ## デプロイ手順(手動)
