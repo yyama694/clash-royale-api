@@ -1,6 +1,6 @@
 # 収録人数の表記の確認記録
 
-`home.player.nameHint`(8言語)と`/llms.txt`(`SitemapController`)に出している収録人数と、
+`home.player.nameHint`(10言語)と`/llms.txt`(`SitemapController`)に出している収録人数と、
 索引(`by-tag`全行数)の実数を突き合わせた記録。最終行の日付から7日以上たっていたら、
 アクセス確認の報告でユーザーに確認をレコメンドする(`SKILL.md`の手順6)。
 

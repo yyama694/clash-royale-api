@@ -52,7 +52,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
 
 6. **収録人数の表記の定期確認(週1回が目安、2026-09-23にユーザーが依頼)**。
    トップページの検索ボックスの下には「〇〇万人以上を収録」という固定の人数が出ている
-   (`home.player.nameHint`の8言語分と、`SitemapController`の`/llms.txt`)。巡回で索引は増え続けるので、
+   (`home.player.nameHint`の10言語分と、`SitemapController`の`/llms.txt`)。巡回で索引は増え続けるので、
    放っておくと実態より少ない数字のまま損をする(2026-09-23に「900万人以上」のまま実数が2100万人に達していた)。
    `references/indexed_count_check.md`の最終確認日から**7日以上たっていたら、報告の最後で確認をレコメンドする**
    (「前回の確認から◯日たっています。収録人数の表記を確認しますか?」)。ユーザーが了承したら、

@@ -40,13 +40,13 @@
 - カード一覧・カード詳細(世界トップ層での使用率)、トッププレイヤーのデッキ
 - お気に入り(Cookieに保存。DBは使わない)、共有ボタン、プレイヤー情報画面の「前回見たときから」の変化(localStorageに保存)
 - プライバシーポリシー(`/privacy`。本文は英語と日本語だけで、他の言語では英語版を出す)
-- 8言語(日・英・西・葡・独・仏・伊・露)
+- 10言語(日・英・西・葡・独・仏・伊・露・土・韓。トルコ語・韓国語は2026-10-04に追加)
 
 ## 技術スタック
 
 - Java 21 + Spring Boot 4.1.x、Maven、Thymeleaf(サーバーサイドレンダリング)
   - **Boot 4では`RestClient.Builder`の自動設定が`spring-boot-starter-restclient`に分かれている**。無いとDIに失敗する。
-- 表示用の文言はすべて`messages.properties`(英語)と`messages_ja`・`_es`・`_pt`・`_de`・`_fr`・`_it`・`_ru`に置く。テンプレートから`T(...)`でstaticメソッドを呼ばない。複数形などはICU(`IcuMessageSource`)。
+- 表示用の文言はすべて`messages.properties`(英語)と`messages_ja`・`_es`・`_pt`・`_de`・`_fr`・`_it`・`_ru`・`_tr`・`_ko`に置く。テンプレートから`T(...)`でstaticメソッドを呼ばない。複数形などはICU(`IcuMessageSource`)。
   - 表示言語は`?lang=xx` > Cookie > Accept-Language > 英語の順に決める。**`?lang=`はその画面の表示だけでCookieに保存しない**(共有・X・検索結果のURLに付けても、踏んだ人の設定を上書きしないため)。保存するのは言語メニューで選んだとき(`?setlang=xx`→保存して`?lang=xx`へ転送。`LanguageInterceptor`)だけ。対応言語の一覧は`SupportedLanguages.SUPPORTED`の1か所だけで、言語切替・hreflang・テストはそこから作る。
   - 言語や用語を足すときは、ゲーム内の公式の表記で裏付ける(方法は`ハマりどころ.md`の「訳語・用語の裏付け」)。
 - DBは**当面なし**(2026-09-13にユーザーが決定)。公式APIの結果をそのまま表示する。保存が必要になったらPostgreSQLを検討する。
