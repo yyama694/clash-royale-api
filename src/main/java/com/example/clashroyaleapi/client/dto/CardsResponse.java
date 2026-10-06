@@ -16,7 +16,10 @@ public record CardsResponse(List<Card> items, List<Card> supportItems) {
     public record Card(int id, String name, int maxLevel, Integer maxEvolutionLevel, Integer elixirCost,
             String rarity, IconUrls iconUrls) {
 
-        /** evolutionMedium は進化(限界突破)の画像で42枚、heroMedium はヒーローの画像で17枚にある(2026-10-03)。 */
+        /**
+         * evolutionMedium は進化(限界突破)の画像で43枚、heroMedium はヒーローの画像で18枚にある(2026-10-06)。
+         * 新しい進化・ヒーローは公式APIに画像が加わると、コードを変えずに画面に出る。
+         */
         @JsonIgnoreProperties(ignoreUnknown = true)
         public record IconUrls(String medium, String evolutionMedium, String heroMedium) {
         }
