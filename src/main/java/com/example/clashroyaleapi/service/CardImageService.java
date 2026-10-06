@@ -45,7 +45,6 @@ public class CardImageService {
             log.warn("card images: skipped: {}", e.toString());
             return;
         }
-        Set<String> previous = missing;
         Set<String> found = new HashSet<>();
         for (String url : alternateIconUrls(cards)) {
             try {
@@ -53,13 +52,13 @@ public class CardImageService {
                     found.add(url);
                 }
             } catch (ClashRoyaleApiException e) {
-                // 確かめられなかったURLは、前回の結果のままにする。
-                if (previous.contains(url)) {
-                    found.add(url);
-                }
+                // 置き場所に繋がらないなら残りも繋がらない。定期実行のスレッドは巡回などと共用なので、
+                // 残りのタイムアウトを待たずに打ち切り、前回の結果のままにする。
+                log.warn("card images: skipped: {}", e.toString());
+                return;
             }
         }
-        if (!found.equals(previous)) {
+        if (!found.equals(missing)) {
             log.info("card images: missing on the image host: {}", found);
         }
         missing = Set.copyOf(found);
