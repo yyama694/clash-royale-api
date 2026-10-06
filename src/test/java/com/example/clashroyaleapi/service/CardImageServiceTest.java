@@ -63,11 +63,10 @@ class CardImageServiceTest {
     }
 
     @Test
-    void 確かめられなかった画像は前回の結果のままにする() {
+    void 置き場所に繋がらなければ前回の結果のままにする() {
         when(imageClient.exists("giant-evo.png")).thenReturn(false);
         service.refresh();
-        when(imageClient.exists("giant-evo.png")).thenThrow(new ApiUnavailableException("timeout", null));
-        when(imageClient.exists("knight-evo.png")).thenThrow(new ApiUnavailableException("timeout", null));
+        when(imageClient.exists(anyString())).thenThrow(new ApiUnavailableException("timeout", null));
 
         service.refresh();
 
