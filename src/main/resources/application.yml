@@ -59,6 +59,12 @@ card-usage:
   refresh-every: ${CARD_USAGE_REFRESH_EVERY:24h}
   players: ${CARD_USAGE_PLAYERS:1000}
 
+# ランキングの動き画面のために、ランク戦の世界上位1000人を15分ごとに記録する(RankingRecorder)。公式APIの呼び出しは1回ずつ。
+# 記録は player-index.dir の下の ranking-history/ に残す(1000人で1回約35KB、1日約3.5MB、1年で約1.3GB)。cronはUTC。
+ranking-history:
+  enabled: ${RANKING_HISTORY_ENABLED:true}
+  cron: ${RANKING_HISTORY_CRON:0 1/15 * * * *}
+
 clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1

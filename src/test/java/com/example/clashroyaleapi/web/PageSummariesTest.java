@@ -4,8 +4,12 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
+import com.example.clashroyaleapi.domain.LeaderHistory;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
+import com.example.clashroyaleapi.domain.RankingMovements;
+import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
@@ -14,11 +18,13 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -219,6 +225,98 @@ class PageSummariesTest {
         assertEquals("クラロワのランク戦の世界ランキング上位988人が、直近のランク戦で使ったデッキを順位の順に紹介。"
                         + "平均エリクサーも分かり、カードで絞り込んで、そのままゲームにコピーできます。毎日更新。",
                 summaries.decksSummary(null, page, Locale.JAPANESE));
+    }
+
+    private static RankingSnapshot.Entry entry(int rank, String name, int rating) {
+        return new RankingSnapshot.Entry(rank, "#" + name, name, rating);
+    }
+
+    private static RankingHistoryService.Report movementsReport(LocalDate day, String beforeAt,
+            List<LeaderHistory.Change> changes, LeaderHistory.Reign reign) {
+        RankingSnapshot before = new RankingSnapshot(Instant.parse(beforeAt), "2026-09",
+                List.of(entry(1, "Miku", 3000), entry(2, "Taro", 2990), entry(3, "Hana", 2900)));
+        RankingSnapshot after = new RankingSnapshot(Instant.parse("2026-10-06T23:46:00Z"), "2026-09",
+                List.of(entry(1, "Taro", 3020), entry(2, "Miku", 3008), entry(3, "Hana", 2980)));
+        return new RankingHistoryService.Report(day, RankingMovements.between(before, after, 10, 10), changes, reign);
+    }
+
+    @Test
+    void 最新の動きの要約は1位と2位の差と1位を守っている時間とレーティングを一番上げた人を書く() {
+        RankingHistoryService.Report report = movementsReport(null, "2026-10-05T23:46:00Z", List.of(),
+                new LeaderHistory.Reign(entry(1, "Taro", 3020), Instant.parse("2026-10-06T18:01:00Z"), false));
+
+        assertEquals("今の世界1位は" + FSI + "Taro" + PDI + "(レーティング3,020)。2位の" + FSI + "Miku" + PDI
+                        + "とは12ポイント差です。" + FSI + "Taro" + PDI + "は5時間、1位を守っています。"
+                        + "直近24時間でレーティングを一番上げたのは" + FSI + "Hana" + PDI + "で、+80(3位→3位)。"
+                        + "今シーズンのランキングに載っているのは、今のところ3人です。",
+                summaries.movementsSummary(report, Locale.JAPANESE));
+        assertEquals("ランク戦の今の世界1位は" + FSI + "Taro" + PDI + " 首位交代と急上昇まとめ【クラロワ】",
+                summaries.movementsTitle(report, null, Locale.JAPANESE));
+    }
+
+    @Test
+    void シーズンの最初の記録から1位のままなら最初の記録からと断る() {
+        RankingHistoryService.Report report = movementsReport(null, "2026-10-04T23:46:00Z", List.of(),
+                new LeaderHistory.Reign(entry(1, "Taro", 3020), Instant.parse("2026-10-04T09:00:00Z"), true));
+
+        assertTrue(summaries.movementsSummary(report, Locale.ENGLISH).contains(
+                FSI + "Taro" + PDI + " has been #1 ever since this season's first record, 2 days ago."));
+    }
+
+    @Test
+    void 記録を始めて1時間たたない1位は1位の期間を書かない() {
+        RankingHistoryService.Report report = movementsReport(null, "2026-10-06T23:31:00Z", List.of(),
+                new LeaderHistory.Reign(entry(1, "Taro", 3020), Instant.parse("2026-10-06T23:31:00Z"), true));
+
+        String summary = summaries.movementsSummary(report, Locale.ENGLISH);
+
+        assertFalse(summary.contains("held"), summary);
+        assertTrue(summary.contains("in the last hour"), summary);
+    }
+
+    @Test
+    void 日ごとの動きの要約は首位交代の回数を書く() {
+        LocalDate day = LocalDate.parse("2026-10-06");
+        RankingHistoryService.Report report = movementsReport(day, "2026-10-05T23:46:00Z",
+                List.of(new LeaderHistory.Change(Instant.parse("2026-10-06T18:01:00Z"), entry(1, "Taro", 3010),
+                        entry(1, "Miku", 3005))), null);
+
+        assertEquals(FSI + "Taro" + PDI + " ended the day as world #1 with a rating of 3,020, 12 points ahead of "
+                        + FSI + "Miku" + PDI + " in 2nd. World #1 changed hands once during the day. "
+                        + "The biggest rating gain of the day belongs to " + FSI + "Hana" + PDI
+                        + ": +80, from #3 to #3.",
+                summaries.movementsSummary(report, Locale.ENGLISH));
+        assertEquals("Clash Royale Rank Battle ranking on October 6, 2026: world #1 " + FSI + "Taro" + PDI,
+                summaries.movementsTitle(report, day, Locale.ENGLISH));
+        assertEquals("2026年10月6日のランク戦 世界ランキングの動き", summaries.movementsHeading(day, Locale.JAPANESE));
+    }
+
+    @Test
+    void 前の日から1位が替わらなければ1日中守ったと書きその日の途中からの記録なら書かない() {
+        LocalDate day = LocalDate.parse("2026-10-06");
+
+        assertTrue(summaries.movementsSummary(movementsReport(day, "2026-10-05T23:46:00Z", List.of(), null),
+                Locale.ENGLISH).contains(FSI + "Taro" + PDI + " held #1 all day."));
+        assertFalse(summaries.movementsSummary(movementsReport(day, "2026-10-06T09:01:00Z", List.of(), null),
+                Locale.ENGLISH).contains("all day"));
+    }
+
+    @Test
+    void フランス語の順位は1位だけ序数の語尾を変える() {
+        RankingSnapshot before = new RankingSnapshot(Instant.parse("2026-10-05T23:46:00Z"), "2026-09",
+                List.of(entry(1, "Miku", 3000), entry(2, "Taro", 2900)));
+        RankingSnapshot after = new RankingSnapshot(Instant.parse("2026-10-06T23:46:00Z"), "2026-09",
+                List.of(entry(1, "Taro", 3050), entry(2, "Miku", 3000)));
+        RankingHistoryService.Report report = new RankingHistoryService.Report(LocalDate.parse("2026-10-06"),
+                RankingMovements.between(before, after, 10, 10), List.of(), null);
+
+        assertTrue(summaries.movementsSummary(report, Locale.FRENCH).endsWith("de la 2e à la 1re place."));
+    }
+
+    @Test
+    void まだ記録が無ければ画面名をタイトルにし説明文はサイト共通にする() {
+        assertEquals("ランク戦 世界ランキングの動き", summaries.movementsTitle(null, null, Locale.JAPANESE));
+        assertNull(summaries.movementsSummary(null, Locale.JAPANESE));
     }
 
     @Test

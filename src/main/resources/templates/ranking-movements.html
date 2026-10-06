@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container ranking-movements">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <div class="card">
+            <h1 th:text="${heading}"></h1>
+            <p th:text="${day == null} ? #{movements.lead} : #{movements.lead.day}"></p>
+            <p th:if="${pageDescription != null}" class="movements-summary" th:text="${pageDescription}"></p>
+            <th:block th:if="${report != null}">
+                <p class="notice"><span th:text="#{movements.recordedAt}"></span>
+                    <time th:replace="~{fragments/layout :: localTime(${report.recordedAt()})}"></time></p>
+                <p class="notice" th:if="${report.comparedWith() != null}"><span th:text="#{movements.comparedWith}"></span>
+                    <time th:replace="~{fragments/layout :: localTime(${report.comparedWith()})}"></time></p>
+                <p class="notice" th:if="${report.comparedWith() == null}" th:text="#{movements.firstRecord}"></p>
+                <p class="notice-box" th:if="${stale}" th:text="#{movements.stale}"></p>
+            </th:block>
+            <p th:if="${report == null}" class="empty-state" th:text="#{movements.notRecorded}"></p>
+        </div>
+
+        <th:block th:if="${report != null}" th:with="compared=${report.comparedWith() != null}">
+            <section class="card">
+                <h2 th:text="#{movements.top.heading(${topSize})}"></h2>
+                <div class="table-scroll">
+                    <table class="table-ranking">
+                        <thead>
+                            <tr>
+                                <th th:text="#{ranking.col.rank}"></th>
+                                <th th:text="#{playerRanking.col.player}"></th>
+                                <th th:if="${compared}" th:text="#{movements.col.change}"></th>
+                                <th class="num" th:text="#{playerRanking.col.rating}"></th>
+                                <th th:if="${compared}" class="num" th:text="#{movements.col.ratingChange}"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="row : ${report.top()}">
+                                <td class="cell-rank" th:attr="data-label=#{ranking.col.rank}"><span class="rank" th:text="${row.rank()}"></span></td>
+                                <!--/* 順位の上下は名前の後ろに置く。スマホのカード表示で、1行目を順位と名前だけにするため(残りは2行目)。 */-->
+                                <td class="cell-name" th:attr="data-label=#{playerRanking.col.player}">
+                                    <a th:href="@{/player/{tag}(tag=${row.player().pathTag()})}"><bdi th:text="${row.player().name()}"></bdi></a>
+                                </td>
+                                <td th:if="${compared}" th:attr="data-label=#{movements.col.change}">
+                                    <span class="movement" th:classappend="${row.changeClass()}" th:text="${row.change()}"></span>
+                                </td>
+                                <td class="num" th:attr="data-label=#{playerRanking.col.rating}"
+                                    th:text="${#numbers.formatInteger(row.rating(), 1, 'DEFAULT')}"></td>
+                                <!--/* 前の記録に載っていなかった人は増減が分からないので、スマホのカード表示で見出しだけ残らないよう is-empty を付ける。 */-->
+                                <td th:if="${compared}" class="num" th:attr="data-label=#{movements.col.ratingChange}"
+                                    th:classappend="${row.ratingChange() == null} ? 'is-empty'">
+                                    <span class="movement" th:classappend="${row.ratingChangeClass()}" th:text="${row.ratingChange()}"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 th:text="#{movements.leaderChanges.heading}"></h2>
+                <p th:if="${#lists.isEmpty(report.leaderChanges())}" class="empty-state"
+                   th:text="${day == null} ? #{movements.leaderChanges.empty.latest} : #{movements.leaderChanges.empty.day}"></p>
+                <div th:unless="${#lists.isEmpty(report.leaderChanges())}" class="table-scroll">
+                    <table class="table-ranking">
+                        <thead>
+                            <tr>
+                                <th th:text="#{movements.col.foundAt}"></th>
+                                <th th:text="#{movements.col.newLeader}"></th>
+                                <th th:text="#{movements.col.previousLeader}"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="change : ${report.leaderChanges()}">
+                                <td class="cell-name" th:attr="data-label=#{movements.col.foundAt}">
+                                    <time th:replace="~{fragments/layout :: localTime(${change.at()})}"></time></td>
+                                <td th:attr="data-label=#{movements.col.newLeader}">
+                                    <a th:href="@{/player/{tag}(tag=${change.leader().pathTag()})}"><bdi th:text="${change.leader().name()}"></bdi></a>
+                                </td>
+                                <td th:attr="data-label=#{movements.col.previousLeader}">
+                                    <a th:href="@{/player/{tag}(tag=${change.previous().pathTag()})}"><bdi th:text="${change.previous().name()}"></bdi></a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card" th:if="${compared}">
+                <h2 th:text="#{movements.climbers.heading}"></h2>
+                <p th:if="${#lists.isEmpty(report.climbers())}" class="empty-state" th:text="#{movements.climbers.empty}"></p>
+                <div th:unless="${#lists.isEmpty(report.climbers())}" class="table-scroll">
+                    <table class="table-ranking">
+                        <thead>
+                            <tr>
+                                <th th:text="#{playerRanking.col.player}"></th>
+                                <th class="num" th:text="#{movements.col.rankMove}"></th>
+                                <th class="num" th:text="#{movements.col.ratingGain}"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="climber : ${report.climbers()}">
+                                <td class="cell-name" th:attr="data-label=#{playerRanking.col.player}">
+                                    <a th:href="@{/player/{tag}(tag=${climber.player().pathTag()})}"><bdi th:text="${climber.player().name()}"></bdi></a>
+                                </td>
+                                <td class="num" th:attr="data-label=#{movements.col.rankMove}"
+                                    th:text="#{movements.rankMove(${climber.previousRank()}, ${climber.rank()})}"></td>
+                                <td class="num" th:attr="data-label=#{movements.col.ratingGain}">
+                                    <span class="movement up" th:text="${climber.ratingGain()}"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="notice" th:text="#{movements.climbers.notice(${rankingSize})}"></p>
+            </section>
+
+            <section class="card" th:if="${compared and not #lists.isEmpty(report.dropouts())}">
+                <h2 th:text="#{movements.dropouts.heading(${topSize})}"></h2>
+                <div class="table-scroll">
+                    <table class="table-ranking">
+                        <thead>
+                            <tr>
+                                <th th:text="#{playerRanking.col.player}"></th>
+                                <th class="num" th:text="#{movements.col.rankMove}"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="dropout : ${report.dropouts()}">
+                                <td class="cell-name" th:attr="data-label=#{playerRanking.col.player}">
+                                    <a th:href="@{/player/{tag}(tag=${dropout.player().pathTag()})}"><bdi th:text="${dropout.player().name()}"></bdi></a>
+                                </td>
+                                <td class="num" th:attr="data-label=#{movements.col.rankMove}"
+                                    th:text="${dropout.rank() != null} ? #{movements.rankMove(${dropout.previousRank()}, ${dropout.rank()})}
+                                             : #{movements.rankMove.outside(${dropout.previousRank()}, ${report.players()})}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </th:block>
+
+        <section class="card">
+            <h2 th:text="#{movements.archive.heading}"></h2>
+            <nav class="pager" th:if="${day != null}">
+                <a class="btn btn-secondary" th:if="${previousDay != null}"
+                   th:href="@{/ranking/players/movements/{date}(date=${previousDay})}" th:text="#{movements.archive.previous}"></a>
+                <a class="btn btn-secondary" th:href="@{/ranking/players/movements}" th:text="#{movements.archive.latest}"></a>
+                <a class="btn btn-secondary" th:if="${nextDay != null}"
+                   th:href="@{/ranking/players/movements/{date}(date=${nextDay})}" th:text="#{movements.archive.next}"></a>
+            </nav>
+            <th:block th:if="${day == null}">
+                <p th:if="${#lists.isEmpty(recentDays)}" class="empty-state" th:text="#{movements.archive.empty}"></p>
+                <ul th:unless="${#lists.isEmpty(recentDays)}" class="movements-days">
+                    <li th:each="d : ${recentDays}">
+                        <a th:href="@{/ranking/players/movements/{date}(date=${d.day()})}" th:text="${d.label()}"></a>
+                    </li>
+                </ul>
+            </th:block>
+        </section>
+
+        <p th:replace="~{fragments/layout :: notice(#{movements.notice(${rankingSize})})}"></p>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

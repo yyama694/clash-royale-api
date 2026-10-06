@@ -24,11 +24,14 @@ import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.RankingMovements;
+import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.domain.TrophyChange;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerRanking;
+import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
@@ -47,6 +50,7 @@ import com.example.clashroyaleapi.web.view.ClanSummaryView;
 import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
+import com.example.clashroyaleapi.web.view.DayLinkView;
 import com.example.clashroyaleapi.web.view.DeckMetaView;
 import com.example.clashroyaleapi.web.view.ElixirBadgeView;
 import com.example.clashroyaleapi.web.view.FavoriteClanView;
@@ -59,6 +63,7 @@ import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.PlayerRankingView;
+import com.example.clashroyaleapi.web.view.RankingReportView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
@@ -68,6 +73,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -400,6 +406,66 @@ public class ViewMapper {
                         player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
                         player.clan() == null ? null : Tags.toPathSegment(player.clan().tag())))
                 .toList();
+    }
+
+    public RankingReportView toRankingReport(RankingHistoryService.Report report, Locale locale) {
+        RankingMovements movements = report.movements();
+        RankingSnapshot before = movements.before();
+        NumberFormat numbers = NumberFormat.getIntegerInstance(locale);
+        return new RankingReportView(
+                timeFormatter.instant(movements.after().takenAt(), locale),
+                before == null ? null : timeFormatter.instant(before.takenAt(), locale),
+                movements.after().entries().size(),
+                movements.top().stream().map(entry -> toTopRow(entry, before != null, numbers, locale)).toList(),
+                report.leaderChanges().stream()
+                        .map(change -> new RankingReportView.LeaderChangeRow(
+                                timeFormatter.instant(change.at(), locale), toLink(change.leader()),
+                                toLink(change.previous())))
+                        .toList(),
+                movements.climbers().stream()
+                        .map(climber -> new RankingReportView.ClimberRow(toLink(climber.entry()),
+                                climber.previousRank(), climber.entry().rank(),
+                                signed(climber.ratingGain(), numbers)))
+                        .toList(),
+                movements.dropouts().stream()
+                        .map(dropout -> new RankingReportView.DropoutRow(toLink(dropout.previous()),
+                                dropout.previous().rank(),
+                                dropout.current() == null ? null : dropout.current().rank()))
+                        .toList());
+    }
+
+    public List<DayLinkView> toDayLinks(List<LocalDate> days, Locale locale) {
+        return days.stream()
+                .map(day -> new DayLinkView(day, labels.message("movements.archive.day", locale,
+                        Date.from(day.atTime(12, 0).toInstant(ZoneOffset.UTC)))))
+                .toList();
+    }
+
+    private RankingReportView.TopRow toTopRow(RankingMovements.TopEntry entry, boolean compared,
+            NumberFormat numbers, Locale locale) {
+        RankingSnapshot.Entry now = entry.entry();
+        String change = null;
+        String changeClass = null;
+        if (compared && entry.previousRank() == null) {
+            change = labels.message("movements.change.new", locale);
+            changeClass = "new";
+        } else if (compared) {
+            int moved = entry.previousRank() - now.rank();
+            change = moved > 0 ? "↑" + numbers.format(moved) : moved < 0 ? "↓" + numbers.format(-moved) : "–";
+            changeClass = moved > 0 ? "up" : moved < 0 ? "down" : "same";
+        }
+        Integer ratingChange = entry.ratingChange();
+        return new RankingReportView.TopRow(now.rank(), toLink(now), now.rating(), change, changeClass,
+                ratingChange == null ? null : signed(ratingChange, numbers),
+                ratingChange == null ? null : ratingChange > 0 ? "up" : ratingChange < 0 ? "down" : "same");
+    }
+
+    private static PlayerLinkView toLink(RankingSnapshot.Entry entry) {
+        return new PlayerLinkView(entry.name(), Tags.toPathSegment(entry.tag()));
+    }
+
+    private static String signed(int value, NumberFormat numbers) {
+        return value > 0 ? "+" + numbers.format(value) : value == 0 ? "±0" : numbers.format(value);
     }
 
     public List<FavoritePlayerView> toFavoritePlayerRows(List<FavoriteFetch<PlayerResponse>> results) {
