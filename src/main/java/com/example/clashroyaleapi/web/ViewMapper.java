@@ -179,7 +179,14 @@ public class ViewMapper {
                 card.rank() == 0 ? null : card.rank(),
                 card.rankedOf(),
                 timeFormatter.instant(usage.collectedAt(), locale),
+                topDecksSeasonNotice(usage.finishedSeason(), locale),
                 partners);
+    }
+
+    /** デッキ集計を前のシーズンの最終順位の上位で集めたときの断り書き。今シーズンのランキングで集めたときは null。 */
+    public String topDecksSeasonNotice(YearMonth finishedSeason, Locale locale) {
+        return finishedSeason == null ? null
+                : labels.message("topDecks.finishedSeason", locale, seasonMonth(finishedSeason));
     }
 
     /**

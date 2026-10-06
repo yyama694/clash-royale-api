@@ -17,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -147,15 +148,115 @@ class TopDeckCollectorTest {
         assertEquals(1, captor.getValue().decks().size());
     }
 
+    private static List<TopDecks.SampledDeck> sampledDecks(int size) {
+        return IntStream.range(0, size)
+                .mapToObj(i -> new TopDecks.SampledDeck(List.of(1), null, playerInfo()))
+                .toList();
+    }
+
     @Test
     void 前回の集計から時間が経っていなければ何もしない() {
-        TopDecks recent = new TopDecks(clock.instant().minus(Duration.ofHours(1)),
-                List.of(new TopDecks.SampledDeck(List.of(1), null, playerInfo())));
+        TopDecks recent = new TopDecks(clock.instant().minus(Duration.ofHours(2)), sampledDecks(980));
         when(usageService.topDecks()).thenReturn(Optional.of(recent));
 
         collector.collectNext();
 
         verify(apiClient, never()).getPathOfLegendRankings(anyString(), anyInt());
+    }
+
+    @Test
+    void 今シーズンのランキングで集めた少人数の集計は1時間で集め直す() {
+        TopDecks small = new TopDecks(clock.instant().minus(Duration.ofMinutes(61)), sampledDecks(1));
+        when(usageService.topDecks()).thenReturn(Optional.of(small));
+
+        collector.collectNext();
+
+        verify(apiClient).getPathOfLegendRankings("global", 1000);
+    }
+
+    @Test
+    void 前のシーズンの順位で集めた集計は少人数でも24時間待つ() {
+        TopDecks finished = new TopDecks(clock.instant().minus(Duration.ofHours(2)), sampledDecks(1),
+                YearMonth.of(2026, 9));
+        when(usageService.topDecks()).thenReturn(Optional.of(finished));
+
+        collector.collectNext();
+
+        verify(apiClient, never()).getPathOfLegendRankings(anyString(), anyInt());
+    }
+
+    @Test
+    void 今シーズンのランキングが埋まっていなければ前のシーズンの最終順位の上位で集める() {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A")));
+        when(apiClient.getLatestFinishedSeasonId()).thenReturn("2026-09");
+        when(apiClient.getFinishedSeasonPathOfLegendRankings("2026-09", 1000))
+                .thenReturn(List.of(ranked("#X"), ranked("#Y")));
+        when(apiClient.getBattleLogUncached("#X")).thenReturn(List.of(ranked(deck(0, 8), null)));
+        when(apiClient.getBattleLogUncached("#Y")).thenReturn(List.of(ranked(deck(10, 8), null)));
+
+        IntStream.range(0, 3).forEach(i -> collector.collectNext());
+
+        ArgumentCaptor<TopDecks> captor = ArgumentCaptor.forClass(TopDecks.class);
+        verify(usageService).publish(captor.capture());
+        assertEquals(YearMonth.of(2026, 9), captor.getValue().finishedSeason());
+        assertEquals(List.of("#X", "#Y"),
+                captor.getValue().decks().stream().map(deck -> deck.player().tag()).toList());
+        verify(apiClient, never()).getBattleLogUncached("#A");
+    }
+
+    @Test
+    void 今シーズンのランキングが埋まっていれば前のシーズンは見ない() {
+        TopDeckCollector smallTarget = new TopDeckCollector(apiClient, usageService,
+                new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1), clock);
+        when(apiClient.getPathOfLegendRankings("global", 1)).thenReturn(List.of(ranked("#A")));
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(ranked(deck(0, 8), null)));
+
+        smallTarget.collectNext();
+        smallTarget.collectNext();
+
+        ArgumentCaptor<TopDecks> captor = ArgumentCaptor.forClass(TopDecks.class);
+        verify(usageService).publish(captor.capture());
+        assertNull(captor.getValue().finishedSeason());
+        verify(apiClient, never()).getLatestFinishedSeasonId();
+    }
+
+    @Test
+    void 前のシーズンの最終順位が見つからなければ今シーズンのランキングで集める() {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A")));
+        when(apiClient.getLatestFinishedSeasonId()).thenReturn("2026-09");
+        when(apiClient.getFinishedSeasonPathOfLegendRankings("2026-09", 1000))
+                .thenThrow(new ResourceNotFoundException("not found", null));
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(ranked(deck(0, 8), null)));
+
+        collector.collectNext();
+        collector.collectNext();
+
+        ArgumentCaptor<TopDecks> captor = ArgumentCaptor.forClass(TopDecks.class);
+        verify(usageService).publish(captor.capture());
+        assertNull(captor.getValue().finishedSeason());
+        assertEquals(1, captor.getValue().decks().size());
+    }
+
+    @Test
+    void 前のシーズンの最終順位を一時的に取れなければ少し待ってから取り直す() {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A")));
+        when(apiClient.getLatestFinishedSeasonId()).thenReturn("2026-09");
+        when(apiClient.getFinishedSeasonPathOfLegendRankings("2026-09", 1000))
+                .thenThrow(new ApiRateLimitException("too many requests", null))
+                .thenReturn(List.of(ranked("#X")));
+        when(apiClient.getBattleLogUncached("#X")).thenReturn(List.of(ranked(deck(0, 8), null)));
+
+        collector.collectNext();
+        collector.collectNext();
+        verify(apiClient, never()).getBattleLogUncached(anyString());
+
+        clock.advance(Duration.ofMinutes(2));
+        collector.collectNext();
+        collector.collectNext();
+
+        ArgumentCaptor<TopDecks> captor = ArgumentCaptor.forClass(TopDecks.class);
+        verify(usageService).publish(captor.capture());
+        assertEquals(YearMonth.of(2026, 9), captor.getValue().finishedSeason());
     }
 
     @Test

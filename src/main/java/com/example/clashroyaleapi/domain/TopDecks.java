@@ -1,13 +1,20 @@
 package com.example.clashroyaleapi.domain;
 
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.List;
 
 /**
  * ランク戦の世界上位プレイヤーが、直近のランク戦で使ったデッキの標本(1人1デッキ)。
  * 使った回数は数えていない点に注意(公式APIの対戦履歴は1人25戦分しか返さない)。
+ *
+ * @param finishedSeason 前のシーズンの最終順位の上位で集めたときのシーズン。今シーズンのランキングで集めたときは null
  */
-public record TopDecks(Instant collectedAt, List<SampledDeck> decks) {
+public record TopDecks(Instant collectedAt, List<SampledDeck> decks, YearMonth finishedSeason) {
+
+    public TopDecks(Instant collectedAt, List<SampledDeck> decks) {
+        this(collectedAt, decks, null);
+    }
 
     /**
      * towerTroopId はタワーユニットを返さないプレイヤーでは null。

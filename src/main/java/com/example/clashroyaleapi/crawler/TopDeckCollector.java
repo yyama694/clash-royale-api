@@ -19,8 +19,11 @@ import org.slf4j.LoggerFactory;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * ランク戦の世界ランキング上位のプレイヤーの対戦履歴を1人ずつ取得し、直近のランク戦で使ったデッキを集める。
@@ -31,6 +34,9 @@ import java.util.List;
  *
  * 全員を1回の処理で取得すると、スケジューラーのスレッド(巡回・索引の整理と共用、1本)を1時間近く占有してしまう。
  * そのため巡回と同じく、一定間隔で呼ばれるたびに1人分だけ進める。途中で再起動した場合は最初からやり直す。
+ *
+ * シーズン開始直後は今シーズンのランキングに数人しかおらず、そのまま集めると数人分の集計になる(2026-10-06に1人分になった)。
+ * 今シーズンのランキングが目標の人数に満たない間は、前のシーズンの最終順位の上位で集める(2026-10-07にユーザーが決定)。
  */
 class TopDeckCollector {
 
@@ -40,6 +46,8 @@ class TopDeckCollector {
     private static final String RANKED_BATTLE_TYPE = "pathOfLegend";
     private static final Duration FAILURE_PAUSE = Duration.ofMinutes(1);
     private static final Duration ACCESS_DENIED_PAUSE = Duration.ofMinutes(30);
+    // 前のシーズンの順位が取れず、少人数の今シーズンのランキングで集めた回は、24時間待たずに取り直す。
+    private static final Duration SMALL_SAMPLE_REFRESH = Duration.ofHours(1);
 
     private final ClashRoyaleApiClient apiClient;
     private final CardUsageService usageService;
@@ -48,6 +56,7 @@ class TopDeckCollector {
 
     private Instant pausedUntil = Instant.MIN;
     private List<PlayerRankingResponse.RankedPlayer> players;
+    private YearMonth finishedSeason;
     private int next;
     private List<TopDecks.SampledDeck> decks;
 
@@ -90,22 +99,57 @@ class TopDeckCollector {
     private boolean upToDate(Instant now) {
         return usageService.topDecks()
                 .filter(topDecks -> topDecks.decks().stream().allMatch(deck -> deck.player() != null))
-                .map(TopDecks::collectedAt)
-                .map(collectedAt -> now.isBefore(collectedAt.plus(properties.refreshEvery())))
+                .map(topDecks -> now.isBefore(topDecks.collectedAt().plus(refreshAfter(topDecks))))
                 .orElse(false);
+    }
+
+    private Duration refreshAfter(TopDecks topDecks) {
+        boolean smallCurrentSeason = topDecks.finishedSeason() == null
+                && topDecks.decks().size() < properties.players() / 2;
+        return smallCurrentSeason ? SMALL_SAMPLE_REFRESH : properties.refreshEvery();
     }
 
     private void start() {
         List<PlayerRankingResponse.RankedPlayer> ranked =
                 apiClient.getPathOfLegendRankings("global", properties.players());
+        YearMonth season = null;
+        if (ranked.size() < properties.players()) {
+            Optional<FinishedSeasonRanking> finished = latestFinishedSeason();
+            if (finished.isPresent()) {
+                ranked = finished.get().players();
+                season = finished.get().season();
+            }
+        }
         if (ranked.isEmpty()) {
             pause(FAILURE_PAUSE, "the global player ranking is empty");
             return;
         }
         players = ranked;
+        finishedSeason = season;
         next = 0;
         decks = new ArrayList<>();
-        log.info("top deck collector: started collecting the decks of {} players", players.size());
+        log.info("top deck collector: started collecting the decks of {} players{}", players.size(),
+                season == null ? "" : " from the final ranking of " + season);
+    }
+
+    private record FinishedSeasonRanking(YearMonth season, List<PlayerRankingResponse.RankedPlayer> players) {
+    }
+
+    // 前のシーズンが無ければ今シーズンのランキング(少人数)で集める。一時的な失敗は呼び出し元で待って取り直す。
+    private Optional<FinishedSeasonRanking> latestFinishedSeason() {
+        try {
+            String seasonId = apiClient.getLatestFinishedSeasonId();
+            if (seasonId == null) {
+                return Optional.empty();
+            }
+            List<PlayerRankingResponse.RankedPlayer> ranked =
+                    apiClient.getFinishedSeasonPathOfLegendRankings(seasonId, properties.players());
+            return ranked.isEmpty() ? Optional.empty()
+                    : Optional.of(new FinishedSeasonRanking(YearMonth.parse(seasonId), ranked));
+        } catch (ResourceNotFoundException | DateTimeParseException e) {
+            log.warn("finished season player ranking unavailable for top decks: {}", e.toString());
+            return Optional.empty();
+        }
     }
 
     private void collect(PlayerRankingResponse.RankedPlayer ranked) {
@@ -145,9 +189,10 @@ class TopDeckCollector {
     }
 
     private void finish(Instant now) {
-        usageService.publish(new TopDecks(now, List.copyOf(decks)));
+        usageService.publish(new TopDecks(now, List.copyOf(decks), finishedSeason));
         log.info("top deck collector: collected {} decks from {} players", decks.size(), players.size());
         players = null;
+        finishedSeason = null;
         decks = null;
     }
 

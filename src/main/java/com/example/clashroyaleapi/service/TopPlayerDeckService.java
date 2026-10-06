@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.domain.TopDecks;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -30,9 +31,10 @@ public class TopPlayerDeckService {
      * @param hasNext    次のページがあるか
      * @param sampleSize 絞り込む前の人数(集計した全員)
      * @param topRank    絞り込み後の最上位の順位。該当者がいなければ null
+     * @param finishedSeason 前のシーズンの最終順位の上位で集めたときのシーズン。今シーズンのランキングで集めたときは null
      */
     public record Page(Instant collectedAt, List<TopDecks.SampledDeck> decks, int total, int page, int from,
-                       boolean hasNext, int sampleSize, Integer topRank) {
+                       boolean hasNext, int sampleSize, Integer topRank, YearMonth finishedSeason) {
     }
 
     public Optional<Page> page(Integer cardId, int page) {
@@ -63,7 +65,7 @@ public class TopPlayerDeckService {
             int end = Math.min(start + pageSize, matched.size());
             return Optional.of(new Page(topDecks.collectedAt(), matched.subList(start, end), matched.size(), current,
                     matched.isEmpty() ? 0 : start + 1, current < lastPage, ranked.size(),
-                    matched.isEmpty() ? null : matched.get(0).player().rank()));
+                    matched.isEmpty() ? null : matched.get(0).player().rank(), topDecks.finishedSeason()));
         });
     }
 }

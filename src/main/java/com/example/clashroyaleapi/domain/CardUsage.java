@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.domain;
 
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,11 +19,13 @@ public final class CardUsage {
     static final int MIN_USERS_FOR_PARTNERS = 10;
 
     private final Instant collectedAt;
+    private final YearMonth finishedSeason;
     private final int sampleSize;
     private final Map<Integer, Usage> byCard;
 
-    private CardUsage(Instant collectedAt, int sampleSize, Map<Integer, Usage> byCard) {
+    private CardUsage(Instant collectedAt, YearMonth finishedSeason, int sampleSize, Map<Integer, Usage> byCard) {
         this.collectedAt = collectedAt;
+        this.finishedSeason = finishedSeason;
         this.sampleSize = sampleSize;
         this.byCard = byCard;
     }
@@ -65,7 +68,7 @@ public final class CardUsage {
         Map<Integer, Usage> byCard = new HashMap<>();
         addRanked(byCard, cardUsers, sampleSize, pairs);
         addRanked(byCard, towerUsers, sampleSize, Map.of());
-        return new CardUsage(topDecks.collectedAt(), sampleSize, byCard);
+        return new CardUsage(topDecks.collectedAt(), topDecks.finishedSeason(), sampleSize, byCard);
     }
 
     private static void addRanked(Map<Integer, Usage> byCard, Map<Integer, Integer> users, int sampleSize,
@@ -91,6 +94,11 @@ public final class CardUsage {
 
     public Instant collectedAt() {
         return collectedAt;
+    }
+
+    /** 前のシーズンの最終順位の上位で集めたときのシーズン。今シーズンのランキングで集めたときは null。 */
+    public YearMonth finishedSeason() {
+        return finishedSeason;
     }
 
     public int sampleSize() {
