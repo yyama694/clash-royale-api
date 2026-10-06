@@ -54,6 +54,7 @@ public class TopPlayerDeckController {
                     .map(deck -> viewMapper.toTopPlayerDeck(deck, cardsById, locale))
                     .toList());
             model.addAttribute("collectedAt", timeFormatter.instant(result.collectedAt(), locale));
+            model.addAttribute("seasonNotice", viewMapper.topDecksSeasonNotice(result.finishedSeason(), locale));
             model.addAttribute("total", result.total());
             model.addAttribute("from", result.from());
             model.addAttribute("to", result.from() == 0 ? 0 : result.from() + result.decks().size() - 1);

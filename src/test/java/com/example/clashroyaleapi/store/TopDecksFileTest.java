@@ -10,10 +10,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TopDecksFileTest {
@@ -61,12 +63,28 @@ class TopDecksFileTest {
     }
 
     @Test
+    void 前のシーズンの順位で集めたことも読み戻せる() throws IOException {
+        TopDecksFile file = new TopDecksFile(dir.resolve("top-decks.tsv"));
+        TopDecks written = new TopDecks(Instant.parse("2026-10-07T00:00:00Z"), List.of(
+                new TopDecks.SampledDeck(List.of(26000000), null,
+                        new TopDecks.Player("#ABC", "Miku", 1, 3100, List.of(16), null))),
+                YearMonth.of(2026, 9));
+
+        file.write(written);
+
+        assertEquals(Optional.of(written), file.read());
+        assertTrue(Files.readString(dir.resolve("top-decks.tsv")).startsWith("2026-10-07T00:00:00Z\t2026-09\n"));
+    }
+
+    @Test
     void 形を持たない形式は形が空として読む() throws IOException {
         Path path = dir.resolve("before-forms.tsv");
         Files.writeString(path, "2026-09-27T03:43:58Z\n26000000,26000001\t159000000\t#ABC\t1\t2887\t16,15\t16\tMiku\n");
 
-        TopDecks.Player player = new TopDecksFile(path).read().orElseThrow().decks().get(0).player();
+        TopDecks read = new TopDecksFile(path).read().orElseThrow();
+        TopDecks.Player player = read.decks().get(0).player();
 
+        assertNull(read.finishedSeason());
         assertEquals(List.of(), player.forms());
         assertEquals(CardForm.NORMAL, player.formAt(0));
     }

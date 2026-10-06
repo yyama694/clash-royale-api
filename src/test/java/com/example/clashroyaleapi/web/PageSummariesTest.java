@@ -152,12 +152,12 @@ class PageSummariesTest {
         List<CardUsageView.PartnerView> partners = partnerNames.stream()
                 .map(name -> new CardUsageView.PartnerView(0, name, null, 50))
                 .toList();
-        return new CardUsageView(Math.round(users * 1000.0 / 988) / 10.0, users, 988, rank, 122, null, partners);
+        return new CardUsageView(Math.round(users * 1000.0 / 988) / 10.0, users, 988, rank, 122, null, null, partners);
     }
 
     private static TopPlayerDeckService.Page decksPage(int total, Integer topRank) {
         return new TopPlayerDeckService.Page(Instant.parse("2026-10-02T13:20:00Z"), List.of(), total, 1,
-                total == 0 ? 0 : 1, false, 988, topRank);
+                total == 0 ? 0 : 1, false, 988, topRank, null);
     }
 
     @Test

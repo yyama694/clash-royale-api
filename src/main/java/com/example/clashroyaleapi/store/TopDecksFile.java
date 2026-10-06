@@ -12,13 +12,15 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * {@link TopDecks} の保存先。1行目が集計日時(ISO形式)、2行目以降が1人1行で
+ * {@link TopDecks} の保存先。1行目が集計日時(ISO形式。前のシーズンの順位で集めたときは \t の後にそのシーズン "2026-09" など)、
+ * 2行目以降が1人1行で
  * 「カードID(カンマ区切り) \t タワーユニットID \t タグ \t 順位 \t レーティング \t レベル(カンマ区切り) \t タワーユニットのレベル \t 名前
  * \t 形(カンマ区切り。対戦の evolutionLevel と同じ数で、0が通常)」。
  * 3〜8列目は2026-09-27に、9列目は2026-10-03に足した。それより前のファイル(2列・8列)も読め、そのときは player が null、
@@ -44,7 +46,9 @@ public class TopDecksFile {
             if (header == null) {
                 return Optional.empty();
             }
-            Instant collectedAt = Instant.parse(header.strip());
+            String[] headerColumns = header.strip().split("\t");
+            Instant collectedAt = Instant.parse(headerColumns[0]);
+            YearMonth finishedSeason = headerColumns.length > 1 ? YearMonth.parse(headerColumns[1]) : null;
             List<TopDecks.SampledDeck> decks = new ArrayList<>();
             String line;
             while ((line = reader.readLine()) != null) {
@@ -52,7 +56,7 @@ public class TopDecksFile {
                     decks.add(parseDeck(line));
                 }
             }
-            return Optional.of(new TopDecks(collectedAt, decks));
+            return Optional.of(new TopDecks(collectedAt, decks, finishedSeason));
         } catch (DateTimeException | NumberFormatException e) {
             return Optional.empty();
         }
@@ -63,6 +67,10 @@ public class TopDecksFile {
         Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
         try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
             writer.write(topDecks.collectedAt().toString());
+            if (topDecks.finishedSeason() != null) {
+                writer.write('\t');
+                writer.write(topDecks.finishedSeason().toString());
+            }
             writer.write('\n');
             for (TopDecks.SampledDeck deck : topDecks.decks()) {
                 List<String> columns = new ArrayList<>(List.of(joinInts(deck.cardIds()), orEmpty(deck.towerTroopId())));

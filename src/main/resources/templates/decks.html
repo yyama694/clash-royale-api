@@ -23,6 +23,9 @@
                 <noscript><button type="submit" class="btn btn-secondary" th:text="#{decks.filter.submit}"></button></noscript>
             </form>
             <th:block th:if="${decks != null}">
+                <th:block th:if="${seasonNotice != null}">
+                    <p th:replace="~{fragments/layout :: notice(${seasonNotice})}"></p>
+                </th:block>
                 <p th:replace="~{fragments/layout :: notice(#{decks.notice})}"></p>
                 <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
                     <time th:replace="~{fragments/layout :: localTime(${collectedAt})}"></time></p>

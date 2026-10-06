@@ -61,6 +61,9 @@
                 <p th:replace="~{fragments/layout :: notice(#{cardUsage.partners.notice})}"></p>
             </th:block>
 
+            <th:block th:if="${usage.seasonNotice() != null}">
+                <p th:replace="~{fragments/layout :: notice(${usage.seasonNotice()})}"></p>
+            </th:block>
             <p th:replace="~{fragments/layout :: notice(#{cardUsage.notice(${usage.sampleSize()})})}"></p>
             <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
                 <time th:replace="~{fragments/layout :: localTime(${usage.collectedAt()})}"></time></p>
