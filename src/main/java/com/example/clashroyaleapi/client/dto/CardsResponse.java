@@ -19,6 +19,7 @@ public record CardsResponse(List<Card> items, List<Card> supportItems) {
         /**
          * evolutionMedium は進化(限界突破)の画像で43枚、heroMedium はヒーローの画像で18枚にある(2026-10-06)。
          * 新しい進化・ヒーローは公式APIに画像が加わると、コードを変えずに画面に出る。
+         * ただし画像の置き場所にまだ無いURLも返る(2026-10-07にエレクトロジャイアントの進化など2枚。CardImageService)。
          */
         @JsonIgnoreProperties(ignoreUnknown = true)
         public record IconUrls(String medium, String evolutionMedium, String heroMedium) {
