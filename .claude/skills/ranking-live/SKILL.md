@@ -83,6 +83,10 @@ python .claude/skills/ranking-live/scripts/collect.py
 
 `collect.py`は上位10人しか見ないので、上位1000人の中の急上昇はこの方法で探す。
 
+**まずサイトの「ランキングの動き」画面(`/ranking/players/movements`)を見る**(2026-10-06に追加)。サーバーが世界上位1000人を
+15分ごとに記録していて、直近24時間でレーティングを大きく上げた人(上位10人)・首位交代・トップ10の上下がもう出ている。
+24時間より短い・違う区間で比べたいときや、国別のときは、下の手順で探す。
+
 1. トッププレイヤーのデッキ画面(`/decks?page=1`〜`10`)の順位・レーティングは、**集計を始めた
    時点**のもの。時刻はサーバーログの`top deck collector: started collecting`で分かる
    (`sudo journalctl -u clash-royale-api | grep 'top deck collector'`。9/28は08:40 UTC=日本時間17:40。
@@ -108,9 +112,13 @@ python .claude/skills/ranking-live/scripts/collect.py
 
 {切り口を補足する一文}
 
-非公式ファンサイト → https://princess-tower.duckdns.org/ranking/players?from=x
+非公式ファンサイト → https://princess-tower.duckdns.org/ranking/players/movements?from=x
 #クラロワ #ClashRoyale
 ```
+
+**世界の実況のリンク先は「ランキングの動き」画面にする**(2026-10-06から)。首位交代・急上昇が文章で残っているので、
+Xから来た人が投稿の続きを読める。国別の実況は、国別の動きの画面が無いので従来どおり個人ランキング画面
+(`/ranking/players?country=JP&from=x`)にする。
 
 投稿前に必ず確認すること:
 

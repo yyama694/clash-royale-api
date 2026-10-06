@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.RankingHistoryService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -24,17 +25,19 @@ import java.util.stream.Stream;
 public class SitemapController {
 
     private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players",
-            "/privacy");
+            "/ranking/players/movements", "/privacy");
 
     private final CardService cardService;
     private final CardUsageService cardUsageService;
+    private final RankingHistoryService rankingHistoryService;
     private final GlobalModelAttributes modelAttributes;
     private final LabelResolver labels;
 
     public SitemapController(CardService cardService, CardUsageService cardUsageService,
-            GlobalModelAttributes modelAttributes, LabelResolver labels) {
+            RankingHistoryService rankingHistoryService, GlobalModelAttributes modelAttributes, LabelResolver labels) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
+        this.rankingHistoryService = rankingHistoryService;
         this.modelAttributes = modelAttributes;
         this.labels = labels;
     }
@@ -48,7 +51,7 @@ public class SitemapController {
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" "
                 + "xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
-        Stream.of(STATIC_PATHS.stream(), cardPaths(), cardDeckPaths())
+        Stream.of(STATIC_PATHS.stream(), cardPaths(), cardDeckPaths(), movementDayPaths())
                 .flatMap(paths -> paths)
                 .forEach(path -> appendUrl(xml, base, path, languageCodes));
         xml.append("</urlset>\n");
@@ -99,6 +102,8 @@ public class SitemapController {
                 - Player and clan search: %s/
                 - Player rankings: %s/ranking/players
                 - Top players' decks (latest Rank Battle deck of the global top players, updated daily): %s/decks
+                - Rank Battle world ranking report (who is #1 and since when, #1 changes, top 10 and biggest
+                  rating gains of the last 24 hours; recorded every 15 minutes, with a page for each day): %s/ranking/players/movements
                 - Clan rankings: %s/ranking
                 - Card list: %s/cards
 
@@ -107,7 +112,7 @@ public class SitemapController {
                 - Data comes from the official Supercell Clash Royale API.
                 - Available languages: %s
                 - Not affiliated with or endorsed by Supercell.
-                """.formatted(siteName, base, base, base, base, base, languages);
+                """.formatted(siteName, base, base, base, base, base, base, languages);
     }
 
     private Stream<String> cardPaths() {
@@ -123,6 +128,11 @@ public class SitemapController {
         return cardUsageService.current().stream()
                 .flatMap(usage -> catalogCardIds().filter(id -> usage.usageOf(id).users() > 0))
                 .map(id -> "/decks?card=" + id);
+    }
+
+    /** 日ごとのランキングの動き。内容が固定されたページなので、記録のある終わった日をすべて載せる。 */
+    private Stream<String> movementDayPaths() {
+        return rankingHistoryService.archiveDays().stream().map(day -> "/ranking/players/movements/" + day);
     }
 
     private Stream<Integer> catalogCardIds() {

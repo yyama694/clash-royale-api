@@ -4,7 +4,8 @@
 
 .DESCRIPTION
     VM上でtar.gzを作ってscpで取得し、SHA256で転送を検証したうえでVM側の一時ファイルを消す。
-    取得対象は by-tag(正本)と crawler(巡回の進捗)だけ。by-name は PlayerIndexCompactor が
+    取得対象は by-tag(正本)・crawler(巡回の進捗)・ranking-history(ランキングの動き画面の記録。公式APIは
+    今のランキングしか返さず、過去の分は作り直せない)だけ。by-name は PlayerIndexCompactor が
     無ければ起動後に自動で作り直すため、inbox は毎時の整理バッチで消える一時ファイルのため除く。
 
     成否は $BackupDir\backup.log に1行ずつ追記する(タスクスケジューラからの無人実行用)。
@@ -26,7 +27,7 @@ $ErrorActionPreference = 'Stop'
 $VmHost         = 'opc@161.33.136.175'
 $KeyPath        = Join-Path $env:USERPROFILE '.ssh\oci_clash_royale_api'
 $RemoteIndexDir = '/var/lib/clash-royale-api/player-index'
-$Targets        = 'by-tag crawler'
+$Targets        = 'by-tag crawler ranking-history'
 
 function Write-Log([string]$Message) {
     if (-not (Test-Path $BackupDir)) { New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null }
