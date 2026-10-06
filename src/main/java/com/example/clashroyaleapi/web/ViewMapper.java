@@ -29,6 +29,7 @@ import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.domain.TrophyChange;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.CardImageService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.service.RankingHistoryService;
@@ -98,11 +99,14 @@ public class ViewMapper {
     private final LabelResolver labels;
     private final CountryNames countryNames;
     private final TimeFormatter timeFormatter;
+    private final CardImageService cardImages;
 
-    public ViewMapper(LabelResolver labels, CountryNames countryNames, TimeFormatter timeFormatter) {
+    public ViewMapper(LabelResolver labels, CountryNames countryNames, TimeFormatter timeFormatter,
+            CardImageService cardImages) {
         this.labels = labels;
         this.countryNames = countryNames;
         this.timeFormatter = timeFormatter;
+        this.cardImages = cardImages;
     }
 
     /** viewerTag は対戦履歴を見ているプレイヤーのタグ。2v2で味方と区別するために使う。 */
@@ -137,6 +141,7 @@ public class ViewMapper {
     /**
      * カード詳細。公式APIが返さない項目(説明文・ステータス)は無いため、ここにある内容が全て。
      * 進化画像は、進化が実装されているカードにだけ付く(maxEvolutionLevelがあっても画像が無いカードがある)。
+     * URLがあっても画像の置き場所にまだ無いものは、画像が無いのと同じに扱う。
      */
     public CardDetailView toCardDetail(CardsResponse.Card card, Locale locale) {
         CardsResponse.Card.IconUrls icons = card.iconUrls();
@@ -145,8 +150,8 @@ public class ViewMapper {
                 labels.cardName(card.name(), locale),
                 card.name(),
                 icons == null ? null : icons.medium(),
-                icons == null ? null : icons.evolutionMedium(),
-                icons == null ? null : icons.heroMedium(),
+                icons == null ? null : cardImages.usable(icons.evolutionMedium()),
+                icons == null ? null : cardImages.usable(icons.heroMedium()),
                 labels.rarity(card.rarity(), locale),
                 card.elixirCost(),
                 CardLevel.inGame(1, card.maxLevel()),
@@ -217,11 +222,11 @@ public class ViewMapper {
                 level, form, formLabel(form, locale), toElixirBadge(card.elixirCost(), tower, locale));
     }
 
-    /** 進化・ヒーローの画像が無いカードは通常の画像にする。 */
-    private static String iconFor(CardForm form, String medium, String evolution, String hero) {
+    /** 進化・ヒーローの画像が無い(置き場所にまだ無いものを含む)カードは通常の画像にする。 */
+    private String iconFor(CardForm form, String medium, String evolution, String hero) {
         String url = switch (form) {
-            case EVOLUTION -> evolution;
-            case HERO -> hero;
+            case EVOLUTION -> cardImages.usable(evolution);
+            case HERO -> cardImages.usable(hero);
             case NORMAL -> null;
         };
         return url != null ? url : medium;

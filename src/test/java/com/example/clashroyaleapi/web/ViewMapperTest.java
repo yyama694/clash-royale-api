@@ -11,11 +11,13 @@ import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.TopDecks;
+import com.example.clashroyaleapi.service.CardImageService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
+import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
@@ -51,6 +53,7 @@ import static org.mockito.Mockito.when;
 class ViewMapperTest {
 
     private LabelResolver labels;
+    private CardImageService cardImages;
     private ViewMapper viewMapper;
 
     @BeforeEach
@@ -59,7 +62,9 @@ class ViewMapperTest {
         when(labels.gameMode(anyString(), anyString(), any())).thenAnswer(invocation -> invocation.getArgument(1));
         when(labels.cardName(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(labels.rarity(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
-        viewMapper = new ViewMapper(labels, mock(CountryNames.class), mock(TimeFormatter.class));
+        cardImages = mock(CardImageService.class);
+        when(cardImages.usable(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        viewMapper = new ViewMapper(labels, mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
     }
 
     @Test
@@ -311,7 +316,7 @@ class ViewMapperTest {
     @Test
     void 個人ランキングは今シーズンでなければ表の上に理由を出し終わったシーズンは月を言語ごとに書く() {
         ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
-                mock(CountryNames.class), mock(TimeFormatter.class));
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
         List<PlayerRankingResponse.RankedPlayer> players = List.of(new PlayerRankingResponse.RankedPlayer(
                 "#Y9R22RQ2", "Ian77", 3835, 1, null));
         PlayerRanking finished = new PlayerRanking(players, PlayerRanking.Status.FINISHED_SEASON, YearMonth.of(2026, 9));
@@ -388,6 +393,24 @@ class ViewMapperTest {
 
         assertEquals("normal.png", view.iconUrl());
         assertEquals(CardForm.EVOLUTION, view.form());
+    }
+
+    @Test
+    void 置き場所にまだ無い形の画像はデッキでは通常の画像にしカード詳細では出さない() {
+        when(cardImages.usable("evolution.png")).thenReturn(null);
+        BattleLogEntry.IconUrls icons = new BattleLogEntry.IconUrls("normal.png", "evolution.png", "hero.png");
+        BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1,
+                List.of(new BattleLogEntry.Card(1, "Electro Giant", 16, 16, 7, 1, icons)), List.of(), null)));
+        CardsResponse.Card card = new CardsResponse.Card(1, "Electro Giant", 16, 3, 7, "epic",
+                new CardsResponse.Card.IconUrls("normal.png", "evolution.png", "hero.png"));
+
+        CardView inDeck = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0).cards().get(0);
+        CardDetailView detail = viewMapper.toCardDetail(card, Locale.JAPANESE);
+
+        assertEquals("normal.png", inDeck.iconUrl());
+        assertEquals(CardForm.EVOLUTION, inDeck.form());
+        assertNull(detail.evolutionIconUrl());
+        assertEquals("hero.png", detail.heroIconUrl());
     }
 
     @Test
