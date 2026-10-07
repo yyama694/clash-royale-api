@@ -32,8 +32,6 @@
     --color-warn-bg: #fff4e0;
     /* エリクサーの紫。白い数字を載せるため、ゲーム内の明るい紫より暗くしてコントラスト比を確保している。 */
     --color-elixir: #a32fb5;
-    /* 水滴の縁の色。下に敷く面の色に合わせる必要があるので、白い面の上で使うときは使う側で上書きする。 */
-    --color-elixir-outline: var(--color-bg);
     /* 進化(限界突破)は紫、ヒーローは金。ゲーム内の枠の色に寄せている。 */
     --color-evolution: #8a3fd1;
     --color-evolution-bg: #f1e6fb;
@@ -1332,52 +1330,46 @@ td.cell-action {
     width: 100%;
 }
 
-/* 進化(限界突破)・ヒーローで使ったカード。水滴の縁はタイルの地色に合わせる。 */
+/* 進化(限界突破)・ヒーローで使ったカード。 */
 .deck-card.form-evolution {
-    --color-elixir-outline: var(--color-evolution-bg);
     background: var(--color-evolution-bg);
     box-shadow: inset 0 0 0 2px var(--color-evolution);
 }
 
 .deck-card.form-hero {
-    --color-elixir-outline: var(--color-hero-bg);
     background: var(--color-hero-bg);
     box-shadow: inset 0 0 0 2px var(--color-hero);
 }
 
+/* ゲーム内の水滴に寄せて、グラデーション・濃い紫の縁・ツヤを描いた画像にしている。縁が濃いので、下に敷く面の色を問わず輪郭が出る。 */
 .elixir-badge {
     position: absolute;
-    top: -7px;
-    left: -7px;
-    width: 22px;
-    height: 26px;
+    top: -9px;
+    left: -9px;
+    width: 25px;
+    height: 29px;
+    background: url("../images/elixir-drop.svg") center / 100% 100% no-repeat;
     /* 画像へのリンクを塞がないようにする。 */
     pointer-events: none;
 }
 
-.elixir-badge svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    fill: var(--color-elixir);
-    stroke: var(--color-elixir-outline);
-    stroke-width: 1.6;
-}
-
 /*
   数字は水滴の形の重心(丸い部分の中心より少し上)に合わせる。丸い部分の中心に置くと、上がとがっている分だけ下に寄って見えた。
-  top は数字の行の上端で、数字の見た目の中心が重心(高さ26pxのうち15px)に来る値。
+  水滴の明るい部分に白い数字が溶けないよう、濃い紫で縁取る(ゲーム内の数字と同じ見せ方)。
 */
 .elixir-value {
     position: absolute;
     left: 0;
     right: 0;
-    top: 31%;
-    font-size: 0.75rem;
-    font-weight: 700;
+    top: 33%;
+    font-size: 0.85rem;
+    font-weight: 800;
     line-height: 1;
     color: #ffffff;
     text-align: center;
+    text-shadow:
+        1px 0 0 #3d0750, -1px 0 0 #3d0750, 0 1px 0 #3d0750, 0 -1px 0 #3d0750,
+        1px 1px 0 #3d0750, -1px 1px 0 #3d0750, 1px -1px 0 #3d0750, -1px -1px 0 #3d0750;
 }
 
 /* エリクサーでの絞り込み。名前の入力欄と縦に並べるため、search-form の横並びから外して1行占有させる。 */
