@@ -329,6 +329,12 @@ class ViewMapperTest {
         assertTrue(mapper.toPlayerRanking(finished, Locale.ENGLISH).notice()
                 .contains("this season's ranking yet, so the final standings of the previous season (September 2026)"));
         assertTrue(mapper.toPlayerRanking(finished, Locale.forLanguageTag("ko")).notice().contains("지난 시즌(2026년 9월)"));
+        PlayerRanking newSeason = PlayerRanking.newSeason(players);
+        assertEquals("新しいシーズンが始まったばかりのため、今シーズンのランキングに入っているのはまだ1人です。",
+                mapper.toPlayerRanking(newSeason, Locale.JAPANESE).notice());
+        assertEquals("The new season has just started, so only 1 player is in this season's ranking so far.",
+                mapper.toPlayerRanking(newSeason, Locale.ENGLISH).notice());
+        assertTrue(mapper.toPlayerRanking(newSeason, Locale.forLanguageTag("ru")).notice().contains("только 1 игрок."));
         assertEquals("今シーズンのランキングには、まだプレイヤーがいません。",
                 mapper.toPlayerRanking(PlayerRanking.empty(), Locale.JAPANESE).notice());
         assertEquals("ランキングを取得できませんでした。しばらく時間をおいてからお試しください。",

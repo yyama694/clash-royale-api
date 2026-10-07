@@ -398,6 +398,7 @@ public class ViewMapper {
     public PlayerRankingView toPlayerRanking(PlayerRanking ranking, Locale locale) {
         String notice = switch (ranking.status()) {
             case CURRENT_SEASON -> null;
+            case NEW_SEASON -> labels.message("playerRanking.newSeason", locale, ranking.players().size());
             case FINISHED_SEASON -> labels.message("playerRanking.finishedSeason", locale,
                     seasonMonth(ranking.finishedSeason()));
             case EMPTY -> labels.message("playerRanking.empty", locale);
