@@ -15,8 +15,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
@@ -45,10 +43,6 @@ public class RankingService {
 
     // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIが返せる上限と同じ。
     public static final int MAX_PLAYER_RANKING_SIZE = 1000;
-
-    // 「始まったばかり」と断るのは、シーズン開始からこの期間だけ(2026-10-07にユーザーが決定)。
-    // 世界のランキングが1000人に届かないシーズンが来ても、断り書きが出っぱなしにならないようにするため。
-    static final Duration NEW_SEASON_PERIOD = Duration.ofDays(3);
 
     private final ClashRoyaleApiClient apiClient;
     private final PlayerSightingLog sightingLog;
@@ -111,8 +105,7 @@ public class RankingService {
     // シーズン開始から決まった期間内で、世界のランキングが上限に届いていなければ、シーズン開始直後と見なす。
     // 国別の人数では決めない。プレイヤーの少ない国は、シーズンの終わりでも上限に届かないことがあるため。
     private boolean seasonJustStarted(String locationId, List<PlayerRankingResponse.RankedPlayer> players) {
-        Instant now = clock.instant();
-        if (!now.isBefore(SeasonCalendar.currentSeasonStart(now).plus(NEW_SEASON_PERIOD))) {
+        if (!SeasonCalendar.inNewSeasonPeriod(clock.instant())) {
             return false;
         }
         if (GLOBAL_LOCATION_ID.equals(locationId)) {

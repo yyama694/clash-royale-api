@@ -48,7 +48,8 @@ class TopDeckCollectorTest {
         apiClient = mock(ClashRoyaleApiClient.class);
         usageService = mock(CardUsageService.class);
         when(usageService.topDecks()).thenReturn(Optional.empty());
-        clock = new MutableClock(Instant.parse("2026-09-26T00:00:00Z"));
+        // 10月シーズン(2026-10-05 09:00 UTC 開始)が始まって3日以内。
+        clock = new MutableClock(Instant.parse("2026-10-06T00:00:00Z"));
         collector = new TopDeckCollector(apiClient, usageService,
                 new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1000), clock);
     }
@@ -260,6 +261,63 @@ class TopDeckCollectorTest {
     }
 
     @Test
+    void シーズン開始から3日を過ぎたら今シーズンのランキングが埋まっていなくても今シーズンで集める() {
+        clock.set(Instant.parse("2026-10-08T09:00:00Z"));
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A")));
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(ranked(deck(0, 8), null)));
+
+        collector.collectNext();
+        collector.collectNext();
+
+        ArgumentCaptor<TopDecks> captor = ArgumentCaptor.forClass(TopDecks.class);
+        verify(usageService).publish(captor.capture());
+        assertNull(captor.getValue().finishedSeason());
+        verify(apiClient, never()).getLatestFinishedSeasonId();
+    }
+
+    @Test
+    void 今シーズンに誰もいなければ3日を過ぎていても前のシーズンで集める() {
+        clock.set(Instant.parse("2026-10-08T09:00:00Z"));
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of());
+        when(apiClient.getLatestFinishedSeasonId()).thenReturn("2026-09");
+        when(apiClient.getFinishedSeasonPathOfLegendRankings("2026-09", 1000)).thenReturn(List.of(ranked("#X")));
+        when(apiClient.getBattleLogUncached("#X")).thenReturn(List.of(ranked(deck(0, 8), null)));
+
+        collector.collectNext();
+        collector.collectNext();
+
+        ArgumentCaptor<TopDecks> captor = ArgumentCaptor.forClass(TopDecks.class);
+        verify(usageService).publish(captor.capture());
+        assertEquals(YearMonth.of(2026, 9), captor.getValue().finishedSeason());
+    }
+
+    @Test
+    void 前のシーズンの順位で集めた集計はシーズン開始から3日を過ぎたら24時間待たずに集め直す() {
+        TopDecks finished = new TopDecks(Instant.parse("2026-10-08T06:00:00Z"), sampledDecks(980),
+                YearMonth.of(2026, 9));
+        when(usageService.topDecks()).thenReturn(Optional.of(finished));
+
+        clock.set(Instant.parse("2026-10-08T08:59:59Z"));
+        collector.collectNext();
+        verify(apiClient, never()).getPathOfLegendRankings(anyString(), anyInt());
+
+        clock.set(Instant.parse("2026-10-08T09:00:00Z"));
+        collector.collectNext();
+        verify(apiClient).getPathOfLegendRankings("global", 1000);
+    }
+
+    @Test
+    void シーズン開始から3日を過ぎたら今シーズンの少人数の集計も24時間待つ() {
+        clock.set(Instant.parse("2026-10-08T09:00:00Z"));
+        TopDecks small = new TopDecks(clock.instant().minus(Duration.ofMinutes(61)), sampledDecks(1));
+        when(usageService.topDecks()).thenReturn(Optional.of(small));
+
+        collector.collectNext();
+
+        verify(apiClient, never()).getPathOfLegendRankings(anyString(), anyInt());
+    }
+
+    @Test
     void 前回の集計から時間が経っていれば集め直す() {
         TopDecks old = new TopDecks(clock.instant().minus(Duration.ofHours(25)),
                 List.of(new TopDecks.SampledDeck(List.of(1), null, playerInfo())));
@@ -310,6 +368,10 @@ class TopDeckCollectorTest {
 
         void advance(Duration duration) {
             now = now.plus(duration);
+        }
+
+        void set(Instant instant) {
+            now = instant;
         }
 
         @Override
