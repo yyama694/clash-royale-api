@@ -10,7 +10,10 @@ import com.example.clashroyaleapi.store.PlayerSightingLog;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -37,7 +40,13 @@ class RankingServiceTest {
     @BeforeEach
     void setUp() {
         apiClient = mock(ClashRoyaleApiClient.class);
-        rankingService = new RankingService(apiClient, mock(PlayerSightingLog.class));
+        rankingService = serviceAt("2026-10-06T00:00:00Z");
+    }
+
+    // 10月シーズンは 2026-10-05 09:00 UTC に始まった。
+    private RankingService serviceAt(String now) {
+        return new RankingService(apiClient, mock(PlayerSightingLog.class),
+                Clock.fixed(Instant.parse(now), ZoneOffset.UTC));
     }
 
     @Test
@@ -108,6 +117,17 @@ class RankingServiceTest {
                 .thenReturn(List.of(rankedPlayer(1, "#J1")));
 
         assertEquals(PlayerRanking.Status.CURRENT_SEASON, rankingService.topPlayers("57000122", 100).status());
+    }
+
+    @Test
+    void シーズン開始から3日を過ぎたら世界のランキングが上限に届いていなくても新しいシーズンとは言わない() {
+        when(apiClient.getPathOfLegendRankings("global", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of(rankedPlayer(1, "#P1"), rankedPlayer(2, "#P2")));
+
+        assertEquals(PlayerRanking.Status.NEW_SEASON, serviceAt("2026-10-08T08:59:59Z")
+                .topPlayers(RankingService.GLOBAL_LOCATION_ID, RankingService.MAX_PLAYER_RANKING_SIZE).status());
+        assertEquals(PlayerRanking.Status.CURRENT_SEASON, serviceAt("2026-10-08T09:00:00Z")
+                .topPlayers(RankingService.GLOBAL_LOCATION_ID, RankingService.MAX_PLAYER_RANKING_SIZE).status());
     }
 
     @Test
