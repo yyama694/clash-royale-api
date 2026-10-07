@@ -10,6 +10,7 @@ import com.example.clashroyaleapi.config.CardUsageProperties;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.GameText;
+import com.example.clashroyaleapi.domain.SeasonCalendar;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
 
@@ -36,7 +37,8 @@ import java.util.Optional;
  * そのため巡回と同じく、一定間隔で呼ばれるたびに1人分だけ進める。途中で再起動した場合は最初からやり直す。
  *
  * シーズン開始直後は今シーズンのランキングに数人しかおらず、そのまま集めると数人分の集計になる(2026-10-06に1人分になった)。
- * 今シーズンのランキングが目標の人数に満たない間は、前のシーズンの最終順位の上位で集める(2026-10-07にユーザーが決定)。
+ * シーズン開始から3日以内で今シーズンのランキングが目標の人数に満たなければ、前のシーズンの最終順位の上位で集める
+ * (2026-10-07にユーザーが決定。期間は {@link SeasonCalendar#NEW_SEASON_PERIOD})。
  */
 class TopDeckCollector {
 
@@ -46,7 +48,7 @@ class TopDeckCollector {
     private static final String RANKED_BATTLE_TYPE = "pathOfLegend";
     private static final Duration FAILURE_PAUSE = Duration.ofMinutes(1);
     private static final Duration ACCESS_DENIED_PAUSE = Duration.ofMinutes(30);
-    // 前のシーズンの順位が取れず、少人数の今シーズンのランキングで集めた回は、24時間待たずに取り直す。
+    // シーズン開始直後に前のシーズンの順位が取れず、少人数の今シーズンのランキングで集めた回は、24時間待たずに取り直す。
     private static final Duration SMALL_SAMPLE_REFRESH = Duration.ofHours(1);
 
     private final ClashRoyaleApiClient apiClient;
@@ -79,7 +81,7 @@ class TopDeckCollector {
                 if (upToDate(now)) {
                     return;
                 }
-                start();
+                start(now);
                 return;
             }
             collect(players.get(next));
@@ -99,21 +101,32 @@ class TopDeckCollector {
     private boolean upToDate(Instant now) {
         return usageService.topDecks()
                 .filter(topDecks -> topDecks.decks().stream().allMatch(deck -> deck.player() != null))
-                .map(topDecks -> now.isBefore(topDecks.collectedAt().plus(refreshAfter(topDecks))))
+                .filter(topDecks -> !outlivedNewSeasonPeriod(topDecks, now))
+                .map(topDecks -> now.isBefore(topDecks.collectedAt().plus(refreshAfter(topDecks, now))))
                 .orElse(false);
     }
 
-    private Duration refreshAfter(TopDecks topDecks) {
+    // 前のシーズンの順位で集めた集計は、シーズン開始直後の期間が終わったら、24時間を待たずに今シーズンで集め直す。
+    private static boolean outlivedNewSeasonPeriod(TopDecks topDecks, Instant now) {
+        Instant periodEnd = SeasonCalendar.newSeasonPeriodEnd(now);
+        return topDecks.finishedSeason() != null && topDecks.collectedAt().isBefore(periodEnd)
+                && !now.isBefore(periodEnd);
+    }
+
+    private Duration refreshAfter(TopDecks topDecks, Instant now) {
         boolean smallCurrentSeason = topDecks.finishedSeason() == null
-                && topDecks.decks().size() < properties.players() / 2;
+                && topDecks.decks().size() < properties.players() / 2
+                && SeasonCalendar.inNewSeasonPeriod(now);
         return smallCurrentSeason ? SMALL_SAMPLE_REFRESH : properties.refreshEvery();
     }
 
-    private void start() {
+    private void start(Instant now) {
         List<PlayerRankingResponse.RankedPlayer> ranked =
                 apiClient.getPathOfLegendRankings("global", properties.players());
         YearMonth season = null;
-        if (ranked.size() < properties.players()) {
+        // 今シーズンに1人もいなければ、期間を過ぎていても前のシーズンで集める(集めるものが無いため)。
+        if (ranked.isEmpty()
+                || (ranked.size() < properties.players() && SeasonCalendar.inNewSeasonPeriod(now))) {
             Optional<FinishedSeasonRanking> finished = latestFinishedSeason();
             if (finished.isPresent()) {
                 ranked = finished.get().players();
