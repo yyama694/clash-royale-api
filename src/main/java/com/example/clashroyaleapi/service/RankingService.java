@@ -85,9 +85,25 @@ public class RankingService {
             sightingLog.record(players.stream()
                     .map(player -> new PlayerSighting(player.tag(), player.name()))
                     .toList());
-            return PlayerRanking.current(players.stream().limit(limit).toList());
+            List<PlayerRankingResponse.RankedPlayer> top = players.stream().limit(limit).toList();
+            return top.size() < limit && seasonJustStarted(locationId, players)
+                    ? PlayerRanking.newSeason(top) : PlayerRanking.current(top);
         }
         return GLOBAL_LOCATION_ID.equals(locationId) ? latestFinishedSeason(limit) : PlayerRanking.empty();
+    }
+
+    // 世界のランキングが上限に届いていないことで、シーズン開始直後と見なす。
+    // 国別の人数では決めない。プレイヤーの少ない国は、シーズンの終わりでも上限に届かないことがあるため。
+    private boolean seasonJustStarted(String locationId, List<PlayerRankingResponse.RankedPlayer> players) {
+        if (GLOBAL_LOCATION_ID.equals(locationId)) {
+            return players.size() < MAX_PLAYER_RANKING_SIZE;
+        }
+        try {
+            return apiClient.getPathOfLegendRankings(GLOBAL_LOCATION_ID, MAX_PLAYER_RANKING_SIZE).size()
+                    < MAX_PLAYER_RANKING_SIZE;
+        } catch (ClashRoyaleApiException e) {
+            return false;
+        }
     }
 
     // 代わりに出すだけなので、取れなくても「今シーズンにまだ誰もいない」という事実のほうを伝える。

@@ -85,6 +85,42 @@ class RankingServiceTest {
     }
 
     @Test
+    void 世界のランキングが上限に届かないうちは新しいシーズンが始まったばかりと伝える() {
+        when(apiClient.getPathOfLegendRankings("global", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of(rankedPlayer(1, "#P1"), rankedPlayer(2, "#P2")));
+        when(apiClient.getPathOfLegendRankings("57000122", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of(rankedPlayer(1, "#J1")));
+
+        assertEquals(PlayerRanking.Status.NEW_SEASON, rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID,
+                RankingService.MAX_PLAYER_RANKING_SIZE).status());
+        assertEquals(PlayerRanking.Status.NEW_SEASON, rankingService.topPlayers("57000122", 100).status());
+        // 画面の件数に足りていれば、断る必要はない。
+        assertEquals(PlayerRanking.Status.CURRENT_SEASON,
+                rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, 2).status());
+    }
+
+    @Test
+    void 世界のランキングが上限まであれば国別の人数が少なくても新しいシーズンとは言わない() {
+        when(apiClient.getPathOfLegendRankings("global", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(IntStream.rangeClosed(1, RankingService.MAX_PLAYER_RANKING_SIZE)
+                        .mapToObj(rank -> rankedPlayer(rank, "#P" + rank)).toList());
+        when(apiClient.getPathOfLegendRankings("57000122", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of(rankedPlayer(1, "#J1")));
+
+        assertEquals(PlayerRanking.Status.CURRENT_SEASON, rankingService.topPlayers("57000122", 100).status());
+    }
+
+    @Test
+    void 世界のランキングが取れなければ国別は新しいシーズンとは言わない() {
+        when(apiClient.getPathOfLegendRankings("global", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenThrow(new ApiUnavailableException("boom", null));
+        when(apiClient.getPathOfLegendRankings("57000122", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of(rankedPlayer(1, "#J1")));
+
+        assertEquals(PlayerRanking.Status.CURRENT_SEASON, rankingService.topPlayers("57000122", 100).status());
+    }
+
+    @Test
     void 個人ランキングの件数が最大件数を超えると例外() {
         assertThrows(IllegalArgumentException.class, () -> rankingService.topPlayers(
                 RankingService.GLOBAL_LOCATION_ID, RankingService.MAX_PLAYER_RANKING_SIZE + 1));

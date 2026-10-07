@@ -16,6 +16,8 @@ public record PlayerRanking(List<PlayerRankingResponse.RankedPlayer> players, St
 
     public enum Status {
         CURRENT_SEASON,
+        /** 今シーズンの順位だが、シーズンが始まったばかりで、まだ画面の件数に満たない。 */
+        NEW_SEASON,
         /** 今シーズンのランキングが空なので、終わったシーズンの最終順位を代わりに返した。 */
         FINISHED_SEASON,
         /** 今シーズンのランキングにまだ誰もいない(新シーズンの開始直後や、プレイヤーの少ない国)。 */
@@ -25,6 +27,10 @@ public record PlayerRanking(List<PlayerRankingResponse.RankedPlayer> players, St
 
     public static PlayerRanking current(List<PlayerRankingResponse.RankedPlayer> players) {
         return new PlayerRanking(players, Status.CURRENT_SEASON, null);
+    }
+
+    public static PlayerRanking newSeason(List<PlayerRankingResponse.RankedPlayer> players) {
+        return new PlayerRanking(players, Status.NEW_SEASON, null);
     }
 
     public static PlayerRanking finishedSeason(List<PlayerRankingResponse.RankedPlayer> players, YearMonth season) {
