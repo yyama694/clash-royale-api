@@ -357,10 +357,10 @@
         });
     </script>
     <!--/*
-      お気に入りの案内の吹き出し(☆が気付かれにくいため)。お気に入りを使ったことがない人に、☆のある画面を開いた回数で
+      お気に入りの案内の吹き出し(☆が気付かれにくいため)。今お気に入りが0件の人に、☆のある画面を開いた回数で
       1回目・6回目・11回目…と5回に1回出す。1回目に出すのは、1〜2ページで離れる人にも一度は見せるため。回数はlocalStorageで数える。
-      サーバーは今の登録件数しか分からず、登録してから全部外した人を見分けられないので、使ったこと(☆を押した・登録がある状態で開いた)も
-      localStorageに残し、以後は出さない。ストレージが使えない環境では数えられず毎回出てしまうので、出さない。
+      登録してから全部外した人にも出す(2026-10-08にユーザーが決定)。以前はその人に出さないよう使ったことを`favoriteUsed`に残していた。
+      ストレージが使えない環境では数えられず毎回出てしまうので、出さない。
       スマホで☆が画面の右端に寄ったときにはみ出さないよう、画面内に収まるだけ横にずらし、矢印は☆を指したままにする。
     */-->
     <script>
@@ -369,26 +369,13 @@
             if (!form) {
                 return;
             }
-            var usedKey = 'favoriteUsed';
             var viewsKey = 'favoriteHintViews';
-            function markUsed() {
-                try {
-                    localStorage.setItem(usedKey, '1');
-                } catch (e) {
-                    // 覚えておけないだけなので、☆の送信は止めない。
-                }
-            }
             var hint = form.querySelector('.favorite-hint');
             // サーバーは登録が1件以上あると吹き出しを出力しない。
             if (!hint) {
-                markUsed();
                 return;
             }
-            form.addEventListener('submit', markUsed);
             try {
-                if (localStorage.getItem(usedKey)) {
-                    return;
-                }
                 var views = (Number(localStorage.getItem(viewsKey)) || 0) + 1;
                 localStorage.setItem(viewsKey, String(views));
                 if ((views - 1) % 5 !== 0) {
