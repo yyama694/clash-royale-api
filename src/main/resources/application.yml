@@ -53,6 +53,7 @@ crawler:
 
 # カード詳細画面の「世界トップ層での使用率」用に、ランク戦の上位プレイヤーが直近のランク戦で使ったデッキを1人ずつ集める(TopDeckCollector)。
 # 1000人×3秒で約50分。集計結果は player-index.dir の下の card-usage/ に保存し、再起動しても消えない。
+# 毎回の集計は card-usage/history/<日付>/<時分秒>.tsv にも残す(1回約150KB、1年で約55MB。過去のデッキは後から集め直せないので消さない)。
 card-usage:
   enabled: ${CARD_USAGE_ENABLED:true}
   interval: ${CARD_USAGE_INTERVAL:3s}
