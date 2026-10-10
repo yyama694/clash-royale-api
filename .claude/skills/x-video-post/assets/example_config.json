@@ -1,0 +1,34 @@
+{
+  "src_dir": "C:\\01_fukuchi\\01_norio\\12_趣味\\02_クラロワ動画\\20261010_トルネでキンキ\\02_編集済み",
+  "out_dir": "C:\\01_fukuchi\\01_norio\\12_趣味\\02_クラロワ動画\\20261010_トルネでキンキ\\03_X投稿用",
+  "work_dir": "<スクラッチパッド>\\video-work",
+  "band_height": 236,
+  "end_seconds": 4.0,
+  "target_lufs": -17.0,
+  "label_prefix": {"ja": "vs", "en": "vs"},
+  "clips": [
+    {"file": "01_バルーン.mp4", "label": {"ja": "エアバルーン", "en": "Balloon"}},
+    {"file": "02_エリジャイ.mp4", "label": {"ja": "エリクサーゴーレム", "en": "Elixir Golem"}},
+    {"file": "03_ホグ.mp4", "label": {"ja": "ホグライダー", "en": "Hog Rider"}},
+    {"file": "04_WB.mp4", "label": {"ja": "ウォールブレイカー", "en": "Wall Breakers"}},
+    {"file": "05_ゴースト.mp4", "label": {"ja": "ロイヤルゴースト", "en": "Royal Ghost"}},
+    {"file": "06_ゴブリンバレル.mp4", "label": {"ja": "ゴブリンバレル", "en": "Goblin Barrel"}},
+    {"file": "07_盾戦.mp4", "label": {"ja": "盾の戦士", "en": "Guards"}}
+  ],
+  "langs": {
+    "ja": {
+      "title": "トルネでキング起動 7選",
+      "end1": "トルネード入りのデッキは",
+      "end2": "世界トップ層の構成をチェック",
+      "disclaimer": "このコンテンツは非公式のもので、\nSupercellが承認したものではありません。",
+      "file": "トルネでキング起動7選_ja.mp4"
+    },
+    "en": {
+      "title": "Tornado King Activation × 7",
+      "end1": "Tornado decks used by",
+      "end2": "the world's top players",
+      "disclaimer": "This material is unofficial and is not endorsed by Supercell.",
+      "file": "TornadoKingActivation7_en.mp4"
+    }
+  }
+}
