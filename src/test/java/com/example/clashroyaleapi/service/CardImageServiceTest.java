@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -28,10 +29,11 @@ class CardImageServiceTest {
         imageClient = mock(CardImageClient.class);
         when(apiClient.getCards()).thenReturn(new CardsResponse(List.of(
                 card(1, "knight.png", "knight-evo.png", "knight-hero.png"),
-                card(2, "giant.png", "giant-evo.png", null),
+                card(2, "giant.png", "giant-evo.png", "giant-hero.png"),
                 card(3, "zap.png", null, null)), List.of()));
         when(imageClient.exists(anyString())).thenReturn(true);
-        service = new CardImageService(apiClient, imageClient);
+        service = new CardImageService(apiClient, imageClient, Map.of("giant-hero.png", "/images/giant-hero.png"),
+                path -> path.replace(".png", "-abc123.png"));
     }
 
     @Test
@@ -83,6 +85,21 @@ class CardImageServiceTest {
         service.refresh();
 
         assertNull(service.usable("giant-evo.png"));
+    }
+
+    @Test
+    void 置き場所に無い画像は代わりの画像があればそれを使う() {
+        when(imageClient.exists("giant-hero.png")).thenReturn(false);
+        service.refresh();
+
+        assertEquals("/images/giant-hero-abc123.png", service.usable("giant-hero.png"));
+    }
+
+    @Test
+    void 代わりの画像があっても置き場所にあれば公式の画像を使う() {
+        service.refresh();
+
+        assertEquals("giant-hero.png", service.usable("giant-hero.png"));
     }
 
     private static CardsResponse.Card card(int id, String medium, String evolution, String hero) {
