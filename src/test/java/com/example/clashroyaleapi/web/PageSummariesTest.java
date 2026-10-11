@@ -11,10 +11,12 @@ import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
+import com.example.clashroyaleapi.web.view.ParticipantView;
 
 import org.junit.jupiter.api.Test;
 
@@ -193,6 +195,41 @@ class PageSummariesTest {
                         + " in the global Rank Battle ranking (0.1%), #100 of 122 cards used."
                         + " Often paired with Skeletons and Ice Spirit. Updated daily.",
                 summaries.cardSummary("Hog Rider", usage(1, 100, List.of("Skeletons", "Ice Spirit")), Locale.ENGLISH));
+    }
+
+    @Test
+    void 共有文にはトロフィーと世界の順位と連勝を入れる() {
+        PlayerResponse ranked = player(new PlayerResponse.RankedSeasonResult(7, 2800, 12));
+
+        assertEquals("Taro のクラロワ戦績(トロフィー9,000、世界12位、5連勝中)",
+                summaries.playerShareText(ranked, "Taro", new WinLoseStreak(true, 5, false), Locale.JAPANESE));
+        assertEquals("Taro's Clash Royale stats: 9,000 trophies, #12 worldwide, and 5 wins in a row",
+                summaries.playerShareText(ranked, "Taro", new WinLoseStreak(true, 5, false), Locale.ENGLISH));
+    }
+
+    @Test
+    void 共有文に連敗と順位の無いランク戦は入れない() {
+        assertEquals("Taro のクラロワ戦績(トロフィー9,000)",
+                summaries.playerShareText(player(new PlayerResponse.RankedSeasonResult(1, 0, 1)), "Taro",
+                        new WinLoseStreak(false, 3, false), Locale.JAPANESE));
+    }
+
+    @Test
+    void 対戦詳細のタイトルには両者の名前を入れ2v2は2人ずつつなぐ() {
+        assertEquals(FSI + "Taro" + PDI + " vs " + FSI + "Jiro" + PDI + " の対戦詳細",
+                summaries.battleTitle(battle(List.of("Taro"), List.of("Jiro")), Locale.JAPANESE));
+        assertEquals(FSI + "Taro & Hanako" + PDI + " vs " + FSI + "Jiro & Saburo" + PDI + ": battle detail",
+                summaries.battleTitle(battle(List.of("Taro", "Hanako"), List.of("Jiro", "Saburo")), Locale.ENGLISH));
+    }
+
+    private static BattleDetailView battle(List<String> team, List<String> opponents) {
+        return new BattleDetailView("20261011T000000.000Z", null, "Ranked", participants(team), participants(opponents));
+    }
+
+    private static List<ParticipantView> participants(List<String> names) {
+        return names.stream()
+                .map(name -> new ParticipantView("#" + name, name, name, 0, null, List.of(), List.of(), null, false, null))
+                .toList();
     }
 
     @Test

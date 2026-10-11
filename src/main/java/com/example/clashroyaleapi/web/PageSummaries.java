@@ -13,10 +13,12 @@ import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
+import com.example.clashroyaleapi.web.view.ParticipantView;
 
 import com.ibm.icu.text.ListFormatter;
 import com.ibm.icu.util.ULocale;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.stream.Collectors;
 
 /**
  * プレイヤー情報・クラン情報・カード詳細・カードの使用率ランキング・トッププレイヤーのデッキ・ランキングの動きの各画面の、
@@ -90,6 +93,36 @@ public class PageSummaries {
             sentences.add(labels.message("player.summary.recent", locale, stats.wins(), stats.losses()));
         }
         return join(sentences, locale);
+    }
+
+    /**
+     * 共有ボタンの文面。画面の上段と同じ数字(トロフィー・ランク戦の世界の順位・連勝)を入れ、Xのタイムラインで目を引くようにする。
+     * 連敗は本人が共有したい情報ではないので入れない。
+     *
+     * @param streak 無ければ null
+     */
+    public String playerShareText(PlayerResponse player, String playerName, WinLoseStreak streak, Locale locale) {
+        List<String> stats = new ArrayList<>();
+        stats.add(labels.message("share.player.trophies", locale, player.trophies()));
+        PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
+        if (ranked != null && ranked.hasRank()) {
+            stats.add(labels.message("player.ranked.rank", locale, ranked.rank()));
+        }
+        if (streak != null && streak.winning()) {
+            stats.add(labels.message("player.streak." + streak.code(), locale, streak.count()));
+        }
+        return labels.message("share.player.text", locale, playerName,
+                ListFormatter.getInstance(ULocale.forLocale(locale)).format(stats));
+    }
+
+    /** 対戦詳細のタイトル。全部「対戦詳細」だと、いくつも開いたときにタブで見分けられないため、両者の名前を入れる。 */
+    public String battleTitle(BattleDetailView battle, Locale locale) {
+        return labels.message("battle.seo.title", locale, names(battle.team()), names(battle.opponents()));
+    }
+
+    // 2v2は「A & B」。言語によって「と」「and」と書き分けるほどの所ではないので記号でつなぐ。
+    private static String names(List<ParticipantView> side) {
+        return side.stream().map(ParticipantView::name).collect(Collectors.joining(" & "));
     }
 
     public String clanTitle(ClanResponse clan, String clanName, Locale locale) {

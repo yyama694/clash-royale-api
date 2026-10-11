@@ -665,6 +665,17 @@ button:hover, .btn:hover {
     font-weight: 600;
 }
 
+/* 勝率は勝敗数と区切りが分かるよう、少し離して枠で囲む。 */
+.stats-summary .stats-rate {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+    background: var(--color-bg);
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
 /*
   ゲーム内と同じ4列×2行にする(auto-fitだとスマホで3・3・2に折り返す)。
   8列にするとPC幅でもカード名が折り返し、4列のまま全幅に広げると間延びするため、幅に上限を設ける。
@@ -1588,8 +1599,9 @@ td.cell-action {
     font-size: 1.1rem;
 }
 
+/* 名前はプレイヤー情報画面へのリンク。黒字だとリンクに見えず押されなかったので、リンクの色にする。 */
 .matchup .side .side-name a {
-    color: inherit;
+    color: var(--color-link);
     text-decoration: none;
 }
 
@@ -1783,6 +1795,12 @@ td.cell-action {
 
     .site-nav::-webkit-scrollbar {
         display: none;
+    }
+
+    /* 右に続きがあるときだけ右端を薄くし、横にスクロールできることを示す(has-moreはlayout.htmlのスクリプトが付ける)。 */
+    .site-nav.has-more {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
     }
 
     .site-nav a {

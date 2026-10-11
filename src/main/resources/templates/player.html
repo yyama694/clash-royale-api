@@ -21,7 +21,7 @@
                     <bdi th:text="${clanName}"></bdi>
                 </a>
             </p>
-            <div th:replace="~{fragments/layout :: shareButtons(#{share.player.text(${playerName})}, '/player/' + ${playerPathTag})}"></div>
+            <div th:replace="~{fragments/layout :: shareButtons(${shareText}, '/player/' + ${playerPathTag})}"></div>
             <!--/*
               強さが一目で分かる項目(トロフィー・ランク戦の順位・連勝連敗)は大きく出し、残りは小さく並べる。
               絵文字は見た目の目印なので、読み上げでは項目名だけが読まれるよう aria-hidden にする。
@@ -80,6 +80,7 @@
                 <p class="stats-summary">
                     <span th:text="#{stats.summary(${battleStats.total()}, ${battleStats.wins()}, ${battleStats.losses()})}"></span>
                     <span th:if="${battleStats.draws() > 0}" th:text="#{stats.draws(${battleStats.draws()})}"></span>
+                    <span class="stats-rate" th:text="#{stats.winRate(${battleStats.winRatePercent()})}"></span>
                 </p>
 
                 <div th:if="${battleStats.cardRanking()}">

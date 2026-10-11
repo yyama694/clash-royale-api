@@ -32,6 +32,11 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, int 
             int winRatePercent, double lowerBound, double upperBound) {
     }
 
+    /** 全体の勝率(引き分けも分母に入れる)。得意/苦手カードを選ぶときに比べる「全体の勝率」と同じ数え方。 */
+    public int winRatePercent() {
+        return total == 0 ? 0 : Math.round(100f * wins / total);
+    }
+
     public static PlayerBattleStats from(List<BattleLogEntry> battleLog) {
         int wins = 0;
         int losses = 0;

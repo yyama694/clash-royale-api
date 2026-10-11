@@ -26,6 +26,13 @@ class PlayerBattleStatsTest {
         assertEquals(1, stats.wins());
         assertEquals(1, stats.losses());
         assertEquals(1, stats.draws());
+        // 勝率は引き分けも分母に入れる(得意/苦手カードを選ぶときの「全体の勝率」と同じ)。1/3=33%
+        assertEquals(33, stats.winRatePercent());
+    }
+
+    @Test
+    void 集計する対戦が無ければ勝率は0にする() {
+        assertEquals(0, PlayerBattleStats.from(List.of()).winRatePercent());
     }
 
     @Test

@@ -21,7 +21,7 @@
             <ul class="result-list">
                 <li th:each="c : ${candidates}">
                     <div class="result-main">
-                        <span class="name"><bdi th:text="${c.name()}"></bdi></span>
+                        <a class="name" th:href="@{/clan/{tag}(tag=${c.pathTag()})}"><bdi th:text="${c.name()}"></bdi></a>
                         <span class="tag-pill" th:text="${c.tag()}"></span>
                     </div>
                     <div class="result-meta">

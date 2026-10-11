@@ -11,6 +11,7 @@ import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.PlayerService;
+import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -123,6 +124,7 @@ public class PlayerController {
         model.addAttribute("currentDeck", currentDeck);
 
         model.addAttribute("pageTitle", pageSummaries.playerTitle(player, playerName, locale));
+        model.addAttribute("shareText", pageSummaries.playerShareText(player, playerName, streak, locale));
         model.addAttribute("pageDescription", pageSummaries.playerSummary(player, playerName, streak,
                 currentDeck == null ? null : currentDeck.meta().averageElixir(), stats, locale));
         return "player";
@@ -133,7 +135,9 @@ public class PlayerController {
             Locale locale) {
         BattleLogEntry battle = playerService.findBattle(tag, battleTime);
         model.addAttribute("playerPathTag", Tags.toPathSegment(tag));
-        model.addAttribute("battle", viewMapper.toBattleDetail(battle, tag, locale));
+        BattleDetailView view = viewMapper.toBattleDetail(battle, tag, locale);
+        model.addAttribute("battle", view);
+        model.addAttribute("pageTitle", pageSummaries.battleTitle(view, locale));
         return "battle-detail";
     }
 }
