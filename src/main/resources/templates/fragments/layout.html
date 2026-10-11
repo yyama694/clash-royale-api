@@ -470,9 +470,19 @@
             });
         })();
     </script>
-    <!--/* 共有ボタン(shareButtons)の「リンクをコピー」。Clipboard APIはHTTPSでしか使えないため、使えるときだけボタンを出す。 */-->
+    <!--/* 共有ボタン(shareButtons)の「共有」と「リンクをコピー」。どちらのAPIもHTTPSでしか使えず端末によっても無いため、使えるときだけボタンを出す。 */-->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            if (navigator.share) {
+                document.querySelectorAll('[data-share-url]').forEach(function (button) {
+                    button.classList.remove('is-hidden');
+                    button.addEventListener('click', function () {
+                        navigator.share({ text: button.dataset.shareText, url: button.dataset.shareUrl }).catch(function () {
+                            // 共有メニューを閉じただけでもAbortErrorになる。
+                        });
+                    });
+                });
+            }
             if (!navigator.clipboard) {
                 return;
             }
@@ -560,9 +570,12 @@
   lang も今の言語で付ける。Xのカード表示(OGP)を投稿文と同じ言語にするため。lang はその画面の表示だけに使い
   Cookieには保存しないので、受け取った人の言語の設定は変わらない。
   リンクのコピーはClipboard APIが使えるときだけ出す(JSが動かない環境では押しても何も起きないため)。
+  「共有」は端末の共有メニュー(Web Share API)を開く。LINE・WhatsApp・Discordなど国ごとに違うアプリへ、ボタンを並べずに届けるため。使えない端末(PCの一部のブラウザ)では出さない。
 */-->
 <div th:fragment="shareButtons(text, path)" class="share-buttons"
      th:with="shareUrl=@{${siteBaseUrl + path}(lang=${#locale.language},from='share')}">
+    <button type="button" class="btn btn-secondary btn-small is-hidden"
+            th:attr="data-share-url=${shareUrl},data-share-text=${text}" th:text="#{share.native}"></button>
     <a class="btn btn-secondary btn-small" target="_blank" rel="noopener noreferrer"
        th:href="@{https://x.com/intent/post(text=${text},url=${shareUrl},hashtags=#{share.hashtags})}"
        th:text="#{share.x}"></a>
