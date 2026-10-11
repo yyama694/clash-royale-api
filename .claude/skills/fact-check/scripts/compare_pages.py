@@ -4,7 +4,7 @@
 - 個人・クランランキング: 世界と日本の1000件の並びがAPIと同じか、上位20クランのクラントロフィー
 - トッププレイヤーのデッキ: 上位15人のデッキが本人の対戦履歴のランク戦に実在するか、全デッキの平均エリクサーなど
 - カード詳細: 使用率・人気順位・一緒に使われるカードを、デッキ画面の全ページから数え直した値と比べる
-- クラン情報: 要約文、メンバー一覧(役職・トロフィー・寄付数・最終アクセス)、クラン対戦の参加状況
+- クラン情報: 要約文、メンバー一覧(順位・役職・トロフィー・寄付数・最終アクセス)、クラン対戦の参加状況
 サイトはAPIの応答を2分キャッシュするので、その間にアクセスや対戦をした人は1〜2人ずれうる。
 """
 import collections
@@ -193,9 +193,11 @@ def members(page, clan, now):
             continue
         days = (now - api_time(m["lastSeen"])).days if m.get("lastSeen") else None
         seen = "-" if days is None else "Within 24h" if days == 0 else f"{days} day{'s' if days != 1 else ''} ago"
-        want = [ROLES[m["role"]], f"{m['trophies']:,}", f"{m['donations']:,}", seen]
-        if cells[1:5] != want:
-            wrong.append((tag, cells[1:5], want))
+        want = [str(m["clanRank"]), ROLES[m["role"]], f"{m['trophies']:,}", f"{m['donations']:,}", seen]
+        # 1列目がゲーム内のクランの順位、2列目が名前(スマホ幅用に順位も中に入っているので比べない)。
+        got = cells[:1] + cells[2:6]
+        if got != want:
+            wrong.append((tag, got, want))
     capped = sum(m["trophies"] == 14000 for m in clan["memberList"])
     print(f"  メンバー一覧: 画面 {len(rows)}人 / API {len(clan['memberList'])}人、不一致 {len(wrong)}人、"
           f"トロフィーが14,000ちょうどの人 {capped}人(14,000で止まる既知の問題)")

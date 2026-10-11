@@ -44,10 +44,12 @@ https://x.com/ClashRoyale
 | シーズンの開始・終了 | ランク戦の世界1位・国別1位・トップ1000人の国籍(`ranking-live`・`top1000-countries`スキルの集計) |
 | クラン対戦・イベント | クランランキングの上位の国(`Xポスト案.md`の案22の集計) |
 
-カードの使用率は、カード詳細画面から取れる(カードIDはカード一覧画面のリンクで分かる)。
+カードの使用率は、カード詳細画面から取れる(カードIDはカード一覧画面のリンクで分かる)。全カードの順位と使用率を一度に見るなら、カード一覧の使用率順(`/cards?sort=usage`。返信のリンク先にも使える)。
 
 ```bash
 curl -s "https://princess-tower.duckdns.org/card/<カードID>?lang=ja" | sed 's/<[^>]*>/ /g' | tr -s ' \n' | grep -oE '使用率 [0-9.]+%'
+# 全カード(「名前 順位 使用率」の順に並ぶ)
+curl -s "https://princess-tower.duckdns.org/cards?sort=usage&lang=ja" | grep -oE 'card-name">[^<]*|[0-9]+位|[0-9.]+%' | sed 's/card-name">//'
 ```
 
 ### 2. 返信文を作る
