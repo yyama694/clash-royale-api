@@ -10,6 +10,8 @@ import java.util.function.Function;
 /** クランメンバー一覧のソート対象。不正な値をURLで渡されても列挙にない限り無視される。 */
 public enum MemberSortKey {
 
+    // ゲーム内のクランの順位。並べ替えを指定していないときの並び。0(公式APIが返さなかった)は末尾に置く。
+    RANK("rank", member -> member.clanRank() > 0 ? member.clanRank() : null, Comparator.<Integer>naturalOrder()),
     // 装飾タグ付きの名前(<c2>Name)が先頭にまとまらないよう、表示と同じ名前で並べる。
     NAME("name", member -> GameText.stripFormatting(member.name()), String.CASE_INSENSITIVE_ORDER),
     ROLE("role", member -> ClanRole.rankOf(member.role()), Comparator.<Integer>naturalOrder()),

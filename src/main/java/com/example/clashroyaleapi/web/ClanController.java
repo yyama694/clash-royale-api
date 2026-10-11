@@ -70,7 +70,8 @@ public class ClanController {
             @RequestParam(required = false) String favoriteLimit,
             Model model, Locale locale, HttpServletRequest request, HttpServletResponse response) {
         ClanResponse clan = clanService.findClan(tag);
-        MemberSortKey sortKey = MemberSortKey.from(sortBy).orElse(null);
+        // 指定が無ければゲーム内のクランの順位で並べ、その列に並びの印を出す(何の順か分かるように)。
+        MemberSortKey sortKey = MemberSortKey.from(sortBy).orElse(MemberSortKey.RANK);
         SortDirection direction = SortDirection.from(sortDir);
         String clanName = GameText.stripFormatting(clan.name());
         String clanPathTag = Tags.toPathSegment(clan.tag());
@@ -88,7 +89,7 @@ public class ClanController {
         model.addAttribute("favoriteHint", !favoriteCookies.hasAny(request));
         model.addAttribute("members",
                 viewMapper.toMembers(clanService.sortMembers(clan.memberList(), sortKey, direction), locale));
-        model.addAttribute("sortBy", sortKey == null ? null : sortKey.code());
+        model.addAttribute("sortBy", sortKey.code());
         model.addAttribute("sortDir", direction.code());
 
         // クラン対戦の取得に失敗してもメンバー一覧は表示したいので、ここだけは個別に握る。

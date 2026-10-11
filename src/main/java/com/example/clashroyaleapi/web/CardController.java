@@ -1,9 +1,11 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.CardsResponse;
+import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 
@@ -11,34 +13,60 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 @Controller
 public class CardController {
 
     /** カード詳細画面に出すトッププレイヤーのデッキの数。人気のカードは数百人が使っていて、全員だと画面が長くなりすぎる。 */
     static final int TOP_DECKS_ON_CARD_PAGE = 5;
+    /** カード一覧を使用率の順(使用率ランキング)で出すときの {@code ?sort=} の値。 */
+    static final String SORT_BY_USAGE = "usage";
 
     private final CardService cardService;
     private final CardUsageService cardUsageService;
     private final TopPlayerDeckService topPlayerDeckService;
     private final ViewMapper viewMapper;
     private final PageSummaries pageSummaries;
+    private final TimeFormatter timeFormatter;
 
     public CardController(CardService cardService, CardUsageService cardUsageService,
-            TopPlayerDeckService topPlayerDeckService, ViewMapper viewMapper, PageSummaries pageSummaries) {
+            TopPlayerDeckService topPlayerDeckService, ViewMapper viewMapper, PageSummaries pageSummaries,
+            TimeFormatter timeFormatter) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.topPlayerDeckService = topPlayerDeckService;
         this.viewMapper = viewMapper;
         this.pageSummaries = pageSummaries;
+        this.timeFormatter = timeFormatter;
     }
 
     @GetMapping("/cards")
-    public String cards(Model model, Locale locale) {
-        model.addAttribute("groups", viewMapper.toCardCatalog(cardService.catalog(), locale));
+    public String cards(@RequestParam(required = false) String sort, Model model, Locale locale) {
+        // 初回の集計が終わるまで(デプロイ直後の1時間ほど)は使用率が無いので、切り替えを出さずレアリティ別だけにする。
+        Optional<CardUsage> usage = cardUsageService.current();
+        boolean byUsage = SORT_BY_USAGE.equals(sort) && usage.isPresent();
+        model.addAttribute("usageAvailable", usage.isPresent());
+        model.addAttribute("byUsage", byUsage);
+        if (byUsage) {
+            CardUsage current = usage.get();
+            List<CardCatalogGroupView> groups = viewMapper.toCardUsageRanking(cardService.byUsage(current), current,
+                    locale);
+            model.addAttribute("groups", groups);
+            model.addAttribute("pageTitle", pageSummaries.cardUsageRankingTitle(locale));
+            model.addAttribute("pageDescription",
+                    pageSummaries.cardUsageRankingSummary(current.sampleSize(), groups, locale));
+            model.addAttribute("sampleSize", current.sampleSize());
+            model.addAttribute("collectedAt", timeFormatter.instant(current.collectedAt(), locale));
+            model.addAttribute("seasonNotice", viewMapper.topDecksSeasonNotice(current.finishedSeason(), locale));
+        } else {
+            model.addAttribute("groups", viewMapper.toCardCatalog(cardService.catalog(), locale));
+        }
         model.addAttribute("elixirCosts", cardService.elixirCosts());
         return "cards";
     }

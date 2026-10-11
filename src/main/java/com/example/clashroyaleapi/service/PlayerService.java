@@ -55,16 +55,18 @@ public class PlayerService {
         if (trimmed.isEmpty()) {
             return new PlayerSearchResult.NotFound("");
         }
-        if (!nameSearchEnabled || trimmed.startsWith("#")) {
+        // ゲームの共有リンクと全角で打ったタグもタグとして読む。名前として探すときは入力のまま使う。
+        String tagInput = Tags.playerTagInput(trimmed);
+        if (!nameSearchEnabled || tagInput.startsWith("#")) {
             // "/"などタグに無い文字を含むまま転送すると、Tomcatがエンコード済みの"/"を含むパスを拒否し、
             // サイトのデザインが無い素の400画面になる。
-            return Tags.looksLikeTag(trimmed)
-                    ? new PlayerSearchResult.Found(Tags.normalize(trimmed))
+            return Tags.looksLikeTag(tagInput)
+                    ? new PlayerSearchResult.Found(Tags.normalize(tagInput))
                     : new PlayerSearchResult.NotFound(trimmed);
         }
-        if (Tags.usesOnlyTagCharacters(trimmed)) {
+        if (Tags.usesOnlyTagCharacters(tagInput)) {
             try {
-                return new PlayerSearchResult.Found(findPlayer(trimmed).tag());
+                return new PlayerSearchResult.Found(findPlayer(tagInput).tag());
             } catch (ResourceNotFoundException e) {
                 // 名前として探し直す。
             }

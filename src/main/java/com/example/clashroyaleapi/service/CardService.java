@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.service;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.exception.CardNotFoundException;
+import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.Rarity;
 
 import org.springframework.stereotype.Service;
@@ -65,6 +66,28 @@ public class CardService {
         if (!cards.supportItems().isEmpty()) {
             groups.add(new CardGroup(null, cards.supportItems().stream().sorted(BY_ELIXIR).toList()));
         }
+        return groups;
+    }
+
+    /**
+     * カード一覧を、世界トップ層で使っていた人数の多い順に並べる(使用率ランキング)。同じ人数ならレアリティ別の一覧と同じ順。
+     * 通常のカードとタワーユニットはデッキの別枠なので、グループを分ける(順位も別々に数える{@link CardUsage}と同じ)。
+     * 返すのは通常のカードを全部まとめた1グループ(rarity は空文字)と、最後のタワーユニットのグループ(rarity は null)。
+     */
+    public List<CardGroup> byUsage(CardUsage usage) {
+        Comparator<CardsResponse.Card> mostUsedFirst = Comparator
+                .comparingInt((CardsResponse.Card card) -> usage.usageOf(card.id()).users())
+                .reversed();
+        List<CardGroup> catalog = catalog();
+        List<CardGroup> groups = new ArrayList<>();
+        groups.add(new CardGroup("", catalog.stream()
+                .filter(group -> group.rarity() != null)
+                .flatMap(group -> group.cards().stream())
+                .sorted(mostUsedFirst)
+                .toList()));
+        catalog.stream()
+                .filter(group -> group.rarity() == null)
+                .forEach(tower -> groups.add(new CardGroup(null, tower.cards().stream().sorted(mostUsedFirst).toList())));
         return groups;
     }
 

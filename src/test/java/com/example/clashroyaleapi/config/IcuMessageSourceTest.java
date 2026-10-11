@@ -34,6 +34,14 @@ class IcuMessageSourceTest {
     }
 
     @Test
+    void ランク戦の世界の順位はフランス語では序数で出す() {
+        // プレイヤー情報画面の大きな数字の枠に入るよう短くした。「Classement mondial : 15」はスマホ幅で3行になった。
+        assertEquals("1er mondial", message("player.ranked.rank", 1, Locale.FRENCH));
+        assertEquals("15e mondial", message("player.ranked.rank", 15, Locale.FRENCH));
+        assertEquals("世界1,234位", message("player.ranked.rank", 1234, Locale.JAPANESE));
+    }
+
+    @Test
     void 最終アクセスの日数もメッセージ側で単複を決める() {
         assertEquals("1 day ago", message("clan.lastSeen.ago", 1, Locale.ENGLISH));
         assertEquals("3 days ago", message("clan.lastSeen.ago", 3, Locale.ENGLISH));

@@ -56,8 +56,10 @@ public class ClanService {
             return new ClanSearchResult.NotFound("");
         }
         String trimmed = query.strip();
-        if (Tags.looksLikeTag(trimmed)) {
-            Optional<ClanResponse> clan = findClanOrEmpty(trimmed);
+        // クランの招待リンクと全角で打ったタグもタグとして読む。クラン名として探すときは入力のまま使う。
+        String tagInput = Tags.clanTagInput(trimmed);
+        if (Tags.looksLikeTag(tagInput)) {
+            Optional<ClanResponse> clan = findClanOrEmpty(tagInput);
             if (clan.isPresent()) {
                 return new ClanSearchResult.Found(clan.get());
             }
@@ -70,7 +72,7 @@ public class ClanService {
         if (members == null) {
             return List.of();
         }
-        // ソート指定が無い場合は公式APIが返す元の並び順(トロフィー降順)をそのまま使う。
+        // ソート指定が無い場合は公式APIが返す元の並び順(ゲーム内のクランの順位)をそのまま使う。
         if (sortKey == null) {
             return members;
         }
