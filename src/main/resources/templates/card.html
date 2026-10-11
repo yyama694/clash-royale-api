@@ -46,7 +46,7 @@
             <ul class="stat-grid">
                 <li><span class="label" th:text="#{cardUsage.rate}"></span><span class="value" th:text="#{cardUsage.rate.value(${usage.percent()})}"></span></li>
                 <li><span class="label" th:text="#{cardUsage.users}"></span><span class="value" th:text="#{cardUsage.users.value(${usage.users()}, ${usage.sampleSize()})}"></span></li>
-                <li th:if="${usage.rank() != null}"><span class="label" th:text="#{cardUsage.rank}"></span><span class="value" th:text="#{cardUsage.rank.value(${usage.rank()}, ${usage.rankedOf()})}"></span></li>
+                <li th:if="${usage.rank() != null}"><span class="label" th:text="#{cardUsage.rank}"></span><span class="value"><a th:href="@{/cards(sort=usage)}" th:text="#{cardUsage.rank.value(${usage.rank()}, ${usage.rankedOf()})}"></a></span></li>
             </ul>
 
             <th:block th:unless="${#lists.isEmpty(usage.partners())}">

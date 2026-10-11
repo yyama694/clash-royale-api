@@ -55,6 +55,37 @@ class TagsTest {
     }
 
     @Test
+    void 全角で打ったタグは半角にして読む() {
+        assertEquals("#2VG8GV9UV", Tags.playerTagInput("＃２ＶＧ８ＧＶ９ＵＶ"));
+        assertEquals("2vg8", Tags.playerTagInput("２ｖｇ８"));
+        assertEquals("#2VUJ00YG", Tags.clanTagInput("＃２ＶＵＪ００ＹＧ"));
+    }
+
+    @Test
+    void 半角にしてもタグの形にならない入力は名前としてそのまま残す() {
+        assertEquals("＃てち", Tags.playerTagInput("＃てち"));
+        assertEquals("ﾏﾖﾈｰｽﾞ", Tags.playerTagInput("ﾏﾖﾈｰｽﾞ"));
+        assertEquals("償い", Tags.clanTagInput("償い"));
+    }
+
+    @Test
+    void プロフィールの共有リンクからタグを取り出す() {
+        assertEquals("#2VG8GV9UV",
+                Tags.playerTagInput("https://link.clashroyale.com/invite/friend/ja?tag=2VG8GV9UV&token=abc12345&platform=iOS"));
+        // 共有の文面ごと貼られたとき・タグが先頭以外の引数のとき・「#」がエンコードされているとき
+        assertEquals("#2VG8GV9UV", Tags.playerTagInput(
+                "クラロワで友達になろう! https://link.clashroyale.com/invite/friend/en?token=abc&tag=2VG8GV9UV&platform=android"));
+        assertEquals("#2VG8GV9UV", Tags.playerTagInput("link.clashroyale.com/invite/friend/ja?tag=%232VG8GV9UV"));
+    }
+
+    @Test
+    void 招待リンクはプレイヤーとクランを取り違えない() {
+        String clanLink = "https://link.clashroyale.com/invite/clan/ja?tag=QYCCGRGC&token=r6em68dp&platform=iOS";
+        assertEquals("#QYCCGRGC", Tags.clanTagInput(clanLink));
+        assertEquals(clanLink, Tags.playerTagInput(clanLink));
+    }
+
+    @Test
     void nullでも例外にならない() {
         assertEquals("#", Tags.normalize(null));
         assertFalse(Tags.looksLikeTag(null));

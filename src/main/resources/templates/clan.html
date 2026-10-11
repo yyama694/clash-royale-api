@@ -32,6 +32,7 @@
                 <table class="table-sortable">
                     <thead>
                         <tr>
+                            <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.rank}, 'rank', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
                             <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.name}, 'name', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
                             <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.role}, 'role', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
                             <th th:replace="~{fragments/layout :: sortHeader(#{clan.col.trophies}, 'trophies', ${clanPathTag}, ${sortBy}, ${sortDir})}"></th>
@@ -41,7 +42,9 @@
                     </thead>
                     <tbody>
                         <tr th:each="member : ${members}">
-                            <td th:attr="data-label=#{clan.col.name}"><a th:href="@{/player/{tag}(tag=${member.pathTag()})}"><bdi th:text="${member.name()}"></bdi></a></td>
+                            <!--/* スマホ幅では1人の行が長くならないよう、順位の列は隠して名前の前に出す(member-rank)。 */-->
+                            <td class="cell-rank" th:attr="data-label=#{clan.col.rank}" th:text="${member.clanRank()}"></td>
+                            <td th:attr="data-label=#{clan.col.name}"><span><span class="member-rank" th:if="${member.clanRank() != null}" th:text="${member.clanRank()} + '.'"></span><a th:href="@{/player/{tag}(tag=${member.pathTag()})}"><bdi th:text="${member.name()}"></bdi></a></span></td>
                             <td th:attr="data-label=#{clan.col.role}" th:text="${member.role()}"></td>
                             <td class="num" th:attr="data-label=#{clan.col.trophies}" th:text="${#numbers.formatInteger(member.trophies(), 1, 'DEFAULT')}"></td>
                             <td class="num" th:attr="data-label=#{clan.col.donations}" th:text="${#numbers.formatInteger(member.donations(), 1, 'DEFAULT')}"></td>
@@ -59,6 +62,7 @@
                 </table>
             </div>
             <div class="card-notes">
+                <p th:replace="~{fragments/layout :: notice(#{clan.rankNotice})}"></p>
                 <p th:replace="~{fragments/layout :: notice(#{clan.donationNotice})}"></p>
                 <p th:replace="~{fragments/layout :: notice(#{clan.lastSeenNotice})}"></p>
             </div>

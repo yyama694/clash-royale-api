@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ClanWarParticipationTest {
 
     private static ClanResponse.Member member(String tag, String name) {
-        return new ClanResponse.Member(tag, name, "member", 5000, 0, null);
+        return new ClanResponse.Member(tag, name, "member", 5000, 0, null, 0);
     }
 
     private static CurrentRiverRaceResponse race(String periodType, CurrentRiverRaceResponse.Participant... participants) {

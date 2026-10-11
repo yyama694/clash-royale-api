@@ -53,6 +53,17 @@ class ClanServiceTest {
     }
 
     @Test
+    void 全角で打ったタグと招待リンクもタグとして探す() {
+        ClanResponse clan = clan("#2XYZ456", "Royals");
+        when(apiClient.getClan("#2XYZ456")).thenReturn(clan);
+
+        assertInstanceOf(ClanSearchResult.Found.class, clanService.search("＃２ＸＹＺ４５６"));
+        assertInstanceOf(ClanSearchResult.Found.class,
+                clanService.search("https://link.clashroyale.com/invite/clan/ja?tag=2XYZ456&token=abc&platform=iOS"));
+        verify(apiClient, never()).searchClansByName(anyString());
+    }
+
+    @Test
     void タグとして見つからなければクラン名検索にフォールバックする() {
         when(apiClient.getClan(anyString())).thenThrow(new ResourceNotFoundException("not found", null));
         when(apiClient.searchClansByName(anyString())).thenReturn(List.of(summary("#A", "ABCDEF", 100, 10)));
@@ -123,6 +134,28 @@ class ClanServiceTest {
         List<ClanResponse.Member> members = List.of(member("B", "member", 100), member("A", "leader", 300));
 
         assertEquals(members, clanService.sortMembers(members, null, SortDirection.ASC));
+    }
+
+    @Test
+    void 順位の昇順ではトロフィーより順位を優先しゲーム内の順に並ぶ() {
+        // ゲーム内の順位はランク戦のレーティングが先なので、トロフィーの少ない人が上に来ることがある。
+        List<ClanResponse.Member> members = List.of(ranked("C", 14000, 3), ranked("A", 14000, 1),
+                ranked("B", 13155, 2));
+
+        List<ClanResponse.Member> sorted = clanService.sortMembers(members, MemberSortKey.RANK, SortDirection.ASC);
+
+        assertEquals(List.of("A", "B", "C"), sorted.stream().map(ClanResponse.Member::name).toList());
+    }
+
+    @Test
+    void 順位を返さなかったメンバーはどちらの向きでも末尾に置く() {
+        List<ClanResponse.Member> members = List.of(ranked("unknown", 9000, 0), ranked("A", 9000, 1),
+                ranked("B", 8000, 2));
+
+        assertEquals(List.of("A", "B", "unknown"), clanService.sortMembers(members, MemberSortKey.RANK,
+                SortDirection.ASC).stream().map(ClanResponse.Member::name).toList());
+        assertEquals(List.of("B", "A", "unknown"), clanService.sortMembers(members, MemberSortKey.RANK,
+                SortDirection.DESC).stream().map(ClanResponse.Member::name).toList());
     }
 
     @Test
@@ -205,7 +238,7 @@ class ClanServiceTest {
     @Test
     void クラン対戦の参加状況はメンバー一覧と突き合わせて返す() {
         ClanResponse clan = new ClanResponse("#2XYZ456", "Royals", "", 100, 0, 1,
-                List.of(new ClanResponse.Member("#A", "Alice", "member", 5000, 0, null)), null, 0, 0, null);
+                List.of(new ClanResponse.Member("#A", "Alice", "member", 5000, 0, null, 1)), null, 0, 0, null);
         when(apiClient.getCurrentRiverRace("#2XYZ456")).thenReturn(new CurrentRiverRaceResponse("warDay",
                 new CurrentRiverRaceResponse.Clan("#2XYZ456",
                         List.of(new CurrentRiverRaceResponse.Participant("#A", "Alice", 6, 2)))));
@@ -236,6 +269,10 @@ class ClanServiceTest {
     }
 
     private static ClanResponse.Member member(String name, String role, int trophies, String lastSeen) {
-        return new ClanResponse.Member("#" + name, name, role, trophies, 0, lastSeen);
+        return new ClanResponse.Member("#" + name, name, role, trophies, 0, lastSeen, 0);
+    }
+
+    private static ClanResponse.Member ranked(String name, int trophies, int clanRank) {
+        return new ClanResponse.Member("#" + name, name, "member", trophies, 0, "20260915T000000.000Z", clanRank);
     }
 }

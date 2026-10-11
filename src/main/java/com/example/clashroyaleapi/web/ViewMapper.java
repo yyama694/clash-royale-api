@@ -309,17 +309,34 @@ public class ViewMapper {
                     boolean tower = group.rarity() == null;
                     return new CardCatalogGroupView(
                             tower ? labels.message("cards.group.tower", locale) : labels.rarity(group.rarity(), locale),
-                            group.cards().stream()
-                                    .map(card -> {
-                                        String name = labels.cardName(card.name(), locale);
-                                        return new CardCatalogItemView(card.id(), name,
-                                                searchText(name, card.name(), labels.cardAlias(card.name(), locale)),
-                                                card.iconUrls() == null ? null : card.iconUrls().medium(),
-                                                toElixirBadge(card.elixirCost(), tower, locale), card.elixirCost());
-                                    })
-                                    .toList());
+                            group.cards().stream().map(card -> toCatalogItem(card, tower, null, locale)).toList());
                 })
                 .toList();
+    }
+
+    /** @param groups {@link CardService#byUsage} の結果(通常のカードの1グループと、タワーユニットのグループ) */
+    public List<CardCatalogGroupView> toCardUsageRanking(List<CardService.CardGroup> groups, CardUsage usage,
+            Locale locale) {
+        return groups.stream()
+                .map(group -> {
+                    boolean tower = group.rarity() == null;
+                    return new CardCatalogGroupView(
+                            labels.message(tower ? "cards.group.tower" : "cards.group.cards", locale),
+                            group.cards().stream().map(card -> toCatalogItem(card, tower, usage, locale)).toList());
+                })
+                .toList();
+    }
+
+    /** @param usage 使用率順で出すときだけ渡す */
+    private CardCatalogItemView toCatalogItem(CardsResponse.Card card, boolean tower, CardUsage usage, Locale locale) {
+        String name = labels.cardName(card.name(), locale);
+        CardUsage.Usage cardUsage = usage == null ? null : usage.usageOf(card.id());
+        return new CardCatalogItemView(card.id(), name,
+                searchText(name, card.name(), labels.cardAlias(card.name(), locale)),
+                card.iconUrls() == null ? null : card.iconUrls().medium(),
+                toElixirBadge(card.elixirCost(), tower, locale), card.elixirCost(),
+                cardUsage == null ? null : Math.round(cardUsage.percent() * 10) / 10.0,
+                cardUsage == null || cardUsage.rank() == 0 ? null : cardUsage.rank());
     }
 
     private static String searchText(String name, String englishName, String alias) {
@@ -352,7 +369,8 @@ public class ViewMapper {
         return members.stream()
                 .map(member -> {
                     OptionalLong days = MemberActivity.inactiveDays(member.lastSeen(), now);
-                    return new ClanMemberView(Tags.toPathSegment(member.tag()), GameText.stripFormatting(member.name()),
+                    return new ClanMemberView(member.clanRank() > 0 ? member.clanRank() : null,
+                            Tags.toPathSegment(member.tag()), GameText.stripFormatting(member.name()),
                             labels.role(member.role(), locale), member.trophies(), member.donations(),
                             days.isPresent() ? days.getAsLong() : null, MemberActivity.isLongInactive(days),
                             timeFormatter.apiTimestamp(member.lastSeen(), locale).iso());

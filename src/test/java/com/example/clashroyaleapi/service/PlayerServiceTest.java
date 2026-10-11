@@ -52,6 +52,39 @@ class PlayerServiceTest {
     }
 
     @Test
+    void 全角で打った井桁付きのタグもタグとして扱う() {
+        assertEquals(new PlayerSearchResult.Found("#2ABC"), playerService.search("＃２ａｂｃ", 1));
+
+        verify(nameIndex, never()).search(anyString(), anyInt(), anyInt());
+    }
+
+    @Test
+    void 全角で打ったタグの文字だけの入力は半角にして公式APIに問い合わせる() {
+        PlayerResponse player = mock(PlayerResponse.class);
+        when(player.tag()).thenReturn("#PYL");
+        when(apiClient.getPlayer("PYL")).thenReturn(player);
+
+        assertEquals(new PlayerSearchResult.Found("#PYL"), playerService.search("ＰＹＬ", 1));
+        verify(nameIndex, never()).search(anyString(), anyInt(), anyInt());
+    }
+
+    @Test
+    void プロフィールの共有リンクはタグとして扱う() {
+        assertEquals(new PlayerSearchResult.Found("#2VG8GV9UV"), playerService.search(
+                "https://link.clashroyale.com/invite/friend/ja?tag=2VG8GV9UV&token=abc12345&platform=iOS", 1));
+
+        verify(nameIndex, never()).search(anyString(), anyInt(), anyInt());
+    }
+
+    @Test
+    void 全角の井桁で始まる名前は名前として探す() {
+        PlayerNameSearch empty = new PlayerNameSearch(List.of(), 0, 0, List.of(), false);
+        when(nameIndex.search("＃てち", 0, 50)).thenReturn(empty);
+
+        assertEquals(new PlayerSearchResult.NotFound("＃てち"), playerService.search("＃てち", 1));
+    }
+
+    @Test
     void タグの文字だけの入力はタグで見つかればそのプレイヤーにする() {
         PlayerResponse player = mock(PlayerResponse.class);
         when(player.tag()).thenReturn("#PYL");

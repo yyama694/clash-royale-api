@@ -13,6 +13,8 @@ import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
+import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
 
@@ -34,7 +36,8 @@ import java.util.Optional;
 import java.util.OptionalLong;
 
 /**
- * プレイヤー情報・クラン情報・カード詳細・トッププレイヤーのデッキ・ランキングの動きの各画面の、ページごとのタイトルと要約文。
+ * プレイヤー情報・クラン情報・カード詳細・カードの使用率ランキング・トッププレイヤーのデッキ・ランキングの動きの各画面の、
+ * ページごとのタイトルと要約文。
  * 要約文は検索結果の説明文(meta description・OGP)。ランキングの動き画面では本文の先頭の1段落にもなる。
  * プレイヤー・クラン画面の本文には出さない。すぐ下の表と同じことを繰り返すだけになるため(2026-10-11にユーザーが指摘)。
  * 全ページ共通の説明文だと、検索エンジンからは同じ中身のページに見えやすいため(TODO.mdの「ページビュー向上」)。
@@ -44,6 +47,7 @@ public class PageSummaries {
 
     // 説明文は検索結果で120〜160字ほどしか出ないので、一緒に使われるカードは上位だけにする。
     private static final int SUMMARY_PARTNER_LIMIT = 3;
+    private static final int SUMMARY_TOP_CARDS = 3;
 
     private final LabelResolver labels;
     private final Clock clock;
@@ -154,6 +158,29 @@ public class PageSummaries {
         }
         sentences.add(labels.message("card.summary.daily", locale));
         return join(sentences, locale);
+    }
+
+    public String cardUsageRankingTitle(Locale locale) {
+        return labels.message("cards.usage.seo.title", locale);
+    }
+
+    /**
+     * 使用率ランキングの説明文。上位のカード名を入れ、検索結果で中身が分かるようにする。
+     *
+     * @param groups {@link ViewMapper#toCardUsageRanking} の結果(先頭が通常のカード)
+     * @return 使われていたカードが無ければ null(サイト共通の説明文になる)
+     */
+    public String cardUsageRankingSummary(int sampleSize, List<CardCatalogGroupView> groups, Locale locale) {
+        List<String> names = groups.isEmpty() ? List.of() : groups.get(0).cards().stream()
+                .filter(card -> card.usageRank() != null)
+                .limit(SUMMARY_TOP_CARDS)
+                .map(CardCatalogItemView::name)
+                .toList();
+        if (names.isEmpty()) {
+            return null;
+        }
+        return labels.message("cards.usage.summary", locale, sampleSize,
+                ListFormatter.getInstance(ULocale.forLocale(locale)).format(names));
     }
 
     /** @param cardName 絞り込んでいなければ null */

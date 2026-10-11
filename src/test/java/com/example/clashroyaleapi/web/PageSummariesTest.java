@@ -11,6 +11,8 @@ import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
+import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
 
@@ -111,9 +113,9 @@ class PageSummariesTest {
     @Test
     void クランの要約に参加条件と活動中のメンバー数とクラン対戦の状況を入れる() {
         List<ClanResponse.Member> members = List.of(
-                new ClanResponse.Member("#A", "a", "leader", 9000, 100, "20260927T010000.000Z"),
-                new ClanResponse.Member("#B", "b", "member", 9000, 0, "20260926T010000.000Z"),
-                new ClanResponse.Member("#C", "c", "member", 9000, 0, "20260901T010000.000Z"));
+                new ClanResponse.Member("#A", "a", "leader", 9000, 100, "20260927T010000.000Z", 0),
+                new ClanResponse.Member("#B", "b", "member", 9000, 0, "20260926T010000.000Z", 0),
+                new ClanResponse.Member("#C", "c", "member", 9000, 0, "20260901T010000.000Z", 0));
         ClanResponse clan = new ClanResponse("#CLAN1", "Clan", "", 133292, 0, 3, members, "open", 13000, 900, null);
         ClanJoinView join = new ClanJoinView("参加自由", 13000, "日本", 900, 47);
         ClanWarParticipation war = new ClanWarParticipation(true, List.of(
@@ -191,6 +193,32 @@ class PageSummariesTest {
                         + " in the global Rank Battle ranking (0.1%), #100 of 122 cards used."
                         + " Often paired with Skeletons and Ice Spirit. Updated daily.",
                 summaries.cardSummary("Hog Rider", usage(1, 100, List.of("Skeletons", "Ice Spirit")), Locale.ENGLISH));
+    }
+
+    @Test
+    void 使用率ランキングの要約には使われていた上位3枚を順に入れる() {
+        List<CardCatalogGroupView> groups = List.of(
+                new CardCatalogGroupView("カード", List.of(ranked("ザップ", 1), ranked("ホグライダー", 2),
+                        ranked("矢の雨", 2), ranked("スケルトン", 4))),
+                new CardCatalogGroupView("タワーユニット", List.of(ranked("タワープリンセス", 1))));
+
+        assertEquals("クラロワのランク戦の世界ランキング上位988人のデッキで、よく使われているカードの順位。"
+                        + "上位はザップ、ホグライダー、矢の雨。毎日更新。",
+                summaries.cardUsageRankingSummary(988, groups, Locale.JAPANESE));
+        assertEquals("Clash Royale cards ranked by how many of the 988 top players in the global Rank Battle ranking"
+                        + " use them. Most used: Zap, Hog Rider, and Arrows. Updated daily.",
+                summaries.cardUsageRankingSummary(988, List.of(new CardCatalogGroupView("Cards",
+                        List.of(ranked("Zap", 1), ranked("Hog Rider", 2), ranked("Arrows", 3)))), Locale.ENGLISH));
+    }
+
+    @Test
+    void 使われていたカードが無ければ使用率ランキングの要約はサイト共通にする() {
+        assertNull(summaries.cardUsageRankingSummary(0,
+                List.of(new CardCatalogGroupView("カード", List.of(ranked("鏡", null)))), Locale.JAPANESE));
+    }
+
+    private static CardCatalogItemView ranked(String name, Integer rank) {
+        return new CardCatalogItemView(1, name, name, null, null, null, rank == null ? 0.0 : 10.0, rank);
     }
 
     @Test
