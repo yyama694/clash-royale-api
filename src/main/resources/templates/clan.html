@@ -13,7 +13,6 @@
                 <span th:replace="~{fragments/layout :: favoriteButton('clans', ${clanPathTag}, ${favorite}, ${favoriteLimit}, ${favoriteHint})}"></span>
             </div>
             <p><span class="tag-pill" th:text="${clan.tag()}"></span></p>
-            <p class="page-summary" th:text="${pageDescription}"></p>
             <div th:replace="~{fragments/layout :: shareButtons(${shareText}, '/clan/' + ${clanPathTag})}"></div>
             <p class="clan-description" th:if="${clan.description()}" th:text="${clan.description()}"></p>
             <!--/* 参加条件(タイプ・必要トロフィー数・所在地)は、入れるクランを探している人が最初に知りたいので、基本情報と並べる */-->

@@ -171,7 +171,7 @@ def clans():
         now = datetime.datetime.now(datetime.timezone.utc)
         print(f"\n[クラン情報] {c['name']}({tag})")
         active = sum(bool(m.get("lastSeen")) and (now - api_time(m["lastSeen"])).days < 7 for m in c["memberList"])
-        summary = re.search(r'<p class="page-summary">(.*?)</p>', page, re.S)
+        summary = re.search(r'<meta name="description" content="(.*?)">', page, re.S)
         print(f"  要約文「{summary and text(summary.group(1))}」")
         print(f"  API: スコア {c['clanScore']:,} / 人数 {c['members']} / 7日以内のアクセス {active}人 / "
               f"週の寄付合計 {sum(m['donations'] for m in c['memberList']):,}")

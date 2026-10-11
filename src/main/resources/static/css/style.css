@@ -1033,12 +1033,6 @@ td.cell-action {
     border-top: 1px solid var(--color-border);
 }
 
-.page-summary {
-    font-size: 0.9rem;
-    line-height: 1.6;
-    color: var(--color-text-muted);
-}
-
 .share-buttons {
     display: flex;
     flex-wrap: wrap;

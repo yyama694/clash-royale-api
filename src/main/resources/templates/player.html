@@ -21,7 +21,6 @@
                     <bdi th:text="${clanName}"></bdi>
                 </a>
             </p>
-            <p class="page-summary" th:text="${pageDescription}"></p>
             <div th:replace="~{fragments/layout :: shareButtons(#{share.player.text(${playerName})}, '/player/' + ${playerPathTag})}"></div>
             <!--/*
               強さが一目で分かる項目(トロフィー・ランク戦の順位・連勝連敗)は大きく出し、残りは小さく並べる。
