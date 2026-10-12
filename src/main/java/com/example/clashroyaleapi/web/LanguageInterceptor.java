@@ -19,6 +19,10 @@ import java.util.Optional;
  * 共有したURL・Xに貼ったURL・検索結果のURLに lang を付けても、踏んだ人の言語の設定を上書きしないため。
  * 保存するのは言語メニューで選んだときだけで、保存したら ?lang=xx のURLへ転送する
  * (アドレスバーや、そこからコピーしたURLに setlang を残さないため)。
+ *
+ * 言語メニューは普通のリンクなので、検索エンジンがたどって setlang 付きのURLのまま検索結果に載せることがある
+ * (2026-10に実際に載っていた)。そのURLを踏んだ人の設定を上書きしないよう、このサイトの画面から来たときだけ保存し、
+ * 外から来たときは保存せずに ?lang=xx へ転送する。
  */
 public class LanguageInterceptor implements HandlerInterceptor {
 
@@ -38,8 +42,11 @@ public class LanguageInterceptor implements HandlerInterceptor {
             return true;
         }
         Optional<Locale> language = SupportedLanguages.fromParameter(requested);
-        language.ifPresent(locale -> localeResolver.setLocale(request, response, locale));
-        // 存在しないURLのエラー画面は、転送しても同じエラーになるだけなので、保存してそのまま描く。
+        if (isFromOwnPage(request.getHeader(CrossSiteRequestGuard.SEC_FETCH_SITE),
+                request.getHeader(HttpHeaders.REFERER), CrossSiteRequestGuard.ownOrigin(request))) {
+            language.ifPresent(locale -> localeResolver.setLocale(request, response, locale));
+        }
+        // 存在しないURLのエラー画面は、転送しても同じエラーになるだけなので、転送せずにそのまま描く。
         if (request.getDispatcherType() == DispatcherType.ERROR) {
             return true;
         }
@@ -51,6 +58,19 @@ public class LanguageInterceptor implements HandlerInterceptor {
         response.setStatus(HttpServletResponse.SC_SEE_OTHER);
         response.setHeader(HttpHeaders.LOCATION, target);
         return false;
+    }
+
+    /**
+     * このサイトの画面からのリンク(言語メニュー)で来たか。ブラウザが付ける Sec-Fetch-Site を優先し、
+     * それを送らない古いブラウザでは Referer のオリジンで見る(Referrer-Policy は同じオリジンへは全体を送る設定)。
+     * 検索エンジンのクローラーはどちらも送らないので、保存しない側になる。
+     */
+    static boolean isFromOwnPage(String fetchSite, String referer, String ownOrigin) {
+        if (fetchSite != null) {
+            return fetchSite.equals("same-origin");
+        }
+        return referer != null && (referer.equalsIgnoreCase(ownOrigin)
+                || referer.regionMatches(true, 0, ownOrigin + "/", 0, ownOrigin.length() + 1));
     }
 
     /**

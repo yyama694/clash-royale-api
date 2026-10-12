@@ -20,7 +20,7 @@ import java.util.Set;
  */
 public class CrossSiteRequestGuard implements HandlerInterceptor {
 
-    private static final String SEC_FETCH_SITE = "Sec-Fetch-Site";
+    static final String SEC_FETCH_SITE = "Sec-Fetch-Site";
     private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
 
     @Override
@@ -47,7 +47,7 @@ public class CrossSiteRequestGuard implements HandlerInterceptor {
     }
 
     // ApacheからのX-Forwarded-*を反映済みの値(forward-headers-strategy: framework)なので、本番でも https://ドメイン になる。
-    private static String ownOrigin(HttpServletRequest request) {
+    static String ownOrigin(HttpServletRequest request) {
         return ServletUriComponentsBuilder.fromRequestUri(request)
                 .replacePath(null)
                 .replaceQuery(null)

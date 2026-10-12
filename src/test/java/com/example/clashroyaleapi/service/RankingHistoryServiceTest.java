@@ -47,6 +47,20 @@ class RankingHistoryServiceTest {
     }
 
     @Test
+    void 最新の記録そのものを返し_記録が無ければ空() throws IOException {
+        assertEquals(Optional.empty(), serviceWith().latestSnapshot());
+
+        RankingHistoryService service = serviceWith(
+                snapshot("2026-10-06T11:00:00Z", "2026-09", "A", 2900),
+                snapshot("2026-10-07T11:45:00Z", "2026-09", "B", 2990));
+        service.record(snapshot("2026-10-07T12:00:00Z", "2026-09", "C", 3000));
+
+        RankingSnapshot latest = service.latestSnapshot().orElseThrow();
+        assertEquals(Instant.parse("2026-10-07T12:00:00Z"), latest.takenAt());
+        assertEquals("#C", latest.entries().getFirst().tag());
+    }
+
+    @Test
     void 最新の記録を24時間前以降で最も古い同じシーズンの記録と比べる() throws IOException {
         RankingHistoryService service = serviceWith(
                 snapshot("2026-10-06T11:00:00Z", "2026-09", "A", 2900),

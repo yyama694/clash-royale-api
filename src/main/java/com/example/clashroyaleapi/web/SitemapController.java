@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
@@ -11,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +60,30 @@ public class SitemapController {
         return xml.toString();
     }
 
+    /**
+     * 世界の上位1000人(15分ごとの記録の最新)のプレイヤー情報画面。プレイヤー名での検索は、有名な人や上位の人の
+     * 名前に集まるため。公式APIは呼ばない。各言語のURLは画面のhreflangで伝わるので、ここには言語の無いURLだけを
+     * 載せる(全言語を並べると1000人で十数MBになる)。lastmodは記録した時刻(上位の人の画面は対戦のたびに変わる)。
+     * 他の画面と分けておくと、Search Consoleでこの1000人がどれだけ登録されたかを別に見られる。
+     */
+    @GetMapping(value = "/sitemap-players.xml", produces = MediaType.APPLICATION_XML_VALUE)
+    public String playerSitemap(HttpServletRequest request) {
+        String base = modelAttributes.siteBaseUrl(request);
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+        rankingHistoryService.latestSnapshot().ifPresent(snapshot -> {
+            String lastmod = snapshot.takenAt().truncatedTo(ChronoUnit.SECONDS).toString();
+            snapshot.entries().forEach(entry -> xml.append("  <url>\n")
+                    .append("    <loc>").append(xmlEscape(base + "/player/" + Tags.toPathSegment(entry.tag())))
+                    .append("</loc>\n")
+                    .append("    <lastmod>").append(lastmod).append("</lastmod>\n")
+                    .append("  </url>\n"));
+        });
+        xml.append("</urlset>\n");
+        return xml.toString();
+    }
+
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
     public String robots(HttpServletRequest request) {
         String base = modelAttributes.siteBaseUrl(request);
@@ -67,7 +93,8 @@ public class SitemapController {
                 Disallow: /beacon
 
                 Sitemap: %s/sitemap.xml
-                """.formatted(base);
+                Sitemap: %s/sitemap-players.xml
+                """.formatted(base, base);
     }
 
     /**

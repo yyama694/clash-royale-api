@@ -138,6 +138,8 @@ public class PlayerController {
         BattleDetailView view = viewMapper.toBattleDetail(battle, tag, locale);
         model.addAttribute("battle", view);
         model.addAttribute("pageTitle", pageSummaries.battleTitle(view, locale));
+        // 公式APIは直近の対戦しか返さないので、日がたつと404になる。検索結果に出しても行き止まりになるだけなので載せない。
+        model.addAttribute("noindex", true);
         return "battle-detail";
     }
 }

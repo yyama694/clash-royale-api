@@ -120,6 +120,12 @@ public class RankingHistoryService {
         return report(null, all, last, base, last.takenAt().minus(LATEST_CHANGES_WINDOW));
     }
 
+    /** 最新の記録(世界の上位1000人)。まだ記録が無ければ空。 */
+    public Optional<RankingSnapshot> latestSnapshot() {
+        List<RankingSnapshotStore.Summary> all = summaries;
+        return all.isEmpty() ? Optional.empty() : snapshot(all.getLast().takenAt());
+    }
+
     /**
      * その日(UTC)の動き。前の日の最後の記録(シーズンが同じなら)と、その日の最後の記録を比べる。
      * まだ終わっていない日と、記録の無い日は空。

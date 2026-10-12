@@ -29,6 +29,7 @@ class LanguageInterceptorTest {
     @Test
     void 言語メニューで選んだ言語はCookieに保存してlang付きのURLへ転送する() {
         MockHttpServletRequest request = request("/clan/ABC", "sortBy=name&setlang=ja");
+        request.addHeader("Sec-Fetch-Site", "same-origin");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         assertFalse(interceptor.preHandle(request, response, new Object()));
@@ -39,8 +40,40 @@ class LanguageInterceptorTest {
     }
 
     @Test
+    void 検索結果など外から来たsetlangは保存せずlang付きのURLへ転送する() {
+        MockHttpServletRequest fromSearch = request("/player/ABC", "setlang=ja");
+        fromSearch.addHeader("Sec-Fetch-Site", "cross-site");
+        fromSearch.addHeader(HttpHeaders.REFERER, "https://www.google.com/");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertFalse(interceptor.preHandle(fromSearch, response, new Object()));
+
+        assertEquals("/player/ABC?lang=ja", response.getHeader(HttpHeaders.LOCATION));
+        assertNull(response.getCookie(WebConstants.LANGUAGE_PARAM));
+
+        // クローラーはどちらのヘッダーも送らない。
+        MockHttpServletResponse crawled = new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(request("/player/ABC", "setlang=ja"), crawled, new Object()));
+        assertNull(crawled.getCookie(WebConstants.LANGUAGE_PARAM));
+    }
+
+    @Test
+    void SecFetchSiteを送らないブラウザはRefererのオリジンで判定する() {
+        String own = "http://localhost";
+        assertTrue(LanguageInterceptor.isFromOwnPage(null, own + "/player/ABC?lang=en", own));
+        assertTrue(LanguageInterceptor.isFromOwnPage(null, own, own));
+        assertFalse(LanguageInterceptor.isFromOwnPage(null, "http://localhost.example.com/", own));
+        assertFalse(LanguageInterceptor.isFromOwnPage(null, "https://www.google.com/", own));
+        assertFalse(LanguageInterceptor.isFromOwnPage(null, null, own));
+        // アドレスバーに打ち込んだ・ブックマークから開いた(none)も、言語メニューではないので保存しない。
+        assertFalse(LanguageInterceptor.isFromOwnPage("none", null, own));
+        assertFalse(LanguageInterceptor.isFromOwnPage("same-site", own + "/", own));
+    }
+
+    @Test
     void 対応外の言語は保存せずsetlangを外したURLへ転送する() {
         MockHttpServletRequest request = request("/", "setlang=pl");
+        request.addHeader("Sec-Fetch-Site", "same-origin");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         assertFalse(interceptor.preHandle(request, response, new Object()));
@@ -52,6 +85,7 @@ class LanguageInterceptorTest {
     @Test
     void 存在しないURLのエラー画面では保存だけして転送しない() {
         MockHttpServletRequest request = request("/error", "setlang=de");
+        request.addHeader("Sec-Fetch-Site", "same-origin");
         request.setDispatcherType(DispatcherType.ERROR);
         MockHttpServletResponse response = new MockHttpServletResponse();
 

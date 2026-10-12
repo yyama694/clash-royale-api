@@ -11,7 +11,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 言語切替リンクが「今見ているページのまま言語だけ切り替える」ために、
@@ -19,6 +21,12 @@ import java.util.stream.Collectors;
  */
 @ControllerAdvice
 public class GlobalModelAttributes {
+
+    private static final Set<String> NOT_CARRIED_PARAMS = Set.of(WebConstants.LANGUAGE_PARAM,
+            WebConstants.SAVE_LANGUAGE_PARAM, WebConstants.SOURCE_PARAM);
+
+    private static final Set<String> NOT_FOR_SEARCH_ENGINES_PARAMS = Stream.concat(NOT_CARRIED_PARAMS.stream(),
+            Stream.of("sortBy", "sortDir", "favoriteLimit")).collect(Collectors.toUnmodifiableSet());
 
     private final boolean nameSearchEnabled;
 
@@ -38,19 +46,17 @@ public class GlobalModelAttributes {
      */
     @ModelAttribute("currentUri")
     public String currentUri(HttpServletRequest request) {
-        String errorUri = forwardedFromError(request);
-        String uri = errorUri != null ? errorUri : request.getRequestURI();
-        // クエリはエラー転送でも元のリクエストのものが残るため、パスだけ差し替えれば足りる。
-        String query = request.getQueryString();
-        if (query == null || query.isBlank()) {
-            return uri;
-        }
-        String kept = Arrays.stream(query.split("&"))
-                .filter(param -> !param.startsWith(WebConstants.LANGUAGE_PARAM + "="))
-                .filter(param -> !param.startsWith(WebConstants.SAVE_LANGUAGE_PARAM + "="))
-                .filter(param -> !param.startsWith(WebConstants.SOURCE_PARAM + "="))
-                .collect(Collectors.joining("&"));
-        return kept.isEmpty() ? uri : uri + "?" + kept;
+        return uriWithout(request, NOT_CARRIED_PARAMS);
+    }
+
+    /**
+     * 検索エンジンに示すURL(正規URL・hreflang)のもとにする、言語を除いた今の画面のURL。
+     * 並べ替えと一時的なお知らせは同じ画面の見せ方の違いなので外す(クランの並べ替えのURLが、2026-10に
+     * 別のページとして検索結果に載っていた)。言語切替のリンクは並べ替えを保つため currentUri を使う。
+     */
+    @ModelAttribute("pageUri")
+    public String pageUri(HttpServletRequest request) {
+        return uriWithout(request, NOT_FOR_SEARCH_ENGINES_PARAMS);
     }
 
     /** SNSのカード表示(OGP)の言語。ポルトガル語は訳がブラジル向けなので pt_BR のように、地域まで付けた形で書く。 */
@@ -80,7 +86,7 @@ public class GlobalModelAttributes {
         if (forwardedFromError(request) != null) {
             return null;
         }
-        String url = siteBaseUrl(request) + currentUri(request);
+        String url = siteBaseUrl(request) + pageUri(request);
         return SupportedLanguages.fromParameter(request.getParameter(WebConstants.LANGUAGE_PARAM))
                 .map(locale -> url + (url.contains("?") ? "&" : "?") + WebConstants.LANGUAGE_PARAM + "="
                         + locale.getLanguage())
@@ -103,6 +109,20 @@ public class GlobalModelAttributes {
                 .replaceQuery(null)
                 .build()
                 .toUriString();
+    }
+
+    private String uriWithout(HttpServletRequest request, Set<String> excluded) {
+        String errorUri = forwardedFromError(request);
+        String uri = errorUri != null ? errorUri : request.getRequestURI();
+        // クエリはエラー転送でも元のリクエストのものが残るため、パスだけ差し替えれば足りる。
+        String query = request.getQueryString();
+        if (query == null || query.isBlank()) {
+            return uri;
+        }
+        String kept = Arrays.stream(query.split("&"))
+                .filter(param -> !excluded.contains(param.split("=", 2)[0]))
+                .collect(Collectors.joining("&"));
+        return kept.isEmpty() ? uri : uri + "?" + kept;
     }
 
     /**

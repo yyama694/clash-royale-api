@@ -65,6 +65,20 @@ class GlobalModelAttributesTest {
     }
 
     @Test
+    void 検索エンジン向けのURLと正規URLからは並べ替えとお知らせのクエリも除く() {
+        MockHttpServletRequest sorted = request("/clan/ABC", "sortBy=lastSeen&sortDir=asc&lang=ja");
+        assertEquals("/clan/ABC", attributes.pageUri(sorted));
+        assertEquals("http://localhost/clan/ABC?lang=ja", attributes.canonicalUrl(sorted));
+        // 言語切替のリンクでは並べ替えを保つ。
+        assertEquals("/clan/ABC?sortBy=lastSeen&sortDir=asc", attributes.currentUri(sorted));
+
+        assertEquals("/player/ABC", attributes.pageUri(request("/player/ABC", "favoriteLimit")));
+        assertEquals("/decks?card=26000021&page=2",
+                attributes.pageUri(request("/decks", "card=26000021&page=2&from=x")));
+        assertEquals("/ranking?country=57000122", attributes.pageUri(request("/ranking", "country=57000122")));
+    }
+
+    @Test
     void 言語メニューのsetlangも取り除く() {
         assertEquals("/clan/ABC?sortBy=name", attributes.currentUri(request("/clan/ABC", "sortBy=name&setlang=ja")));
     }

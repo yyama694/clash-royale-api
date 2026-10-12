@@ -19,8 +19,9 @@
     <!--/*
       同じURLでもCookieやAccept-Languageで返す言語が変わるため、検索エンジンには言語ごとのURLを明示する。
       hreflangは絶対URLでないと解釈されないので、アクセスされたホストを付ける。
+      正規URLと同じく、並べ替えなどの見せ方のクエリを除いたURL(pageUri)で示す。
     */-->
-    <th:block th:if="${siteBaseUrl != null and currentUri != null}" th:with="pageUrl=${siteBaseUrl + currentUri}">
+    <th:block th:if="${siteBaseUrl != null and pageUri != null}" th:with="pageUrl=${siteBaseUrl + pageUri}">
         <link rel="alternate" th:each="code : ${languageCodes}" th:hreflang="${code}"
               th:href="@{${pageUrl}(lang=${code})}">
         <link rel="alternate" hreflang="x-default" th:href="@{${pageUrl}}">
@@ -523,6 +524,7 @@
       今の言語が読めない人でも言語の切替だと分かるよう、地球儀のアイコンを付ける。
       details/summary なのでスクリプトが無くても開閉できる(閉じる操作の補助はheadのスクリプト)。
       ここで選んだ言語だけをCookieに保存する(?setlang=。サーバーが保存して ?lang= のURLへ転送する)。
+      検索エンジンには各言語のURLをhreflangで伝えているので、setlang のリンクはたどらせない(nofollow)。
     */-->
     <nav class="lang-menu" th:aria-label="#{nav.language}">
         <details>
@@ -534,7 +536,7 @@
                 <!--/* リンク文字列は常にその言語自身の表記なので、読み上げが正しい言語になるようlangを付ける。 */-->
                 <li th:each="code : ${languageCodes}">
                     <a th:href="@{${currentUri}(setlang=${code})}" th:text="#{'lang.' + ${code}}"
-                       th:lang="${code}" th:hreflang="${code}"
+                       th:lang="${code}" th:hreflang="${code}" rel="nofollow"
                        th:attr="aria-current=${#locale.language == code} ? 'true' : null"></a>
                 </li>
             </ul>
