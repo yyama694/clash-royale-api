@@ -24,6 +24,7 @@ import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
+import com.example.clashroyaleapi.web.view.DeckFilterRowView;
 import com.example.clashroyaleapi.web.view.FavoriteClanView;
 import com.example.clashroyaleapi.web.view.FavoritePlayerView;
 import com.example.clashroyaleapi.web.view.OpponentView;
@@ -43,6 +44,7 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -270,6 +272,22 @@ class ViewMapperTest {
 
         // 読みが無いと漢字の「大砲」は仮名の後ろ(ナイトの後)に回る。
         assertEquals(List.of("アーチャー", "大砲", "ナイト"), names);
+    }
+
+    @Test
+    void カードの絞り込みは選んだ枚数分の欄と空の欄を出し8枚で空の欄を出さない() {
+        List<DeckFilterRowView> none = viewMapper.toDeckFilterRows(List.of(), 8);
+        assertEquals(List.of(new DeckFilterRowView(null, List.of(), Set.of(), false)), none);
+
+        List<DeckFilterRowView> two = viewMapper.toDeckFilterRows(List.of(5, 7), 8);
+        assertEquals(List.of(
+                new DeckFilterRowView(5, List.of(7), Set.of(7), false),
+                new DeckFilterRowView(7, List.of(5), Set.of(5), false),
+                new DeckFilterRowView(null, List.of(5, 7), Set.of(5, 7), true)), two);
+
+        List<DeckFilterRowView> full = viewMapper.toDeckFilterRows(List.of(1, 2, 3, 4, 5, 6, 7, 8), 8);
+        assertEquals(8, full.size());
+        assertTrue(full.stream().allMatch(row -> row.cardId() != null));
     }
 
     @Test

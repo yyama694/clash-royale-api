@@ -9,6 +9,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -32,23 +33,29 @@ public class TopPlayerDeckController {
     }
 
     @GetMapping("/decks")
-    public String decks(@RequestParam(required = false) Integer card,
+    public String decks(@RequestParam(name = "card", required = false) List<Integer> cards,
             @RequestParam(required = false, defaultValue = "1") int page, Model model, Locale locale) {
         Map<Integer, CardsResponse.Card> cardsById = cardService.allById();
-        // 一覧に無いカードIDは、絞り込まずに全員を出す(0件の画面を出さないため)。
-        Integer selected = card != null && cardsById.containsKey(card) ? card : null;
-        String cardName = selected == null ? null : viewMapper.cardName(cardsById.get(selected), locale);
+        List<Integer> selected = TopPlayerDeckService.filterCards(cards == null ? List.of() : cards,
+                cardsById.keySet());
+        List<String> cardNames = selected.stream()
+                .map(id -> viewMapper.cardName(cardsById.get(id), locale))
+                .toList();
         model.addAttribute("cardOptions", viewMapper.toCardOptions(cardsById.values(), locale));
-        model.addAttribute("selectedCard", selected);
+        model.addAttribute("selectedCards", selected);
+        model.addAttribute("filterRows", viewMapper.toDeckFilterRows(selected, TopPlayerDeckService.MAX_FILTER_CARDS));
+        model.addAttribute("canAddCard", !selected.isEmpty() && selected.size() < TopPlayerDeckService.MAX_FILTER_CARDS);
 
         // 初回の集計が終わるまで(デプロイ直後の1時間ほど)は空で、一覧の代わりに案内文を出す。
         Optional<TopPlayerDeckService.Page> found = topPlayerDeckService.page(selected, page);
         TopPlayerDeckService.Page pageOrNull = found.orElse(null);
-        model.addAttribute("heading", pageSummaries.decksHeading(cardName, locale));
-        model.addAttribute("pageTitle", pageSummaries.decksTitle(cardName, pageOrNull, locale));
-        model.addAttribute("pageDescription", pageSummaries.decksSummary(cardName, pageOrNull, locale));
+        model.addAttribute("heading", pageSummaries.decksHeading(cardNames, locale));
+        model.addAttribute("pageTitle", pageSummaries.decksTitle(cardNames, pageOrNull, locale));
+        model.addAttribute("pageDescription", pageSummaries.decksSummary(cardNames, pageOrNull, locale));
         // トップ層で誰も使っていないカードの画面は中身が空なので、検索結果に出さない(sitemapからも外している)。
-        model.addAttribute("noindex", cardName != null && pageOrNull != null && pageOrNull.total() == 0);
+        // 2枚以上の組み合わせは数が限りなく、カード1枚の画面と中身も重なるので、検索結果には出さない(Xなどで直接共有する用)。
+        model.addAttribute("noindex", selected.size() > 1
+                || (selected.size() == 1 && pageOrNull != null && pageOrNull.total() == 0));
         found.ifPresent(result -> {
             model.addAttribute("decks", result.decks().stream()
                     .map(deck -> viewMapper.toTopPlayerDeck(deck, cardsById, locale))

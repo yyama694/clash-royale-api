@@ -54,6 +54,7 @@ import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
 import com.example.clashroyaleapi.web.view.DayLinkView;
+import com.example.clashroyaleapi.web.view.DeckFilterRowView;
 import com.example.clashroyaleapi.web.view.DeckMetaView;
 import com.example.clashroyaleapi.web.view.ElixirBadgeView;
 import com.example.clashroyaleapi.web.view.FavoriteClanView;
@@ -93,6 +94,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
 
 /**
  * APIのDTOを、表示用に解決済みのViewModelへ変換する。
@@ -260,6 +262,22 @@ public class ViewMapper {
                         collator))
                 .map(card -> new CardOptionView(card.id(), labels.cardName(card.name(), locale)))
                 .toList();
+    }
+
+    /**
+     * 選んだカードごとに1つずつ選択欄を出し、まだ選べる間は「＋」で開く空の欄を1つ足す。
+     * 1枚も選んでいなければ、空の欄1つだけ(最初から出しておく)。
+     */
+    public List<DeckFilterRowView> toDeckFilterRows(List<Integer> selected, int maxCards) {
+        List<DeckFilterRowView> rows = new ArrayList<>();
+        for (Integer cardId : selected) {
+            List<Integer> others = selected.stream().filter(id -> !id.equals(cardId)).toList();
+            rows.add(new DeckFilterRowView(cardId, others, Set.copyOf(others), false));
+        }
+        if (selected.size() < maxCards) {
+            rows.add(new DeckFilterRowView(null, selected, Set.copyOf(selected), !selected.isEmpty()));
+        }
+        return rows;
     }
 
     public String cardName(CardsResponse.Card card, Locale locale) {

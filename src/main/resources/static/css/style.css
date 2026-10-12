@@ -1481,6 +1481,64 @@ td.cell-action {
         1px 1px 0 #3d0750, -1px 1px 0 #3d0750, 1px -1px 0 #3d0750, -1px -1px 0 #3d0750;
 }
 
+/* デッキ画面のカードの絞り込み(最大8枚)。選択欄を1つずつ縦に並べ、右に外す「×」を置く。 */
+.deck-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    max-width: 28rem;
+}
+
+.deck-filter-label {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.deck-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.deck-filter-row[hidden],
+.deck-filter-add[hidden] {
+    display: none;
+}
+
+.deck-filter-row select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* 「×」の無い欄も、右端を「×」のある欄にそろえる(「×」の幅+間隔)。 */
+.deck-filter-row:not(:has(.deck-filter-remove)) select {
+    margin-right: 3rem;
+}
+
+.deck-filter-remove {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+    text-decoration: none;
+}
+
+.deck-filter-remove:hover {
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+.deck-filter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
 /* エリクサーでの絞り込み。名前の入力欄と縦に並べるため、search-form の横並びから外して1行占有させる。 */
 .elixir-filter {
     flex: 1 1 100%;

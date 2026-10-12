@@ -84,7 +84,7 @@ public class CardController {
             model.addAttribute("pageDescription", pageSummaries.cardSummary(card.name(), usageView, locale));
         });
         // 全員分はデッキ画面(カードで絞り込み)にあるので、ここでは順位の高い数人だけを出してそこへつなぐ。
-        topPlayerDeckService.page(id, 1, TOP_DECKS_ON_CARD_PAGE).ifPresent(page -> {
+        topPlayerDeckService.page(List.of(id), 1, TOP_DECKS_ON_CARD_PAGE).ifPresent(page -> {
             model.addAttribute("topDecks", page.decks().stream()
                     .map(deck -> viewMapper.toTopPlayerDeck(deck, cardsById, locale))
                     .toList());

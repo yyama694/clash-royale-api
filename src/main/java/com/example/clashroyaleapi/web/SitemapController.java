@@ -134,7 +134,8 @@ public class SitemapController {
 
                 - Player and clan search: %s/
                 - Player rankings: %s/ranking/players
-                - Top players' decks (latest Rank Battle deck of the global top players, updated daily): %s/decks
+                - Top players' decks (latest Rank Battle deck of the global top players, updated daily; filter by up to
+                  8 cards to show only decks with all of them, e.g. /decks?card=26000021&card=28000014): %s/decks
                 - Rank Battle world ranking report (who is #1 and since when, #1 changes, top 10 and biggest
                   rating gains of the last 24 hours; recorded every 15 minutes, with a page for each day): %s/ranking/players/movements
                 - Final Rank Battle standings of each finished season (global top 1000, since October 2022):

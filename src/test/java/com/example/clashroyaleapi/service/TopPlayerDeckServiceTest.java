@@ -7,8 +7,10 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +52,7 @@ class TopPlayerDeckServiceTest {
     void 順位の順に並べる() {
         given(List.of(deck(3, List.of(1), null), deck(1, List.of(1), null), deck(2, List.of(1), null)));
 
-        TopPlayerDeckService.Page page = service.page(null, 1).orElseThrow();
+        TopPlayerDeckService.Page page = service.page(List.of(), 1).orElseThrow();
 
         assertEquals(List.of(1, 2, 3), ranks(page));
         assertEquals(COLLECTED_AT, page.collectedAt());
@@ -66,8 +68,31 @@ class TopPlayerDeckServiceTest {
                 deck(2, List.of(3, 4), TOWER_PRINCESS),
                 deck(3, List.of(5, 6), null)));
 
-        assertEquals(List.of(1), ranks(service.page(GOLDEN_KNIGHT, 1).orElseThrow()));
-        assertEquals(List.of(2), ranks(service.page(TOWER_PRINCESS, 1).orElseThrow()));
+        assertEquals(List.of(1), ranks(service.page(List.of(GOLDEN_KNIGHT), 1).orElseThrow()));
+        assertEquals(List.of(2), ranks(service.page(List.of(TOWER_PRINCESS), 1).orElseThrow()));
+    }
+
+    @Test
+    void 複数のカードで絞り込むとすべて入ったデッキだけにする() {
+        given(List.of(
+                deck(1, List.of(GOLDEN_KNIGHT, 2), TOWER_PRINCESS),
+                deck(2, List.of(GOLDEN_KNIGHT, 3), TOWER_PRINCESS),
+                deck(3, List.of(GOLDEN_KNIGHT, 2), null),
+                deck(4, List.of(2, 3), TOWER_PRINCESS)));
+
+        assertEquals(List.of(1, 3), ranks(service.page(List.of(GOLDEN_KNIGHT, 2), 1).orElseThrow()));
+        assertEquals(List.of(1), ranks(service.page(List.of(GOLDEN_KNIGHT, 2, TOWER_PRINCESS), 1).orElseThrow()));
+        assertEquals(0, service.page(List.of(GOLDEN_KNIGHT, 2, 3), 1).orElseThrow().total());
+    }
+
+    @Test
+    void 絞り込むカードは指定の順のまま重複と一覧に無いカードを除き8枚までにする() {
+        Set<Integer> known = Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        assertEquals(List.of(3, 1), TopPlayerDeckService.filterCards(Arrays.asList(3, null, 999, 1, 3), known));
+        assertEquals(List.of(1, 2, 3, 4, 5, 6, 7, 8),
+                TopPlayerDeckService.filterCards(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), known));
+        assertEquals(List.of(), TopPlayerDeckService.filterCards(List.of(999), known));
     }
 
     @Test
@@ -78,7 +103,7 @@ class TopPlayerDeckServiceTest {
                 deck(2, List.of(3), null),
                 deck(3, List.of(GOLDEN_KNIGHT), null)));
 
-        TopPlayerDeckService.Page page = service.page(GOLDEN_KNIGHT, 1, 2).orElseThrow();
+        TopPlayerDeckService.Page page = service.page(List.of(GOLDEN_KNIGHT), 1, 2).orElseThrow();
 
         // 使っている人のうち順位の高い2人だけ。全体の人数は絞り込み後の3人のまま(「すべて見る」に使う)。
         assertEquals(List.of(1, 3), ranks(page));
@@ -90,7 +115,7 @@ class TopPlayerDeckServiceTest {
     void 該当者がいなければ0人のページを返す() {
         given(List.of(deck(1, List.of(1), null)));
 
-        TopPlayerDeckService.Page page = service.page(999, 1).orElseThrow();
+        TopPlayerDeckService.Page page = service.page(List.of(999), 1).orElseThrow();
 
         assertTrue(page.decks().isEmpty());
         assertEquals(0, page.total());
@@ -105,7 +130,7 @@ class TopPlayerDeckServiceTest {
         IntStream.rangeClosed(1, 150).forEach(rank -> decks.add(deck(rank, List.of(rank < 5 ? 1 : 2), null)));
         given(decks);
 
-        TopPlayerDeckService.Page second = service.page(2, 2).orElseThrow();
+        TopPlayerDeckService.Page second = service.page(List.of(2), 2).orElseThrow();
 
         assertEquals(150, second.sampleSize());
         assertEquals(146, second.total());
@@ -119,26 +144,26 @@ class TopPlayerDeckServiceTest {
         IntStream.rangeClosed(1, 250).forEach(rank -> decks.add(deck(rank, List.of(1), null)));
         given(decks);
 
-        TopPlayerDeckService.Page second = service.page(null, 2).orElseThrow();
+        TopPlayerDeckService.Page second = service.page(List.of(), 2).orElseThrow();
         assertEquals(101, second.from());
         assertEquals(100, second.decks().size());
         assertTrue(second.hasNext());
 
-        TopPlayerDeckService.Page beyond = service.page(null, 99).orElseThrow();
+        TopPlayerDeckService.Page beyond = service.page(List.of(), 99).orElseThrow();
         assertEquals(3, beyond.page());
         assertEquals(201, beyond.from());
         assertEquals(50, beyond.decks().size());
         assertFalse(beyond.hasNext());
 
-        assertEquals(1, service.page(null, 0).orElseThrow().page());
+        assertEquals(1, service.page(List.of(), 0).orElseThrow().page());
     }
 
     @Test
     void 集計が無いか古い形式しか無ければ空() {
         when(usageService.topDecks()).thenReturn(Optional.empty());
-        assertTrue(service.page(null, 1).isEmpty());
+        assertTrue(service.page(List.of(), 1).isEmpty());
 
         given(List.of(new TopDecks.SampledDeck(List.of(1), null)));
-        assertTrue(service.page(null, 1).isEmpty());
+        assertTrue(service.page(List.of(), 1).isEmpty());
     }
 }

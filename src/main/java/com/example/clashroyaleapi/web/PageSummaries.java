@@ -219,42 +219,47 @@ public class PageSummaries {
                 ListFormatter.getInstance(ULocale.forLocale(locale)).format(names));
     }
 
-    /** @param cardName 絞り込んでいなければ null */
-    public String decksHeading(String cardName, Locale locale) {
-        return cardName == null ? labels.message("decks.pageTitle", locale)
-                : labels.message("decks.heading.card", locale, cardName);
+    /** @param cardNames 絞り込んだカードの名前。絞り込んでいなければ空 */
+    public String decksHeading(List<String> cardNames, Locale locale) {
+        return cardNames.isEmpty() ? labels.message("decks.pageTitle", locale)
+                : labels.message("decks.heading.card", locale, cardList(cardNames, locale));
     }
 
     /**
      * 使っている人数はタイトルにも入れる。カードごとに違う数字になり、検索結果で中身の量も伝わるため。
      *
-     * @param cardName 絞り込んでいなければ null
-     * @param page     まだ集計していなければ null
+     * @param cardNames 絞り込んだカードの名前。絞り込んでいなければ空
+     * @param page      まだ集計していなければ null
      */
-    public String decksTitle(String cardName, TopPlayerDeckService.Page page, Locale locale) {
-        if (cardName == null || page == null || page.total() == 0) {
-            return decksHeading(cardName, locale);
+    public String decksTitle(List<String> cardNames, TopPlayerDeckService.Page page, Locale locale) {
+        if (cardNames.isEmpty() || page == null || page.total() == 0) {
+            return decksHeading(cardNames, locale);
         }
-        return labels.message("decks.seo.title.card", locale, cardName, page.total());
+        return labels.message("decks.seo.title.card", locale, cardList(cardNames, locale), page.total());
     }
 
     /**
-     * @param cardName 絞り込んでいなければ null
-     * @param page     まだ集計していなければ null
+     * @param cardNames 絞り込んだカードの名前。絞り込んでいなければ空
+     * @param page      まだ集計していなければ null
      * @return 載せる中身が無ければ null(サイト共通の説明文になる)
      */
-    public String decksSummary(String cardName, TopPlayerDeckService.Page page, Locale locale) {
+    public String decksSummary(List<String> cardNames, TopPlayerDeckService.Page page, Locale locale) {
         if (page == null) {
             return null;
         }
-        if (cardName == null) {
+        if (cardNames.isEmpty()) {
             return labels.message("decks.summary.all", locale, page.sampleSize());
         }
         if (page.total() == 0) {
             return null;
         }
-        return labels.message("decks.summary.card", locale, page.sampleSize(), cardName, page.total(),
-                page.topRank());
+        return labels.message("decks.summary.card", locale, page.sampleSize(), cardList(cardNames, locale),
+                page.total(), page.topRank());
+    }
+
+    /** 複数枚はその言語の「AとB」の形でつなぐ(すべて入ったデッキなので、「または」の形にはしない)。 */
+    private static String cardList(List<String> cardNames, Locale locale) {
+        return ListFormatter.getInstance(ULocale.forLocale(locale)).format(cardNames);
     }
 
     /** @param day 日ごとの動きならその日(UTC)、最新の動きなら null */

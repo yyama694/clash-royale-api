@@ -10,17 +10,37 @@
         <div class="card">
             <h1 th:text="${heading}"></h1>
             <p th:text="#{decks.lead}"></p>
-            <!--/* 選んだら送信する。スクリプトが動かないときのために送信ボタンも残す。 */-->
+            <!--/*
+              選んだカードすべてが入ったデッキに絞る。選んだら送信する。スクリプトが動かないときのために送信ボタンも残す。
+              「＋」で開く空の欄は最初から置いておき、hidden で隠す(スクリプトが動かなければ最初から見せる)。
+              ?lang= はCookieに保存しないので、絞り込みのたびに言語が変わらないよう、送信とリンクに今の言語を付ける。
+            */-->
             <form class="search-form deck-filter" method="get" th:action="@{/decks}">
-                <label>
-                    <span th:text="#{decks.filter.label}"></span>
-                    <select name="card" onchange="this.form.submit()">
-                        <option value="" th:text="#{decks.filter.all}"></option>
-                        <option th:each="o : ${cardOptions}" th:value="${o.id()}" th:text="${o.name()}"
-                                th:selected="${selectedCard != null and selectedCard == o.id()}"></option>
+                <input type="hidden" name="lang" th:value="${#locale.language}">
+                <span class="deck-filter-label" id="deck-filter-label" th:text="#{decks.filter.label}"></span>
+                <div class="deck-filter-row" th:each="row : ${filterRows}" th:hidden="${row.added()}">
+                    <select name="card" aria-labelledby="deck-filter-label" onchange="this.form.submit()">
+                        <option value="" th:text="${#lists.isEmpty(selectedCards)} ? #{decks.filter.all} : #{decks.filter.choose}"></option>
+                        <th:block th:each="o : ${cardOptions}">
+                            <option th:unless="${row.otherCards().contains(o.id())}" th:value="${o.id()}" th:text="${o.name()}"
+                                    th:selected="${row.cardId() != null and row.cardId() == o.id()}"></option>
+                        </th:block>
                     </select>
-                </label>
-                <noscript><button type="submit" class="btn btn-secondary" th:text="#{decks.filter.submit}"></button></noscript>
+                    <a th:if="${row.cardId() != null}" class="deck-filter-remove"
+                       th:href="${#lists.isEmpty(row.withoutThis())} ? @{/decks(lang=${#locale.language})}
+                               : @{/decks(card=${row.withoutThis()},lang=${#locale.language})}"
+                       th:title="#{action.remove}" th:aria-label="#{action.remove}">×</a>
+                </div>
+                <div class="deck-filter-actions">
+                    <button type="button" class="btn btn-secondary deck-filter-add"
+                            th:if="${canAddCard}"
+                            onclick="this.hidden = true; var row = this.form.querySelector('.deck-filter-row[hidden]'); row.hidden = false; row.querySelector('select').focus();"
+                            th:text="'＋ ' + #{decks.filter.add}"></button>
+                    <noscript>
+                        <style>.deck-filter-row[hidden] { display: flex; } .deck-filter-add { display: none; }</style>
+                        <button type="submit" class="btn btn-secondary" th:text="#{decks.filter.submit}"></button>
+                    </noscript>
+                </div>
             </form>
             <th:block th:if="${decks != null}">
                 <th:block th:if="${seasonNotice != null}">
@@ -31,7 +51,8 @@
                     <time th:replace="~{fragments/layout :: localTime(${collectedAt})}"></time></p>
             </th:block>
             <p th:if="${decks == null}" class="empty-state" th:text="#{decks.notCollected}"></p>
-            <p th:if="${decks != null and #lists.isEmpty(decks)}" class="empty-state" th:text="#{decks.filter.empty}"></p>
+            <p th:if="${decks != null and #lists.isEmpty(decks)}" class="empty-state"
+               th:text="${#lists.size(selectedCards) > 1} ? #{decks.filter.empty.all} : #{decks.filter.empty}"></p>
         </div>
 
         <th:block th:if="${decks != null and not #lists.isEmpty(decks)}">
@@ -41,10 +62,14 @@
             </div>
             <nav class="pager" th:if="${prevPage != null or nextPage != null}">
                 <a class="btn btn-secondary" th:if="${prevPage != null}"
-                   th:href="@{/decks(card=${selectedCard},page=${prevPage})}" th:text="#{decks.prev}"></a>
+                   th:href="${#lists.isEmpty(selectedCards)} ? @{/decks(page=${prevPage},lang=${#locale.language})}
+                           : @{/decks(card=${selectedCards},page=${prevPage},lang=${#locale.language})}"
+                   th:text="#{decks.prev}"></a>
                 <span class="pager-range" th:text="#{decks.range(${from}, ${to}, ${total})}"></span>
                 <a class="btn btn-secondary" th:if="${nextPage != null}"
-                   th:href="@{/decks(card=${selectedCard},page=${nextPage})}" th:text="#{decks.next}"></a>
+                   th:href="${#lists.isEmpty(selectedCards)} ? @{/decks(page=${nextPage},lang=${#locale.language})}
+                           : @{/decks(card=${selectedCards},page=${nextPage},lang=${#locale.language})}"
+                   th:text="#{decks.next}"></a>
             </nav>
         </th:block>
     </main>

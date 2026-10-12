@@ -9,6 +9,7 @@ import java.time.YearMonth;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * トッププレイヤーのデッキ画面。ランク戦の世界上位のプレイヤーが直近のランク戦で使ったデッキを、順位の順に並べる。
@@ -18,6 +19,8 @@ import java.util.Optional;
 public class TopPlayerDeckService {
 
     public static final int PAGE_SIZE = 100;
+    /** 絞り込みで同時に選べるカードの数(2026-10-10にユーザーが決定)。タワーユニットもこの数に含める。 */
+    public static final int MAX_FILTER_CARDS = 8;
 
     private final CardUsageService usageService;
 
@@ -37,18 +40,32 @@ public class TopPlayerDeckService {
                        boolean hasNext, int sampleSize, Integer topRank, YearMonth finishedSeason) {
     }
 
-    public Optional<Page> page(Integer cardId, int page) {
-        return page(cardId, page, PAGE_SIZE);
+    /**
+     * 絞り込みに使うカード。指定の順を保ち、重複と一覧に無いカードを除いて先頭の{@link #MAX_FILTER_CARDS}枚にする。
+     * 一覧に無いカードで0件の画面を出さないため。
+     *
+     * @param requested URLで指定された順。空の選択欄から来た null を含むことがある
+     */
+    public static List<Integer> filterCards(List<Integer> requested, Set<Integer> knownCardIds) {
+        return requested.stream()
+                .filter(id -> id != null && knownCardIds.contains(id))
+                .distinct()
+                .limit(MAX_FILTER_CARDS)
+                .toList();
+    }
+
+    public Optional<Page> page(List<Integer> cardIds, int page) {
+        return page(cardIds, page, PAGE_SIZE);
     }
 
     /**
      * まだ一度も集計していない、または誰のデッキかを持たない古い形式の集計しか無いときは空。
      * カード詳細画面は、このカードを使っている人の上位だけを出すため、1ページの人数を小さくして先頭のページを使う。
      *
-     * @param cardId 指定されたら、そのカード(タワーユニットを含む)を使っている人だけにする
-     * @param page   1始まり。範囲外は最後のページとして扱う
+     * @param cardIds 指定されたら、そのカード(タワーユニットを含む)をすべて使っている人だけにする。空なら全員
+     * @param page    1始まり。範囲外は最後のページとして扱う
      */
-    public Optional<Page> page(Integer cardId, int page, int pageSize) {
+    public Optional<Page> page(List<Integer> cardIds, int page, int pageSize) {
         return usageService.topDecks().flatMap(topDecks -> {
             List<TopDecks.SampledDeck> ranked = topDecks.decks().stream()
                     .filter(deck -> deck.player() != null)
@@ -57,8 +74,9 @@ public class TopPlayerDeckService {
             if (ranked.isEmpty()) {
                 return Optional.empty();
             }
-            List<TopDecks.SampledDeck> matched = cardId == null ? ranked
-                    : ranked.stream().filter(deck -> deck.contains(cardId)).toList();
+            List<TopDecks.SampledDeck> matched = ranked.stream()
+                    .filter(deck -> cardIds.stream().allMatch(deck::contains))
+                    .toList();
             int lastPage = Math.max(1, (matched.size() + pageSize - 1) / pageSize);
             int current = Math.min(Math.max(page, 1), lastPage);
             int start = (current - 1) * pageSize;

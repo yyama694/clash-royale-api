@@ -262,34 +262,45 @@ class PageSummariesTest {
     void カードで絞り込んだデッキ画面はカード名と使っている人数をタイトルに入れる() {
         TopPlayerDeckService.Page page = decksPage(88, 6);
 
-        assertEquals(FSI + "ホグライダー" + PDI + "入りのデッキ", summaries.decksHeading("ホグライダー", Locale.JAPANESE));
+        assertEquals(FSI + "ホグライダー" + PDI + "入りのデッキ",
+                summaries.decksHeading(List.of("ホグライダー"), Locale.JAPANESE));
         assertEquals(FSI + "ホグライダー" + PDI + "入りのデッキ(世界トップ層の88人が使用中)【クラロワ】",
-                summaries.decksTitle("ホグライダー", page, Locale.JAPANESE));
+                summaries.decksTitle(List.of("ホグライダー"), page, Locale.JAPANESE));
         assertEquals("クラロワのランク戦の世界ランキング上位988人のうち、" + FSI + "ホグライダー" + PDI
                         + "を入れている88人のデッキを順位の順に紹介。最上位は世界6位。平均エリクサーも分かり、"
                         + "そのままゲームにコピーできます。毎日更新。",
-                summaries.decksSummary("ホグライダー", page, Locale.JAPANESE));
+                summaries.decksSummary(List.of("ホグライダー"), page, Locale.JAPANESE));
     }
 
     @Test
     void 絞り込んだカードを誰も使っていないか集計前なら人数を書かず説明文はサイト共通にする() {
         String heading = FSI + "Mirror" + PDI + " decks";
 
-        assertEquals(heading, summaries.decksTitle("Mirror", decksPage(0, null), Locale.ENGLISH));
-        assertNull(summaries.decksSummary("Mirror", decksPage(0, null), Locale.ENGLISH));
-        assertEquals(heading, summaries.decksTitle("Mirror", null, Locale.ENGLISH));
-        assertNull(summaries.decksSummary("Mirror", null, Locale.ENGLISH));
+        assertEquals(heading, summaries.decksTitle(List.of("Mirror"), decksPage(0, null), Locale.ENGLISH));
+        assertNull(summaries.decksSummary(List.of("Mirror"), decksPage(0, null), Locale.ENGLISH));
+        assertEquals(heading, summaries.decksTitle(List.of("Mirror"), null, Locale.ENGLISH));
+        assertNull(summaries.decksSummary(List.of("Mirror"), null, Locale.ENGLISH));
+    }
+
+    @Test
+    void 複数のカードで絞り込んだデッキ画面はカード名をその言語の並べ方でつなぐ() {
+        TopPlayerDeckService.Page page = decksPage(12, 3);
+
+        assertEquals(FSI + "Hog Rider, The Log, and Earthquake" + PDI + " decks",
+                summaries.decksHeading(List.of("Hog Rider", "The Log", "Earthquake"), Locale.ENGLISH));
+        assertEquals(FSI + "ホグライダー、アースクエイク" + PDI + "入りのデッキ(世界トップ層の12人が使用中)【クラロワ】",
+                summaries.decksTitle(List.of("ホグライダー", "アースクエイク"), page, Locale.JAPANESE));
     }
 
     @Test
     void 絞り込まないデッキ画面は画面名をタイトルにし集計した人数を説明文に入れる() {
         TopPlayerDeckService.Page page = decksPage(988, 1);
 
-        assertEquals("トッププレイヤーのデッキ", summaries.decksHeading(null, Locale.JAPANESE));
-        assertEquals("トッププレイヤーのデッキ", summaries.decksTitle(null, page, Locale.JAPANESE));
+        assertEquals("トッププレイヤーのデッキ", summaries.decksHeading(List.of(), Locale.JAPANESE));
+        assertEquals("トッププレイヤーのデッキ", summaries.decksTitle(List.of(), page, Locale.JAPANESE));
         assertEquals("クラロワのランク戦の世界ランキング上位988人が、直近のランク戦で使ったデッキを順位の順に紹介。"
                         + "平均エリクサーも分かり、カードで絞り込んで、そのままゲームにコピーできます。毎日更新。",
-                summaries.decksSummary(null, page, Locale.JAPANESE));
+                summaries.decksSummary(List.of(), page, Locale.JAPANESE));
     }
 
     private static RankingSnapshot.Entry entry(int rank, String name, int rating) {
@@ -386,7 +397,7 @@ class PageSummariesTest {
 
     @Test
     void ロシア語のデッキ画面の要約は人数に合わせて動詞と名詞を変える() {
-        String summary = summaries.decksSummary("Всадник на кабане", decksPage(2, 6), Locale.forLanguageTag("ru"))
+        String summary = summaries.decksSummary(List.of("Всадник на кабане"), decksPage(2, 6), Locale.forLanguageTag("ru"))
                 .replace(' ', ' ');
 
         assertTrue(summary.startsWith("Из 988 топ-игроков мирового рейтинга Clash Royale в рейтинговом режиме карту "
