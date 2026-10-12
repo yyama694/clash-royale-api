@@ -809,12 +809,13 @@
   カード画像から詳細画面へのリンク。カード名はすぐ下に出ているので alt は空にし、
   リンクの読み上げには aria-label を使う(同じ名前を二度読ませないため)。
 */-->
-<!--/* 対戦履歴の小さなデッキ(8枚の絵だけ)。 */-->
-<span th:fragment="miniDeck(cards)" class="battle-deck"><img
-      th:each="c : ${cards}" th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}"
+<!--/* 対戦履歴の小さなデッキ(8枚の絵だけ)。カード名を画面に出していないので、画像の alt がそのままリンクの読み上げになる。 */-->
+<span th:fragment="miniDeck(cards)" class="battle-deck"><a
+      th:each="c : ${cards}" th:if="${c.iconUrl() != null}" th:href="@{/card/{id}(id=${c.id()})}"><img
+      th:src="${c.iconUrl()}"
       th:alt="${c.formLabel() == null} ? ${c.name()} : ${c.name()} + ' ' + ${c.formLabel()}"
       th:title="${c.formLabel() == null} ? ${c.name()} : ${c.name()} + ' ' + ${c.formLabel()}"
-      th:classappend="${c.formClass()}" width="285" height="420" loading="lazy"></span>
+      th:classappend="${c.formClass()}" width="285" height="420" loading="lazy"></a></span>
 
 <a th:fragment="cardLink(id, name, iconUrl)" th:if="${iconUrl != null}" class="card-link"
    th:href="@{/card/{id}(id=${id})}" th:aria-label="#{card.detail.link(${name})}">

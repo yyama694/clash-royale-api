@@ -959,7 +959,13 @@ td.cell-action {
     max-width: 100%;
 }
 
+.battle-deck a {
+    display: block;
+    min-width: 0;
+}
+
 .battle-deck img {
+    display: block;
     width: 100%;
     height: auto;
     border-radius: 3px;
