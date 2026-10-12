@@ -151,16 +151,18 @@
                             </span>
                         </div>
                         <!--/*
-                          相手のデッキ。1戦ずつ「詳細」を開かなくても、何と当たって勝った・負けたかが分かるように、小さな絵だけを並べる。
-                          カード名は代替テキストとマウスを重ねたときに出す。2v2は相手2人分を並べる。
+                          自分と相手のデッキ。1戦ずつ「詳細」を開かなくても、どのデッキで何と当たって勝った・負けたかが分かるように、
+                          小さな絵だけを2段に並べる(全試合に出すのは2026-10-12にユーザーが決定)。カード名は代替テキストとマウスを重ねたときに出す。
+                          2v2の相手は2人分を並べる。
                         */-->
                         <div class="battle-decks">
-                            <span class="visually-hidden" th:text="#{battlelog.opponentDeck}"></span>
-                            <span class="battle-deck" th:each="o : ${b.opponents()}" th:unless="${#lists.isEmpty(o.cards())}"><img
-                                  th:each="c : ${o.cards()}" th:if="${c.iconUrl() != null}" th:src="${c.iconUrl()}"
-                                  th:alt="${c.formLabel() == null} ? ${c.name()} : ${c.name()} + ' ' + ${c.formLabel()}"
-                                  th:title="${c.formLabel() == null} ? ${c.name()} : ${c.name()} + ' ' + ${c.formLabel()}"
-                                  th:classappend="${c.formClass()}" width="285" height="420" loading="lazy"></span>
+                            <th:block th:unless="${#lists.isEmpty(b.selfCards())}">
+                                <span class="battle-deck-label" th:text="#{battlelog.deck.self}"></span>
+                                <span class="battle-deck-group"><span th:replace="~{fragments/layout :: miniDeck(${b.selfCards()})}"></span></span>
+                            </th:block>
+                            <span class="battle-deck-label" th:text="#{battlelog.deck.opponent}"></span>
+                            <span class="battle-deck-group"><th:block th:each="o : ${b.opponents()}"><th:block
+                                  th:unless="${#lists.isEmpty(o.cards())}"><span th:replace="~{fragments/layout :: miniDeck(${o.cards()})}"></span></th:block></th:block></span>
                         </div>
                     </div>
                     <a class="btn btn-secondary btn-small battle-detail" th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${b.battleTime()})}"><span class="battle-detail-label" th:text="#{action.detail}"></span></a>

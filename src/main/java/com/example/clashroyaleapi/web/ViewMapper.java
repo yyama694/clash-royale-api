@@ -633,7 +633,9 @@ public class ViewMapper {
                 toOpponents(battle.opponent(), locale),
                 toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()),
                 battle.team().stream().filter(p -> isViewer(p, viewerTag)).findFirst()
-                        .map(viewer -> toTrophyChange(battle.type(), viewer, locale)).orElse(null));
+                        .map(viewer -> toTrophyChange(battle.type(), viewer, locale)).orElse(null),
+                battle.team().stream().filter(p -> isViewer(p, viewerTag)).findFirst()
+                        .map(viewer -> toCards(viewer.cards(), false, locale)).orElse(List.of()));
     }
 
     private TrophyChangeView toTrophyChange(String battleType, BattleLogEntry.Participant participant, Locale locale) {

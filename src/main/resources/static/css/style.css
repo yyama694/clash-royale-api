@@ -928,14 +928,28 @@ td.cell-action {
 }
 
 /*
-  対戦履歴の相手のデッキ。1枚は最大30pxで、行の幅が足りなければ8枚が1行に収まるまで縮める
-  (スマホ幅では30pxのままだと右端の「詳細」ボタンに重なった)。2v2の2人分は折り返して並べる。
+  対戦履歴の自分と相手のデッキ。「自分」「相手」の見出しの幅をそろえて2段に並べる。1枚は最大30pxで、
+  行の幅が足りなければ8枚が1行に収まるまで縮める(スマホ幅では30pxのままだと右端の「詳細」ボタンに重なった)。
+  2v2の相手2人分は折り返して並べる。
 */
 .battle-decks {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 0.2rem 0.4rem;
+    margin-top: 0.3rem;
+}
+
+.battle-deck-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.battle-deck-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem 0.75rem;
-    margin-top: 0.3rem;
+    gap: 0.2rem 0.75rem;
+    min-width: 0;
 }
 
 .battle-deck {

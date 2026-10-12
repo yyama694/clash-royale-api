@@ -166,6 +166,19 @@ class ViewMapperTest {
     }
 
     @Test
+    void 対戦履歴の自分のデッキは見ているプレイヤー本人のもので味方のものではない() {
+        List<BattleLogEntry.Card> viewerDeck = List.of(card(14, 16), card(14, 16), card(14, 16), card(14, 16),
+                card(12, 14), card(12, 14), card(9, 11), card(5, 8));
+        BattleLogEntry battle = duel(List.of(
+                new BattleLogEntry.Participant("#MATE", "Mate", 1, List.of(card(14, 16)), List.of(), null),
+                new BattleLogEntry.Participant("#VIEWER", "Viewer", 1, viewerDeck, List.of(), null)));
+
+        BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
+
+        assertEquals(8, summary.selfCards().size());
+    }
+
+    @Test
     void 対戦履歴には見ているプレイヤーのトロフィー増減を符号付きで出す() {
         when(labels.message(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
         BattleLogEntry ladder = new BattleLogEntry("PvP", "20260101T000000.000Z", new BattleLogEntry.GameMode("Ladder"),
