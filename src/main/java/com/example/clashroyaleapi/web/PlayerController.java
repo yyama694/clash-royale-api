@@ -27,6 +27,7 @@ import org.springframework.web.util.UriUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/player")
@@ -35,13 +36,15 @@ public class PlayerController {
     private final PlayerService playerService;
     private final ViewMapper viewMapper;
     private final FavoriteCookies favoriteCookies;
+    private final MeCookie meCookie;
     private final PageSummaries pageSummaries;
 
     public PlayerController(PlayerService playerService, ViewMapper viewMapper, FavoriteCookies favoriteCookies,
-            PageSummaries pageSummaries) {
+            MeCookie meCookie, PageSummaries pageSummaries) {
         this.playerService = playerService;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
+        this.meCookie = meCookie;
         this.pageSummaries = pageSummaries;
     }
 
@@ -57,16 +60,17 @@ public class PlayerController {
                     + UriUtils.encodePathSegment(Tags.toPathSegment(found.tag()), StandardCharsets.UTF_8);
             case PlayerSearchResult.Candidates candidates -> {
                 PlayerNameSearch result = candidates.search();
+                Map<String, PlayerResponse> details = playerService.candidateDetails(result);
                 int shownTo = result.offset() + result.exact().size();
                 int currentPage = result.offset() / PlayerService.SEARCH_PAGE_SIZE + 1;
                 model.addAttribute("query", q.strip());
-                model.addAttribute("exact", viewMapper.toPlayerNameMatches(result.exact(), locale));
+                model.addAttribute("exact", viewMapper.toPlayerNameMatches(result.exact(), details, locale));
                 model.addAttribute("exactTotal", result.exactTotal());
                 model.addAttribute("exactFrom", result.offset() + 1);
                 model.addAttribute("exactTo", shownTo);
                 model.addAttribute("prevPage", currentPage > 1 ? currentPage - 1 : null);
                 model.addAttribute("nextPage", shownTo < result.exactTotal() ? currentPage + 1 : null);
-                model.addAttribute("prefix", viewMapper.toPlayerNameMatches(result.prefix(), locale));
+                model.addAttribute("prefix", viewMapper.toPlayerNameMatches(result.prefix(), details, locale));
                 model.addAttribute("morePrefix", result.morePrefix());
                 yield "player-search";
             }
@@ -93,6 +97,7 @@ public class PlayerController {
                         .contains(playerPathTag));
         model.addAttribute("favoriteLimit", favoriteLimit != null);
         model.addAttribute("favoriteHint", !favoriteCookies.hasAny(request));
+        model.addAttribute("isMe", meCookie.read(request).filter(playerPathTag::equals).isPresent());
         if (player.clan() != null) {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));

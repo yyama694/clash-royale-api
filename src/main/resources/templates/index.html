@@ -11,6 +11,26 @@
             <p th:text="#{app.description}"></p>
         </div>
 
+        <!--/*
+          「これは自分」で登録した人の今の成績。再訪したときに最初に目に入るよう、検索フォームより上に置く(2026-10-12にユーザーが決定)。
+          前回見たときからの変化は、プレイヤー情報画面と同じ部品(ブラウザに残した前回の値と比べる)。
+        */-->
+        <div class="card me-card" th:if="${meTag != null}">
+            <h2 th:text="#{home.me.heading}"></h2>
+            <th:block th:if="${me != null}">
+                <p class="me-name"><a th:href="@{/player/{tag}(tag=${meTag})}"><bdi th:text="${meName}"></bdi></a>
+                    <span class="tag-pill" th:text="${me.tag()}"></span></p>
+                <ul class="stat-highlights">
+                    <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{player.trophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(me.trophies(), 1, 'DEFAULT')}"></span></li>
+                    <th:block th:with="r=${me.currentPathOfLegendSeasonResult()}"><li th:if="${r != null and r.hasRank()}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.current}"></span></span><span class="value" th:text="#{player.ranked.rank(${r.rank()})}"></span><span class="sub" th:text="#{player.ranked.rating(${r.trophies()})}"></span></li></th:block>
+                    <li><span class="label"><span aria-hidden="true">⚔️</span> <span th:text="#{player.wins}"></span></span><span class="value" th:text="${#numbers.formatInteger(me.wins(), 1, 'DEFAULT')}"></span></li>
+                </ul>
+                <div th:replace="~{fragments/layout :: sinceLast(${meTag}, ${meProgress})}"></div>
+            </th:block>
+            <p th:if="${meErrorKey != null}" class="error-box" th:text="#{${meErrorKey}}"></p>
+            <a class="btn btn-secondary card-action" th:href="@{/player/{tag}(tag=${meTag})}" th:text="#{home.me.open}"></a>
+        </div>
+
         <div th:replace="~{fragments/layout :: playerSearchForm(null)}"></div>
         <div th:replace="~{fragments/layout :: clanSearchForm(null)}"></div>
 
@@ -52,5 +72,7 @@
         </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+    <th:block th:if="${me != null}"><script th:replace="~{fragments/layout :: sinceLastScript}"></script></th:block>
 </body>
 </html>

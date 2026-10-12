@@ -5,11 +5,13 @@ import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
+import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
+import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
 import com.example.clashroyaleapi.domain.PlayerSighting;
@@ -18,9 +20,16 @@ import com.example.clashroyaleapi.store.PlayerSightingLog;
 
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
 
 @Service
@@ -30,6 +39,11 @@ public class PlayerService {
     public static final int SEARCH_PAGE_SIZE = 50;
     // 索引側で offset + ページの人数を計算しても溢れない値。
     private static final int MAX_OFFSET = Integer.MAX_VALUE - SEARCH_PAGE_SIZE;
+
+    // 同名の人を見分けるため、今のトロフィー・クランなどを添える候補の数。名前検索は1日に十数回(2026-10)と少ないが、
+    // 1回の検索で公式APIを呼ぶ数がこの人数まで増えるので絞る。同時に呼ぶ数はお気に入り画面と同じ4本にする。
+    public static final int CANDIDATE_DETAILS_LIMIT = 20;
+    private static final int MAX_CONCURRENT = 4;
 
     private final ClashRoyaleApiClient apiClient;
     private final PlayerSightingLog sightingLog;
@@ -82,6 +96,56 @@ public class PlayerService {
             return new PlayerSearchResult.NotFound(trimmed);
         }
         return new PlayerSearchResult.Candidates(result);
+    }
+
+    /**
+     * 名前検索の候補が2人以上のとき、先頭の{@value CANDIDATE_DETAILS_LIMIT}人(名前が一致した人、前方一致の人の順)の
+     * 今のプロフィール。キーは候補のタグ。取れなかった人は入れない(画面はその人だけ名前とタグで出す)。
+     * 候補が1人なら見分ける必要が無いので取らない。
+     */
+    public Map<String, PlayerResponse> candidateDetails(PlayerNameSearch result) {
+        List<String> tags = Stream.concat(result.exact().stream(), result.prefix().stream())
+                .map(PlayerNameMatch::tag)
+                .toList();
+        if (tags.size() < 2) {
+            return Map.of();
+        }
+        Semaphore semaphore = new Semaphore(MAX_CONCURRENT);
+        List<Future<Optional<PlayerResponse>>> futures;
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            futures = tags.stream().limit(CANDIDATE_DETAILS_LIMIT)
+                    .map(tag -> executor.submit(() -> lookup(tag, semaphore)))
+                    .toList();
+        }
+        Map<String, PlayerResponse> details = new HashMap<>();
+        for (int i = 0; i < futures.size(); i++) {
+            String tag = tags.get(i);
+            join(futures.get(i)).ifPresent(player -> details.put(tag, player));
+        }
+        return details;
+    }
+
+    // 見分けるための補足なので、1人取れなくても検索結果は出す。
+    private Optional<PlayerResponse> lookup(String tag, Semaphore semaphore) throws InterruptedException {
+        semaphore.acquire();
+        try {
+            return Optional.of(findPlayer(tag));
+        } catch (ClashRoyaleApiException e) {
+            return Optional.empty();
+        } finally {
+            semaphore.release();
+        }
+    }
+
+    private static <T> T join(Future<T> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (ExecutionException e) {
+            throw new IllegalStateException(e.getCause());
+        }
     }
 
     public PlayerResponse findPlayer(String tag) {

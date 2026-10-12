@@ -575,6 +575,37 @@ button:hover, .btn:hover {
 }
 
 /* プレイヤー情報画面の「前回見たときからの変化」。項目は横に流し、増減だけを太字と色で目立たせる。 */
+/* 「これは自分」。プレイヤー情報画面の見出しのすぐ下に小さく置く。登録済みなら「自分のページ」と出す。 */
+.me-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    margin: 0.25rem 0 0.75rem;
+}
+
+.me-badge {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-link);
+}
+
+.me-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+/* トップページの「自分の成績」。 */
+.me-card .me-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.6rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
 .since-last {
     margin-top: 0.75rem;
     padding: 0.5rem 0.8rem;
@@ -894,6 +925,38 @@ td.cell-action {
 .battle-opponents a:hover,
 .battle-sub a:hover {
     text-decoration: underline;
+}
+
+/*
+  対戦履歴の相手のデッキ。1枚は最大30pxで、行の幅が足りなければ8枚が1行に収まるまで縮める
+  (スマホ幅では30pxのままだと右端の「詳細」ボタンに重なった)。2v2の2人分は折り返して並べる。
+*/
+.battle-decks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    margin-top: 0.3rem;
+}
+
+.battle-deck {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 30px));
+    gap: 2px;
+    max-width: 100%;
+}
+
+.battle-deck img {
+    width: 100%;
+    height: auto;
+    border-radius: 3px;
+}
+
+.battle-deck img.form-evolution {
+    box-shadow: 0 0 0 2px var(--color-evolution);
+}
+
+.battle-deck img.form-hero {
+    box-shadow: 0 0 0 2px var(--color-hero);
 }
 
 .battle-sub {
@@ -1269,6 +1332,17 @@ td.cell-action {
     gap: 0.2rem 1rem;
     font-size: 0.85rem;
     color: var(--color-text-muted);
+}
+
+/* 同じ名前の人を見分けるための今のプロフィール。最終確認の行より目立たせ、世界の順位は強調する。 */
+.result-list .result-profile {
+    gap: 0.2rem 0.9rem;
+    color: var(--color-text);
+}
+
+.result-list .result-rank {
+    font-weight: 700;
+    color: var(--color-link);
 }
 
 .result-list .btn {
@@ -1722,6 +1796,28 @@ td.cell-action {
     font-variant-numeric: tabular-nums;
 }
 
+/* 個人ランキングの24時間の順位の変化。上がった・下がったは対戦の勝ち負けと同じ色にする。 */
+.rank-change {
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--color-text-muted);
+}
+
+.rank-change.up {
+    color: var(--color-win);
+}
+
+.rank-change.down {
+    color: var(--color-lose);
+}
+
+.rank-change.new {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-link);
+}
+
 .country-form {
     display: flex;
     align-items: flex-end;
@@ -2038,6 +2134,11 @@ td.cell-action {
     .table-ranking td.cell-name {
         font-size: 1rem;
         overflow-wrap: anywhere;
+    }
+
+    /* 1行目は順位と名前だけにするため、変化は2行目の最後に回す。 */
+    .table-ranking td.cell-change {
+        order: 1;
     }
 
     /* 4列固定で1枚が60px前後になるため、カード名を小さくして折り返し行数を減らす(対戦詳細と使用中のデッキ)。 */

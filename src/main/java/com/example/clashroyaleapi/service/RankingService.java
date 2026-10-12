@@ -17,9 +17,11 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +45,9 @@ public class RankingService {
 
     // 個人ランキングを出す画面のうち、最も多く表示する件数。公式APIが返せる上限と同じ。
     public static final int MAX_PLAYER_RANKING_SIZE = 1000;
+
+    /** 公式APIが最終順位を返す最初のシーズン。2022-09以前は notFound になる(2026-10-12に確認)。 */
+    public static final YearMonth FIRST_FINAL_STANDINGS_SEASON = YearMonth.of(2022, 10);
 
     private final ClashRoyaleApiClient apiClient;
     private final PlayerSightingLog sightingLog;
@@ -116,6 +121,37 @@ public class RankingService {
                     < MAX_PLAYER_RANKING_SIZE;
         } catch (ClashRoyaleApiException e) {
             return false;
+        }
+    }
+
+    /**
+     * 最終順位を出せる終わったシーズン(新しい順)。シーズンごとの最終順位の画面の一覧と、sitemapに使う。
+     * 取得に失敗したときは例外をそのまま投げる(一覧が主役の画面なので、エラー画面にする)。
+     */
+    public List<YearMonth> finishedSeasons() {
+        return apiClient.getFinishedSeasonIds().stream()
+                .map(RankingService::parseSeason)
+                .flatMap(Optional::stream)
+                .filter(season -> !season.isBefore(FIRST_FINAL_STANDINGS_SEASON))
+                .sorted(Comparator.reverseOrder())
+                .toList();
+    }
+
+    /** 終わったシーズンの最終順位(上位1000人)。終わっていないシーズンや、公式APIが返さないシーズンは空。 */
+    public Optional<List<PlayerRankingResponse.RankedPlayer>> finalStandings(YearMonth season) {
+        if (!finishedSeasons().contains(season)) {
+            return Optional.empty();
+        }
+        List<PlayerRankingResponse.RankedPlayer> players =
+                apiClient.getFinishedSeasonPathOfLegendRankings(season.toString(), MAX_PLAYER_RANKING_SIZE);
+        return players.isEmpty() ? Optional.empty() : Optional.of(players);
+    }
+
+    private static Optional<YearMonth> parseSeason(String id) {
+        try {
+            return Optional.of(YearMonth.parse(id));
+        } catch (DateTimeParseException | NullPointerException e) {
+            return Optional.empty();
         }
     }
 

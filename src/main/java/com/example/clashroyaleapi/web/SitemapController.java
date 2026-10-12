@@ -2,9 +2,11 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
+import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
 import com.example.clashroyaleapi.service.RankingHistoryService;
+import com.example.clashroyaleapi.service.RankingService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -27,19 +29,22 @@ import java.util.stream.Stream;
 public class SitemapController {
 
     private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players",
-            "/ranking/players/movements", "/privacy");
+            "/ranking/players/movements", "/ranking/players/seasons", "/privacy");
 
     private final CardService cardService;
     private final CardUsageService cardUsageService;
     private final RankingHistoryService rankingHistoryService;
+    private final RankingService rankingService;
     private final GlobalModelAttributes modelAttributes;
     private final LabelResolver labels;
 
     public SitemapController(CardService cardService, CardUsageService cardUsageService,
-            RankingHistoryService rankingHistoryService, GlobalModelAttributes modelAttributes, LabelResolver labels) {
+            RankingHistoryService rankingHistoryService, RankingService rankingService,
+            GlobalModelAttributes modelAttributes, LabelResolver labels) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.rankingHistoryService = rankingHistoryService;
+        this.rankingService = rankingService;
         this.modelAttributes = modelAttributes;
         this.labels = labels;
     }
@@ -53,7 +58,8 @@ public class SitemapController {
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" "
                 + "xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
-        Stream.of(STATIC_PATHS.stream(), cardUsageRankingPaths(), cardPaths(), cardDeckPaths(), movementDayPaths())
+        Stream.of(STATIC_PATHS.stream(), cardUsageRankingPaths(), cardPaths(), cardDeckPaths(), movementDayPaths(),
+                        seasonPaths())
                 .flatMap(paths -> paths)
                 .forEach(path -> appendUrl(xml, base, path, languageCodes));
         xml.append("</urlset>\n");
@@ -131,6 +137,8 @@ public class SitemapController {
                 - Top players' decks (latest Rank Battle deck of the global top players, updated daily): %s/decks
                 - Rank Battle world ranking report (who is #1 and since when, #1 changes, top 10 and biggest
                   rating gains of the last 24 hours; recorded every 15 minutes, with a page for each day): %s/ranking/players/movements
+                - Final Rank Battle standings of each finished season (global top 1000, since October 2022):
+                  %s/ranking/players/seasons
                 - Clan rankings: %s/ranking
                 - Card list: %s/cards
                 - Card usage rankings (share of the global top players using each card, updated daily): %s/cards?sort=usage
@@ -140,7 +148,7 @@ public class SitemapController {
                 - Data comes from the official Supercell Clash Royale API.
                 - Available languages: %s
                 - Not affiliated with or endorsed by Supercell.
-                """.formatted(siteName, base, base, base, base, base, base, base, languages);
+                """.formatted(siteName, base, base, base, base, base, base, base, base, languages);
     }
 
     private Stream<String> cardPaths() {
@@ -166,6 +174,15 @@ public class SitemapController {
     /** 日ごとのランキングの動き。内容が固定されたページなので、記録のある終わった日をすべて載せる。 */
     private Stream<String> movementDayPaths() {
         return rankingHistoryService.archiveDays().stream().map(day -> "/ranking/players/movements/" + day);
+    }
+
+    /** シーズンごとの最終順位。内容が固定されたページ。一覧が取れなければ、そのときは載せない(sitemap全体は返す)。 */
+    private Stream<String> seasonPaths() {
+        try {
+            return rankingService.finishedSeasons().stream().map(season -> "/ranking/players/seasons/" + season);
+        } catch (ClashRoyaleApiException e) {
+            return Stream.empty();
+        }
     }
 
     private Stream<Integer> catalogCardIds() {

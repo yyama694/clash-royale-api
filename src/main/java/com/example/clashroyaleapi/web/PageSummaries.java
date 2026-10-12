@@ -2,8 +2,10 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
+import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
+import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.LeaderHistory;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
@@ -29,6 +31,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Date;
@@ -344,6 +347,38 @@ public class PageSummaries {
     }
 
     // 日付は言語ごとにICUに書かせる(引数は日時)。サーバーのタイムゾーンで前後の日にずれないよう、その日の正午(UTC)にする。
+    public String seasonHeading(YearMonth season, Locale locale) {
+        return labels.message("season.heading", locale, monthOf(season));
+    }
+
+    public String seasonLead(YearMonth season, int players, Locale locale) {
+        return labels.message("season.lead", locale, monthOf(season), players);
+    }
+
+    /** 「クラロワ 〇月 シーズン 最終順位」「〇〇 世界1位」のような検索で拾われるよう、月と1位の名前を入れる。 */
+    public String seasonTitle(YearMonth season, List<PlayerRankingResponse.RankedPlayer> players, Locale locale) {
+        return labels.message("season.seo.title", locale, monthOf(season),
+                GameText.stripFormatting(players.getFirst().name()));
+    }
+
+    /** 上位3人の名前とレーティング。3人そろわなければ本文の導入と同じ文にする。 */
+    public String seasonSummary(YearMonth season, List<PlayerRankingResponse.RankedPlayer> players, Locale locale) {
+        if (players.size() < 3) {
+            return seasonLead(season, players.size(), locale);
+        }
+        List<Object> args = new ArrayList<>(List.of(monthOf(season)));
+        players.stream().limit(3).forEach(player -> {
+            args.add(GameText.stripFormatting(player.name()));
+            args.add(player.eloRating());
+        });
+        return labels.message("season.summary", locale, args.toArray());
+    }
+
+    // 月名は言語ごとにICUに書かせる(引数は日時)。サーバーのタイムゾーンで前後の月にずれないよう、月の半ばにする。
+    private static Date monthOf(YearMonth season) {
+        return Date.from(season.atDay(15).atStartOfDay(ZoneOffset.UTC).toInstant());
+    }
+
     private static Date dateOf(LocalDate day) {
         return Date.from(day.atTime(12, 0).toInstant(ZoneOffset.UTC));
     }

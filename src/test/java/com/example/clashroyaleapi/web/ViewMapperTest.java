@@ -10,6 +10,7 @@ import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
+import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardImageService;
 import com.example.clashroyaleapi.service.CardService;
@@ -29,12 +30,15 @@ import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
+import com.example.clashroyaleapi.web.view.PlayerRankingView;
+import com.example.clashroyaleapi.web.view.RankChangeView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
@@ -339,6 +343,39 @@ class ViewMapperTest {
                 mapper.toPlayerRanking(PlayerRanking.empty(), Locale.JAPANESE).notice());
         assertEquals("ランキングを取得できませんでした。しばらく時間をおいてからお試しください。",
                 mapper.toPlayerRanking(PlayerRanking.unavailable(), Locale.JAPANESE).notice());
+    }
+
+    @Test
+    void 世界の今シーズンの順位には24時間前の記録との差を付け_終わったシーズンには付けない() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        List<PlayerRankingResponse.RankedPlayer> players = List.of(
+                new PlayerRankingResponse.RankedPlayer("#A", "A", 3900, 1, null),
+                new PlayerRankingResponse.RankedPlayer("#B", "B", 3800, 2, null),
+                new PlayerRankingResponse.RankedPlayer("#C", "C", 3700, 3, null),
+                new PlayerRankingResponse.RankedPlayer("#D", "D", 3600, 4, null));
+        RankingSnapshot dayAgo = new RankingSnapshot(Instant.EPOCH, "2026-09", List.of(
+                new RankingSnapshot.Entry(1, "#B", "B", 3850),
+                new RankingSnapshot.Entry(2, "#A", "A", 3840),
+                new RankingSnapshot.Entry(3, "#C", "C", 3700),
+                new RankingSnapshot.Entry(4, "#X", "X", 3650)));
+
+        PlayerRankingView view = mapper.toPlayerRanking(PlayerRanking.current(players), dayAgo, Locale.JAPANESE);
+
+        assertTrue(view.showChange());
+        assertEquals(new RankChangeView("▲1", "24時間で1位上がった", "up"), view.rows().get(0).change());
+        assertEquals(new RankChangeView("▼1", "24時間で1位下がった", "down"), view.rows().get(1).change());
+        assertEquals("same", view.rows().get(2).change().direction());
+        assertEquals(new RankChangeView("NEW", "24時間前は1,000位より下", "new"), view.rows().get(3).change());
+        assertEquals("Up 1 place in 24 hours",
+                mapper.toPlayerRanking(PlayerRanking.current(players), dayAgo, Locale.ENGLISH).rows().get(0)
+                        .change().label());
+
+        PlayerRankingView finished = mapper.toPlayerRanking(
+                PlayerRanking.finishedSeason(players, YearMonth.of(2026, 9)), dayAgo, Locale.JAPANESE);
+        assertFalse(finished.showChange());
+        assertNull(finished.rows().get(0).change());
+        assertFalse(mapper.toPlayerRanking(PlayerRanking.current(players), Locale.JAPANESE).showChange());
     }
 
     @Test

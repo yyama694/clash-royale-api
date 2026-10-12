@@ -18,9 +18,13 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -34,6 +38,35 @@ class PlayerServiceTest {
     private PlayerSightingLog sightingLog;
     private PlayerNameIndex nameIndex;
     private PlayerService playerService;
+
+    @Test
+    void 同名の候補が2人以上なら先頭の20人だけ今のプロフィールを取り_取れない人は除く() {
+        List<PlayerNameMatch> exact = IntStream.range(0, 25)
+                .mapToObj(i -> new PlayerNameMatch("#P" + i, "てち", Instant.EPOCH))
+                .toList();
+        PlayerResponse player = mock(PlayerResponse.class);
+        when(player.tag()).thenReturn("#X");
+        when(player.name()).thenReturn("てち");
+        when(apiClient.getPlayer(anyString())).thenReturn(player);
+        when(apiClient.getPlayer("#P3")).thenThrow(new ResourceNotFoundException("gone", null));
+
+        Map<String, PlayerResponse> details =
+                playerService.candidateDetails(new PlayerNameSearch(exact, 25, 0, List.of(), false));
+
+        assertEquals(PlayerService.CANDIDATE_DETAILS_LIMIT - 1, details.size());
+        assertTrue(details.containsKey("#P0"));
+        assertFalse(details.containsKey("#P3"));
+        verify(apiClient, never()).getPlayer("#P20");
+    }
+
+    @Test
+    void 候補が1人なら見分ける必要が無いのでプロフィールを取らない() {
+        PlayerNameSearch single = new PlayerNameSearch(
+                List.of(new PlayerNameMatch("#AAA", "pyl", Instant.EPOCH)), 1, 0, List.of(), false);
+
+        assertTrue(playerService.candidateDetails(single).isEmpty());
+        verify(apiClient, never()).getPlayer(anyString());
+    }
 
     @BeforeEach
     void setUp() {

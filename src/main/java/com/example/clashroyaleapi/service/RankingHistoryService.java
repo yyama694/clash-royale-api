@@ -120,6 +120,15 @@ public class RankingHistoryService {
         return report(null, all, last, base, last.takenAt().minus(LATEST_CHANGES_WINDOW));
     }
 
+    /**
+     * 個人ランキングの「24時間の変化」で比べる記録。最新の動きと同じく、最新の記録から24時間前以降で最も古い、
+     * 同じシーズンの記録。記録が止まっているとき(24時間前と言えなくなる)と、比べる記録が無いときは空。
+     */
+    public Optional<RankingSnapshot> dayAgoSnapshot() {
+        return latest().filter(report -> !isStale(report))
+                .map(report -> report.movements().before());
+    }
+
     /** 最新の記録(世界の上位1000人)。まだ記録が無ければ空。 */
     public Optional<RankingSnapshot> latestSnapshot() {
         List<RankingSnapshotStore.Summary> all = summaries;

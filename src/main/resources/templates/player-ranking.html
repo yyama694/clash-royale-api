@@ -15,6 +15,7 @@
                      '/ranking/players', '/ranking/players/table')}"></div>
             <p th:replace="~{fragments/layout :: notice(#{playerRanking.notice(${playerRankingSize})})}"></p>
             <a class="btn btn-secondary" th:href="@{/ranking}" th:text="#{ranking.viewAll}"></a>
+            <a class="btn btn-secondary" th:href="@{/ranking/players/seasons}" th:text="#{seasons.link}"></a>
         </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
