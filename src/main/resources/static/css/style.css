@@ -451,6 +451,22 @@ a {
     margin-bottom: 1.5rem;
 }
 
+/* プレイヤー情報画面の上の1行の検索欄。スマホ幅でもボタンを入力欄の横に置き、2行にしない。 */
+.search-bar {
+    flex-wrap: nowrap;
+    align-items: stretch;
+    margin-bottom: 1rem;
+}
+
+.search-bar label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.search-bar input {
+    flex: 1 1 auto;
+}
+
 button, .btn {
     background: var(--color-primary);
     color: #fff;

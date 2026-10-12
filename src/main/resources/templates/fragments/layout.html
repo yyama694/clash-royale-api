@@ -736,6 +736,19 @@
     </p>
 </div>
 
+<!--/*
+  プレイヤー情報画面の一番上に置く1行の検索欄。検索から着地した人の半数が1ページで帰り、
+  トップに戻って名前検索し直す人もいたため、別の人を探し直せるようにした(2026-10-12)。項目名は欄の中に出す。
+*/-->
+<form th:fragment="playerSearchBar" class="search-form search-bar" role="search" th:action="@{/player/search}" method="get"
+      th:with="label=${nameSearchEnabled} ? #{home.player.labelWithName} : #{home.player.label}">
+    <label>
+        <span class="visually-hidden" th:text="${label}"></span>
+        <input type="text" name="q" required th:placeholder="${label}">
+    </label>
+    <button type="submit" th:text="#{action.search}"></button>
+</form>
+
 <!--/* 検索結果が見つかった画面の上部に置く、見出しなしの再検索フォーム。 */-->
 <form th:fragment="playerSearchFormInline(value)" class="search-form search-form-requery" th:action="@{/player/search}" method="get">
     <label>
@@ -1034,11 +1047,13 @@
       ranking-slot が表の入る場所。lazyUrl を渡した画面では、最初は開いているタブの表だけを描き、
       もう一方には data-lazy-url だけを置く(件数が多い画面でHTMLが倍になるのを避けるため)。
       lazyUrl が無ければ今までどおり両方を描く。
+      後から取る表と国の選択の送信には今の表示言語を付ける。?lang= はCookieに保存しないので、
+      付けないと ?lang= 付きで開いた人にだけ、Cookie・Accept-Language の言語の表が混ざる。
     */-->
     <div id="panel-global" role="tabpanel" aria-labelledby="tab-global"
          th:attr="hidden=${localTabActive} ? 'hidden' : null">
         <div class="ranking-slot"
-             th:attr="data-lazy-url=${lazyUrl != null and localTabActive} ? @{${lazyUrl}} : null">
+             th:attr="data-lazy-url=${lazyUrl != null and localTabActive} ? @{${lazyUrl}(lang=${#locale.language})} : null">
             <th:block th:if="${lazyUrl == null or !localTabActive}" th:insert="${globalPanel}"></th:block>
         </div>
     </div>
@@ -1046,6 +1061,7 @@
         <div id="panel-local" role="tabpanel" aria-labelledby="tab-local"
              th:attr="hidden=${localTabActive} ? null : 'hidden'">
             <form class="country-form" th:action="@{${formAction}}" method="get">
+                <input type="hidden" name="lang" th:value="${#locale.language}">
                 <label>
                     <span th:text="#{ranking.country.label}"></span>
                     <select name="country">
@@ -1056,7 +1072,7 @@
                 <button type="submit" th:text="#{ranking.country.apply}"></button>
             </form>
             <div class="ranking-slot"
-                 th:attr="data-lazy-url=${lazyUrl != null and !localTabActive} ? @{${lazyUrl}(country=${selectedCountry})} : null">
+                 th:attr="data-lazy-url=${lazyUrl != null and !localTabActive} ? @{${lazyUrl}(country=${selectedCountry},lang=${#locale.language})} : null">
                 <th:block th:if="${lazyUrl == null or localTabActive}" th:insert="${localPanel}"></th:block>
             </div>
         </div>
