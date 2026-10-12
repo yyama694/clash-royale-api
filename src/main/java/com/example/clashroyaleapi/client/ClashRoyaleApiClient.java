@@ -162,6 +162,19 @@ public class ClashRoyaleApiClient {
         return response.items().getLast().id();
     }
 
+    /** 終わったシーズンのID(古い順・重複なし)。シーズンごとの最終順位の画面の一覧に使う。 */
+    @Cacheable("finishedSeasonIds")
+    public List<String> getFinishedSeasonIds() {
+        SeasonsResponse response = call(() -> restClient.get()
+                .uri("/locations/global/seasons")
+                .retrieve()
+                .body(SeasonsResponse.class));
+        if (response == null || response.items() == null) {
+            return List.of();
+        }
+        return response.items().stream().map(SeasonsResponse.Season::id).distinct().toList();
+    }
+
     /** 終わったシーズンのランク戦の最終順位(グローバルだけ。国別は404になる)。 */
     @Cacheable("finishedSeasonPlayerRankings")
     public List<PlayerRankingResponse.RankedPlayer> getFinishedSeasonPathOfLegendRankings(String seasonId, int limit) {

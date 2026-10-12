@@ -145,6 +145,24 @@ class RankingHistoryServiceTest {
     }
 
     @Test
+    void 二十四時間の変化は最新の動きと同じ記録と比べる() throws IOException {
+        RankingHistoryService service = serviceWith(
+                snapshot("2026-10-06T11:00:00Z", "2026-09", "A", 2900),
+                snapshot("2026-10-06T12:30:00Z", "2026-09", "A", 2910),
+                snapshot("2026-10-07T11:45:00Z", "2026-09", "B", 2990));
+
+        assertEquals(Instant.parse("2026-10-06T12:30:00Z"), service.dayAgoSnapshot().orElseThrow().takenAt());
+    }
+
+    @Test
+    void 記録が止まっていれば二十四時間の変化は比べない() throws IOException {
+        RankingHistoryService stopped = serviceWith(
+                snapshot("2026-10-06T12:30:00Z", "2026-09", "A", 2910),
+                snapshot("2026-10-07T10:00:00Z", "2026-09", "B", 2990));
+        assertEquals(Optional.empty(), stopped.dayAgoSnapshot());
+    }
+
+    @Test
     void 終わっていない日と記録の無い日は空() throws IOException {
         RankingHistoryService service = serviceWith(snapshot("2026-10-07T00:01:00Z", "2026-09", "A", 2900));
 

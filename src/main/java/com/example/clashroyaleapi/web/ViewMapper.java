@@ -24,6 +24,7 @@ import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.RankChange;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.TopDecks;
@@ -33,6 +34,7 @@ import com.example.clashroyaleapi.service.CardImageService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.service.RankingHistoryService;
+import com.example.clashroyaleapi.service.RankingService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
@@ -61,10 +63,13 @@ import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
+import com.example.clashroyaleapi.web.view.PlayerProfileView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.PlayerRankingView;
+import com.example.clashroyaleapi.web.view.RankChangeView;
 import com.example.clashroyaleapi.web.view.RankingReportView;
+import com.example.clashroyaleapi.web.view.SeasonLinkView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
@@ -415,6 +420,14 @@ public class ViewMapper {
     }
 
     public PlayerRankingView toPlayerRanking(PlayerRanking ranking, Locale locale) {
+        return toPlayerRanking(ranking, null, locale);
+    }
+
+    /**
+     * dayAgo は約24時間前の世界ランキングの記録。渡したときだけ、今シーズンの順位なら24時間の変化の列を付ける
+     * (終わったシーズンの最終順位を代わりに出しているときは、比べる意味が無いので付けない)。
+     */
+    public PlayerRankingView toPlayerRanking(PlayerRanking ranking, RankingSnapshot dayAgo, Locale locale) {
         String notice = switch (ranking.status()) {
             case CURRENT_SEASON -> null;
             case NEW_SEASON -> labels.message("playerRanking.newSeason", locale, ranking.players().size());
@@ -423,7 +436,31 @@ public class ViewMapper {
             case EMPTY -> labels.message("playerRanking.empty", locale);
             case UNAVAILABLE -> labels.message("ranking.unavailable", locale);
         };
-        return new PlayerRankingView(toPlayerRankingRows(ranking.players()), notice);
+        boolean showChange = dayAgo != null && (ranking.status() == PlayerRanking.Status.CURRENT_SEASON
+                || ranking.status() == PlayerRanking.Status.NEW_SEASON);
+        Map<String, RankingSnapshot.Entry> previous = showChange ? dayAgo.byTag() : Map.of();
+        return new PlayerRankingView(ranking.players().stream()
+                .map(player -> toPlayerRankingRow(player, showChange
+                        ? toRankChange(RankChange.of(player.rank(), rankOf(previous.get(player.tag()))), locale)
+                        : null))
+                .toList(), notice, showChange);
+    }
+
+    private static Integer rankOf(RankingSnapshot.Entry entry) {
+        return entry == null ? null : entry.rank();
+    }
+
+    private RankChangeView toRankChange(RankChange change, Locale locale) {
+        NumberFormat numbers = NumberFormat.getIntegerInstance(locale);
+        return switch (change.kind()) {
+            case UP -> new RankChangeView("▲" + numbers.format(change.places()),
+                    labels.message("playerRanking.change.up", locale, change.places()), "up");
+            case DOWN -> new RankChangeView("▼" + numbers.format(change.places()),
+                    labels.message("playerRanking.change.down", locale, change.places()), "down");
+            case SAME -> new RankChangeView("－", labels.message("playerRanking.change.same", locale), "same");
+            case NEW -> new RankChangeView("NEW",
+                    labels.message("playerRanking.change.new", locale, RankingService.MAX_PLAYER_RANKING_SIZE), "new");
+        };
     }
 
     // 月名は言語ごとにICUに書かせる(引数は日時)。サーバーのタイムゾーンで前後の月にずれないよう、月の半ばにする。
@@ -431,13 +468,12 @@ public class ViewMapper {
         return Date.from(season.atDay(15).atStartOfDay(ZoneOffset.UTC).toInstant());
     }
 
-    private List<PlayerRankingRowView> toPlayerRankingRows(List<PlayerRankingResponse.RankedPlayer> players) {
-        return players.stream()
-                .map(player -> new PlayerRankingRowView(player.rank(), Tags.toPathSegment(player.tag()), player.tag(),
-                        GameText.stripFormatting(player.name()), player.eloRating(),
-                        player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
-                        player.clan() == null ? null : Tags.toPathSegment(player.clan().tag())))
-                .toList();
+    private static PlayerRankingRowView toPlayerRankingRow(PlayerRankingResponse.RankedPlayer player,
+            RankChangeView change) {
+        return new PlayerRankingRowView(player.rank(), Tags.toPathSegment(player.tag()), player.tag(),
+                GameText.stripFormatting(player.name()), player.eloRating(),
+                player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
+                player.clan() == null ? null : Tags.toPathSegment(player.clan().tag()), change);
     }
 
     public RankingReportView toRankingReport(RankingHistoryService.Report report, Locale locale) {
@@ -464,6 +500,20 @@ public class ViewMapper {
                                 dropout.previous().rank(),
                                 dropout.current() == null ? null : dropout.current().rank()))
                         .toList());
+    }
+
+    public List<SeasonLinkView> toSeasonLinks(List<YearMonth> seasons, Locale locale) {
+        return seasons.stream().map(season -> toSeasonLink(season, locale)).toList();
+    }
+
+    public SeasonLinkView toSeasonLink(YearMonth season, Locale locale) {
+        return new SeasonLinkView(season.toString(), labels.message("season.name", locale, seasonMonth(season)));
+    }
+
+    /** 終わったシーズンの最終順位の表。断り書きも24時間の変化も無い。 */
+    public PlayerRankingView toFinalStandings(List<PlayerRankingResponse.RankedPlayer> players) {
+        return new PlayerRankingView(players.stream().map(player -> toPlayerRankingRow(player, null)).toList(),
+                null, false);
     }
 
     public List<DayLinkView> toDayLinks(List<LocalDate> days, Locale locale) {
@@ -547,12 +597,22 @@ public class ViewMapper {
         return countryNames.countryName(country.countryCode(), country.englishName(), locale);
     }
 
-    public List<PlayerNameMatchView> toPlayerNameMatches(List<PlayerNameMatch> players, Locale locale) {
+    /** details は候補のタグをキーにした今のプロフィール(取っていない人は入っていない)。 */
+    public List<PlayerNameMatchView> toPlayerNameMatches(List<PlayerNameMatch> players,
+            Map<String, PlayerResponse> details, Locale locale) {
         return players.stream()
                 .map(player -> new PlayerNameMatchView(GameText.stripFormatting(player.name()), player.tag(),
                         Tags.toPathSegment(player.tag()),
-                        player.lastSeen() == null ? null : timeFormatter.instant(player.lastSeen(), locale)))
+                        player.lastSeen() == null ? null : timeFormatter.instant(player.lastSeen(), locale),
+                        Optional.ofNullable(details.get(player.tag())).map(this::toProfile).orElse(null)))
                 .toList();
+    }
+
+    private PlayerProfileView toProfile(PlayerResponse player) {
+        PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
+        return new PlayerProfileView(player.trophies(), kingTowerLevel(player),
+                player.clan() == null ? null : GameText.stripFormatting(player.clan().name()),
+                ranked != null && ranked.hasRank() ? ranked.rank() : null);
     }
 
     public List<ClanSummaryView> toClanSummaries(List<ClanSearchResponse.ClanSummary> clans) {
@@ -570,7 +630,7 @@ public class ViewMapper {
                 BattleResult.of(battle),
                 BattleResult.crownsOf(battle.team()),
                 BattleResult.crownsOf(battle.opponent()),
-                toOpponents(battle.opponent()),
+                toOpponents(battle.opponent(), locale),
                 toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()),
                 battle.team().stream().filter(p -> isViewer(p, viewerTag)).findFirst()
                         .map(viewer -> toTrophyChange(battle.type(), viewer, locale)).orElse(null));
@@ -593,11 +653,12 @@ public class ViewMapper {
     }
 
     /** 2v2はカードレベルがほぼ揃えられていて比べる意味が薄いため、平均レベルを出さない。 */
-    private static List<OpponentView> toOpponents(List<BattleLogEntry.Participant> participants) {
+    private List<OpponentView> toOpponents(List<BattleLogEntry.Participant> participants, Locale locale) {
         boolean teamBattle = participants.size() > 1;
         return participants.stream()
                 .map(p -> new OpponentView(GameText.stripFormatting(p.name()), Tags.toPathSegment(p.tag()),
-                        teamBattle ? null : toNullable(Deck.averageLevel(inGameLevels(p.cards())))))
+                        teamBattle ? null : toNullable(Deck.averageLevel(inGameLevels(p.cards()))),
+                        toCards(p.cards(), false, locale)))
                 .toList();
     }
 

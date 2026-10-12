@@ -79,7 +79,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new LanguageInterceptor(localeResolver(), modelAttributes));
-        registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**");
+        registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**", "/me/**");
     }
 
     /**

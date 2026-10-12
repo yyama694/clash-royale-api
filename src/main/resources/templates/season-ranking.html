@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/ranking/players/seasons}">&laquo; <span th:text="#{seasons.back}"></span></a>
+
+        <div class="card">
+            <h1 th:text="${heading}"></h1>
+            <p th:text="${lead}"></p>
+            <p class="movements-summary" th:text="${pageDescription}"></p>
+            <!--/* 前後のシーズンへ。日ごとのランキングの動きと同じ並び(左が古い)。 */-->
+            <nav class="pager" th:if="${previousSeason != null or nextSeason != null}">
+                <a th:if="${previousSeason != null}" class="btn btn-secondary btn-small"
+                   th:href="@{/ranking/players/seasons/{id}(id=${previousSeason.id()})}"
+                   th:text="'« ' + ${previousSeason.name()}"></a>
+                <a th:if="${nextSeason != null}" class="btn btn-secondary btn-small"
+                   th:href="@{/ranking/players/seasons/{id}(id=${nextSeason.id()})}"
+                   th:text="${nextSeason.name()} + ' »'"></a>
+            </nav>
+        </div>
+
+        <!--/* 終わったシーズンの順位は公式APIがクランを返さないことがある(2026-09はどの人にも無かった)ので、クランの列は出さない。 */-->
+        <div class="card">
+            <div th:replace="~{fragments/layout :: playerRankingTable(${ranking}, false)}"></div>
+            <a class="btn btn-secondary" th:href="@{/ranking/players}" th:text="#{season.currentRanking}"></a>
+        </div>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

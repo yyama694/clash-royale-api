@@ -206,6 +206,29 @@ class RankingServiceTest {
     }
 
     @Test
+    void 最終順位を出せるシーズンは2022年10月以降を新しい順に返す() {
+        when(apiClient.getFinishedSeasonIds())
+                .thenReturn(List.of("2016-02", "2022-09", "2022-10", "2026-08", "broken", "2026-09"));
+
+        assertEquals(List.of(YearMonth.of(2026, 9), YearMonth.of(2026, 8), YearMonth.of(2022, 10)),
+                rankingService.finishedSeasons());
+    }
+
+    @Test
+    void 終わっていないシーズンと公式APIが返さないシーズンの最終順位は空() {
+        when(apiClient.getFinishedSeasonIds()).thenReturn(List.of("2026-08", "2026-09"));
+        when(apiClient.getFinishedSeasonPathOfLegendRankings("2026-09", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of(rankedPlayer(1, "#P1")));
+        when(apiClient.getFinishedSeasonPathOfLegendRankings("2026-08", RankingService.MAX_PLAYER_RANKING_SIZE))
+                .thenReturn(List.of());
+
+        assertEquals(1, rankingService.finalStandings(YearMonth.of(2026, 9)).orElseThrow().size());
+        assertTrue(rankingService.finalStandings(YearMonth.of(2026, 8)).isEmpty());
+        assertTrue(rankingService.finalStandings(YearMonth.of(2026, 10)).isEmpty());
+        verify(apiClient, never()).getFinishedSeasonPathOfLegendRankings("2026-10", RankingService.MAX_PLAYER_RANKING_SIZE);
+    }
+
+    @Test
     void クラン対戦トロフィーは上位クランだけタグをキーに取得する() {
         List<ClanRankingResponse.RankedClan> clans = IntStream.rangeClosed(1, RankingService.WAR_TROPHIES_RANK_LIMIT + 1)
                 .mapToObj(rank -> rankedClan(rank, "#C" + rank))

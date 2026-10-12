@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{seasons.pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/ranking/players}">&laquo; <span th:text="#{action.backToPlayerRanking}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{seasons.heading}"></h1>
+            <p th:text="#{seasons.lead(${rankingSize})}"></p>
+            <!--/* 日ごとのランキングの動きの一覧と同じ見た目にする。 */-->
+            <ul class="movements-days">
+                <li th:each="s : ${seasons}">
+                    <a th:href="@{/ranking/players/seasons/{id}(id=${s.id()})}" th:text="${s.name()}"></a>
+                </li>
+            </ul>
+        </div>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

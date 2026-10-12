@@ -47,9 +47,11 @@ public class CacheConfig {
             // 1件=1000クラン / 1000人。国・地域の数だけ増え得るが、同時に見られるのは一部だけ。
             Map.entry("clanRankings", "maximumSize=40," + RANKING_TTL),
             Map.entry("playerRankings", "maximumSize=40," + RANKING_TTL),
-            // 終わったシーズンの順位は変わらない。使うのは新シーズンの開始直後(今シーズンのランキングが空の間)だけ。
+            // 終わったシーズンの順位は変わらない。新シーズンの開始直後(今シーズンのランキングが空の間)と、
+            // シーズンごとの最終順位の画面で使う。後者は1件=1シーズンの1000人で、過去の約50シーズンを順に見られうる。
             Map.entry("finishedSeasons", "maximumSize=2," + FINISHED_SEASON_TTL),
-            Map.entry("finishedSeasonPlayerRankings", "maximumSize=4," + FINISHED_SEASON_TTL),
+            Map.entry("finishedSeasonIds", "maximumSize=2," + FINISHED_SEASON_TTL),
+            Map.entry("finishedSeasonPlayerRankings", "maximumSize=12," + FINISHED_SEASON_TTL),
             // 1件=タグ20件の小さなMap。クランランキングの列なので、ランキングと同じ時間で切る。
             Map.entry("clanWarTrophies", "maximumSize=200," + RANKING_TTL),
             // どちらも実質1キーしか無い。

@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.service.LocationService;
 import com.example.clashroyaleapi.service.PlayerRanking;
+import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 
@@ -26,13 +27,15 @@ public class RankingController {
     private final RankingService rankingService;
     private final RankingScope rankingScope;
     private final LocationService locationService;
+    private final RankingHistoryService rankingHistoryService;
     private final ViewMapper viewMapper;
 
     public RankingController(RankingService rankingService, RankingScope rankingScope,
-            LocationService locationService, ViewMapper viewMapper) {
+            LocationService locationService, RankingHistoryService rankingHistoryService, ViewMapper viewMapper) {
         this.rankingService = rankingService;
         this.rankingScope = rankingScope;
         this.locationService = locationService;
+        this.rankingHistoryService = rankingHistoryService;
         this.viewMapper = viewMapper;
     }
 
@@ -87,7 +90,8 @@ public class RankingController {
         // 描かないタブは null にしておく(テンプレートは開いているタブしか描かない)。
         model.addAttribute("globalRanking", scope.localTabActive() ? null
                 : viewMapper.toPlayerRanking(
-                        rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE), locale));
+                        rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE),
+                        rankingHistoryService.dayAgoSnapshot().orElse(null), locale));
         model.addAttribute("localRanking", scope.localTabActive()
                 ? scope.country()
                         .map(c -> viewMapper.toPlayerRanking(
@@ -101,7 +105,10 @@ public class RankingController {
     /** タブを切り替えたときに、その国(未指定ならグローバル)の表だけを返す。画面のHTMLは返さない。 */
     @GetMapping("/ranking/players/table")
     public String playerRankingTable(@RequestParam(required = false) String country, Model model, Locale locale) {
-        model.addAttribute("ranking", viewMapper.toPlayerRanking(playerRankingFor(country), locale));
+        // 24時間の変化は世界の記録しか無いので、世界のタブだけに付ける。
+        boolean global = country == null || country.isBlank();
+        model.addAttribute("ranking", viewMapper.toPlayerRanking(playerRankingFor(country),
+                global ? rankingHistoryService.dayAgoSnapshot().orElse(null) : null, locale));
         return "fragments/layout :: playerRankingTable(ranking=${ranking}, detailed=true)";
     }
 
