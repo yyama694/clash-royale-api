@@ -927,7 +927,10 @@ td.cell-action {
     text-decoration: underline;
 }
 
-/* 対戦履歴の相手のデッキ。8枚が1行に収まる大きさにする(スマホ幅でも8枚×30px)。2v2の2人分は折り返して並べる。 */
+/*
+  対戦履歴の相手のデッキ。1枚は最大30pxで、行の幅が足りなければ8枚が1行に収まるまで縮める
+  (スマホ幅では30pxのままだと右端の「詳細」ボタンに重なった)。2v2の2人分は折り返して並べる。
+*/
 .battle-decks {
     display: flex;
     flex-wrap: wrap;
@@ -936,12 +939,14 @@ td.cell-action {
 }
 
 .battle-deck {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 30px));
     gap: 2px;
+    max-width: 100%;
 }
 
 .battle-deck img {
-    width: 30px;
+    width: 100%;
     height: auto;
     border-radius: 3px;
 }
