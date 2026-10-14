@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{footer.about})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <article class="card policy">
+            <h1 th:text="#{footer.about}"></h1>
+            <p th:text="#{about.intro}"></p>
+
+            <h2 th:text="#{about.operator.heading}"></h2>
+            <p th:text="#{about.operator.body}"></p>
+
+            <h2 th:text="#{about.data.heading}"></h2>
+            <p th:text="#{about.data.body}"></p>
+            <p>
+                <span th:text="#{footer.unofficial}"></span>
+                <a th:href="#{footer.policyUrl}" th:text="#{footer.policyLink}" rel="noopener"></a>
+            </p>
+
+            <h2 th:text="#{about.contact.heading}"></h2>
+            <p><span th:text="#{about.contact.body}"></span> <a href="https://x.com/princess_tower8" rel="noopener">@princess_tower8</a></p>
+            <p><span th:text="#{about.privacy}"></span> <a th:href="@{/privacy}" th:text="#{footer.privacy}"></a></p>
+        </article>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

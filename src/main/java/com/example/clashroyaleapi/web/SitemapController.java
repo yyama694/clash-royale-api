@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 public class SitemapController {
 
     private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players",
-            "/ranking/players/movements", "/ranking/players/seasons", "/privacy");
+            "/ranking/players/movements", "/ranking/players/seasons", "/about", "/privacy");
 
     private final CardService cardService;
     private final CardUsageService cardUsageService;
@@ -149,7 +149,8 @@ public class SitemapController {
                 - Data comes from the official Supercell Clash Royale API.
                 - Available languages: %s
                 - Not affiliated with or endorsed by Supercell.
-                """.formatted(siteName, base, base, base, base, base, base, base, base, languages);
+                - About this site and contact: %s/about
+                """.formatted(siteName, base, base, base, base, base, base, base, base, languages, base);
     }
 
     private Stream<String> cardPaths() {
