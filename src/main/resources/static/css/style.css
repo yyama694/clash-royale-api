@@ -795,6 +795,19 @@ td.cell-rank {
     display: none;
 }
 
+/* 上位のクランはトロフィーがほぼ全員14,000で並ぶので、世界上位1000人に入っているメンバーに世界順位を添える。 */
+.world-rank-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    color: var(--color-hero);
+    background: var(--color-hero-bg);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 thead th a {
     color: inherit;
     text-decoration: none;
@@ -2534,4 +2547,79 @@ td.cell-action {
 
 .card-detail .stat-grid {
     flex: 1 1 260px;
+}
+
+/* バランス調整。カードの画像と変更の内容を横に並べる。 */
+.balance-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.balance-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.6rem 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.balance-item:first-child {
+    border-top: none;
+}
+
+.balance-item .card-link {
+    flex: 0 0 3.5rem;
+}
+
+.balance-item .card-link img {
+    width: 100%;
+    height: auto;
+}
+
+/* ドイツ語の長い項目名(Produktionsgeschwindigkeit)がスマホ幅ではみ出さないよう、語の途中でも折り返す。 */
+.balance-body {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.balance-title {
+    margin: 0 0 0.25rem;
+    font-weight: 700;
+}
+
+.balance-title .badge {
+    margin-left: 0.3rem;
+}
+
+.balance-form {
+    color: var(--color-evolution);
+    background: var(--color-evolution-bg);
+}
+
+.kind-nerf .balance-kind {
+    color: var(--color-lose);
+    background: var(--color-lose-bg);
+}
+
+.kind-buff .balance-kind {
+    color: var(--color-win);
+    background: var(--color-win-bg);
+}
+
+.kind-rework .balance-kind,
+.kind-fix .balance-kind {
+    color: var(--color-draw);
+    background: var(--color-draw-bg);
+}
+
+.balance-lines {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.balance-usage {
+    margin: 0.25rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
 }

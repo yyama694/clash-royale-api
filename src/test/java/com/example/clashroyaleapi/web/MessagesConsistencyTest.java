@@ -37,9 +37,10 @@ class MessagesConsistencyTest {
      * 英語(基本ファイル)には無くてよいキー。カード名は公式APIの英語名をそのまま使い、
      * 国名・カード名の読み仮名は漢字の読みが要る言語に、カードの通称は通称が定着している言語にだけある。
      * プライバシーポリシーの本文は英語と日本語にだけあり、他の言語では英語版が出る(下のテストで英語と日本語をそろえる)。
+     * バランス調整の項目名のうち公式の訳が確かめられないもの(balance.statEn.)は英語にだけあり、他の言語でも英語で出す。
      */
     private static final List<String> LANGUAGE_SPECIFIC_PREFIXES =
-            List.of("cardalias.", "cardreading.", "country.reading.", PRIVACY_PREFIX);
+            List.of("cardalias.", "cardreading.", "country.reading.", PRIVACY_PREFIX, "balance.statEn.");
 
     private static Properties load(String name) throws IOException {
         try (InputStream in = MessagesConsistencyTest.class.getResourceAsStream("/" + name)) {

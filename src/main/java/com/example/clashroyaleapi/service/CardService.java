@@ -51,6 +51,12 @@ public class CardService {
                 .collect(Collectors.toMap(CardsResponse.Card::id, card -> card, (first, second) -> first));
     }
 
+    /** 公式APIの英語名で引く(バランス調整の内容は英語名で書いているため)。 */
+    public Map<String, CardsResponse.Card> cardsByName() {
+        return apiClient.getCards().items().stream()
+                .collect(Collectors.toMap(CardsResponse.Card::name, card -> card, (first, second) -> first));
+    }
+
     /**
      * カード一覧をレアリティごとに分け、各グループ内はエリクサーの軽い順に並べる。
      * タワーユニットはレアリティを持つが、デッキのカードとは別枠なので、レアリティに関係なく最後の1グループにまとめる。
