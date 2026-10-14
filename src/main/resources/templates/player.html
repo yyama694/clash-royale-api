@@ -237,6 +237,10 @@
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 
     <script th:replace="~{fragments/layout :: sinceLastScript}"></script>
+    <!--/* 「これは自分」の人はトップページの「自分の成績」に出るので、「最近見たもの」には残さない(10人の枠を使わないため) */-->
+    <th:block th:unless="${isMe}">
+        <script th:replace="~{fragments/layout :: recentViewsScript('player', ${playerPathTag}, ${playerName})}"></script>
+    </th:block>
     <!--/*
       順位の推移のホバー。縦線は指した時刻に一番近い記録に吸い付き、日時(UTC)と順位・レーティングを出す。
       キーボードでは、グラフにフォーカスして左右の矢印キーで1時間ずつ動かす。

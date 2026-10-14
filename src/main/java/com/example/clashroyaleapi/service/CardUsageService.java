@@ -11,11 +11,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 /**
  * 最新の集計結果(世界トップのデッキと、そこから求めたカード使用率)を持つ。集計はTopDeckCollectorが行い、ここに渡す。
@@ -33,6 +38,7 @@ public class CardUsageService {
     private final Path historyDir;
     private volatile TopDecks topDecks;
     private volatile CardUsage current;
+    private final Map<Instant, Optional<CardUsage>> before = new ConcurrentHashMap<>();
 
     @Autowired
     public CardUsageService(PlayerIndexProperties properties) {
@@ -75,6 +81,34 @@ public class CardUsageService {
         } catch (IOException e) {
             log.warn("could not save the card usage history: {}", e.toString());
         }
+    }
+
+    /**
+     * その時刻より前の最後の集計(バランス調整の前の使用率に使う)。履歴が無ければ空。
+     * 調整ごとに1回読めば済むので、読んだ結果を覚えておく。
+     */
+    public Optional<CardUsage> lastBefore(Instant time) {
+        return before.computeIfAbsent(time, this::readLastBefore);
+    }
+
+    private Optional<CardUsage> readLastBefore(Instant time) {
+        String cutoff = DAY.format(time) + "/" + TIME.format(time) + ".tsv";
+        try (Stream<Path> files = Files.exists(historyDir) ? Files.walk(historyDir, 2) : Stream.empty()) {
+            Optional<Path> last = files.filter(Files::isRegularFile)
+                    .filter(file -> relative(file).compareTo(cutoff) < 0)
+                    .max(Comparator.comparing(this::relative));
+            if (last.isEmpty()) {
+                return Optional.empty();
+            }
+            return new TopDecksFile(last.get()).read().map(CardUsage::of);
+        } catch (IOException e) {
+            log.warn("could not read the card usage history before {}: {}", time, e.toString());
+            return Optional.empty();
+        }
+    }
+
+    private String relative(Path file) {
+        return historyDir.relativize(file).toString().replace('\\', '/');
     }
 
     /** 集計ごとに history/<日付>/<時分秒>.tsv(UTC)。中身は top-decks.tsv と同じ形式。 */

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/cards}">&laquo; <span th:text="#{action.backToCards}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{balance.heading}"></h1>
+            <p th:text="#{balance.lead}"></p>
+            <!--/* 公式の訳が確かめられない項目名は、英語のまま出している(英語のUIでは断らない) */-->
+            <th:block th:if="${#locale.language != 'en'}">
+                <p th:replace="~{fragments/layout :: notice(#{balance.englishNotice})}"></p>
+            </th:block>
+        </div>
+
+        <section class="card" th:each="u : ${updates}" th:id="${u.anchor()}">
+            <h2 th:text="${u.heading()}"></h2>
+            <p><a th:href="${u.sourceUrl()}" rel="noopener" th:text="#{balance.source}"></a></p>
+            <th:block th:each="g : ${u.groups()}">
+                <h3 th:text="${g.label()}"></h3>
+                <ul class="balance-list">
+                    <th:block th:each="c : ${g.cards()}">
+                        <li th:replace="~{fragments/layout :: balanceChange(${c}, null, null)}"></li>
+                    </th:block>
+                </ul>
+            </th:block>
+            <th:block th:if="${u.nowSampleSize() != null and u.baselineDate() != null}">
+                <p th:replace="~{fragments/layout :: notice(#{balance.usage.notice(${u.baselineDate()}, ${u.baselineSampleSize()}, ${u.nowSampleSize()})})}"></p>
+            </th:block>
+            <th:block th:if="${u.nowSampleSize() != null and u.baselineDate() == null}">
+                <p th:replace="~{fragments/layout :: notice(#{balance.usage.noticeNow(${u.nowSampleSize()})})}"></p>
+            </th:block>
+            <p th:replace="~{fragments/layout :: notice(#{balance.usage.formNotice})}"></p>
+        </section>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -44,7 +44,7 @@
                         <tr th:each="member : ${members}">
                             <!--/* スマホ幅では1人の行が長くならないよう、順位の列は隠して名前の前に出す(member-rank)。 */-->
                             <td class="cell-rank" th:attr="data-label=#{clan.col.rank}" th:text="${member.clanRank()}"></td>
-                            <td th:attr="data-label=#{clan.col.name}"><span><span class="member-rank" th:if="${member.clanRank() != null}" th:text="${member.clanRank()} + '.'"></span><a th:href="@{/player/{tag}(tag=${member.pathTag()})}"><bdi th:text="${member.name()}"></bdi></a></span></td>
+                            <td th:attr="data-label=#{clan.col.name}"><span><span class="member-rank" th:if="${member.clanRank() != null}" th:text="${member.clanRank()} + '.'"></span><a th:href="@{/player/{tag}(tag=${member.pathTag()})}"><bdi th:text="${member.name()}"></bdi></a></span><span class="world-rank-badge" th:if="${member.worldRank() != null}" th:text="#{player.ranked.rank(${member.worldRank()})}"></span></td>
                             <td th:attr="data-label=#{clan.col.role}" th:text="${member.role()}"></td>
                             <td class="num" th:attr="data-label=#{clan.col.trophies}" th:text="${#numbers.formatInteger(member.trophies(), 1, 'DEFAULT')}"></td>
                             <td class="num" th:attr="data-label=#{clan.col.donations}" th:text="${#numbers.formatInteger(member.donations(), 1, 'DEFAULT')}"></td>
@@ -103,5 +103,7 @@
         </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+    <script th:replace="~{fragments/layout :: recentViewsScript('clan', ${clanPathTag}, ${clanName})}"></script>
 </body>
 </html>

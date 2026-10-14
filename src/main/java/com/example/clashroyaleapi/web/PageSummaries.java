@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
+import com.example.clashroyaleapi.domain.BalanceUpdate;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.LeaderHistory;
@@ -193,6 +194,32 @@ public class PageSummaries {
                     ListFormatter.getInstance(ULocale.forLocale(locale)).format(names)));
         }
         sentences.add(labels.message("card.summary.daily", locale));
+        return join(sentences, locale);
+    }
+
+    public String balanceTitle(Locale locale) {
+        return labels.message("balance.seo.title", locale);
+    }
+
+    /** 最新の調整の日付と、強化・弱体化されたカードの名前を入れる(検索結果で中身が分かるように)。 */
+    public String balanceSummary(List<BalanceUpdate> updates, Locale locale) {
+        if (updates.isEmpty()) {
+            return labels.message("balance.lead", locale);
+        }
+        BalanceUpdate latest = updates.getFirst();
+        List<String> sentences = new ArrayList<>();
+        sentences.add(labels.message("balance.summary", locale, dateOf(latest.date())));
+        for (BalanceUpdate.Kind kind : List.of(BalanceUpdate.Kind.NERF, BalanceUpdate.Kind.BUFF)) {
+            List<String> cards = latest.changes().stream()
+                    .filter(change -> change.kind() == kind)
+                    .map(change -> labels.cardName(change.card(), locale))
+                    .distinct()
+                    .toList();
+            if (!cards.isEmpty()) {
+                sentences.add(labels.message("balance.summary." + kind.code(), locale,
+                        ListFormatter.getInstance(ULocale.forLocale(locale)).format(cards)));
+            }
+        }
         return join(sentences, locale);
     }
 

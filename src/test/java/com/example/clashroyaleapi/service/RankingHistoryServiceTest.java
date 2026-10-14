@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,6 +59,20 @@ class RankingHistoryServiceTest {
         RankingSnapshot latest = service.latestSnapshot().orElseThrow();
         assertEquals(Instant.parse("2026-10-07T12:00:00Z"), latest.takenAt());
         assertEquals("#C", latest.entries().getFirst().tag());
+    }
+
+    @Test
+    void 今の世界順位は最新の記録から作る() throws IOException {
+        assertEquals(Map.of(), serviceWith().currentWorldRanks());
+
+        assertEquals(Map.of("#B", 1, "#Z", 2), serviceWith(
+                snapshot("2026-10-06T11:00:00Z", "2026-09", "A", 2900),
+                snapshot("2026-10-07T11:00:00Z", "2026-09", "B", 2990)).currentWorldRanks());
+    }
+
+    @Test
+    void 記録が1時間より前で止まっていれば今の世界順位は空() throws IOException {
+        assertEquals(Map.of(), serviceWith(snapshot("2026-10-07T10:59:00Z", "2026-09", "B", 2990)).currentWorldRanks());
     }
 
     @Test

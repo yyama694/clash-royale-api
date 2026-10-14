@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.SortDirection;
 import com.example.clashroyaleapi.service.ClanService;
+import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,13 +33,15 @@ public class ClanController {
     private final ViewMapper viewMapper;
     private final FavoriteCookies favoriteCookies;
     private final PageSummaries pageSummaries;
+    private final RankingHistoryService rankingHistoryService;
 
     public ClanController(ClanService clanService, ViewMapper viewMapper, FavoriteCookies favoriteCookies,
-            PageSummaries pageSummaries) {
+            PageSummaries pageSummaries, RankingHistoryService rankingHistoryService) {
         this.clanService = clanService;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
         this.pageSummaries = pageSummaries;
+        this.rankingHistoryService = rankingHistoryService;
     }
 
     /** クランタグ・クラン名のどちらでも受け取る検索の受け口。 */
@@ -88,7 +91,8 @@ public class ClanController {
         model.addAttribute("favoriteLimit", favoriteLimit != null);
         model.addAttribute("favoriteHint", !favoriteCookies.hasAny(request));
         model.addAttribute("members",
-                viewMapper.toMembers(clanService.sortMembers(clan.memberList(), sortKey, direction), locale));
+                viewMapper.toMembers(clanService.sortMembers(clan.memberList(), sortKey, direction),
+                        rankingHistoryService.currentWorldRanks(), locale));
         model.addAttribute("sortBy", sortKey.code());
         model.addAttribute("sortDir", direction.code());
 

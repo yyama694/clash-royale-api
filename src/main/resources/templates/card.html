@@ -69,6 +69,16 @@
                 <time th:replace="~{fragments/layout :: localTime(${usage.collectedAt()})}"></time></p>
         </div>
 
+        <section class="card" id="balance" th:unless="${#lists.isEmpty(balanceHistory)}">
+            <h2 th:text="#{balance.cardHeading}"></h2>
+            <ul class="balance-list">
+                <th:block th:each="e : ${balanceHistory}">
+                    <li th:replace="~{fragments/layout :: balanceChange(${e.change()}, ${e.heading()}, ${e.anchor()})}"></li>
+                </th:block>
+            </ul>
+            <a class="btn btn-secondary card-action" th:href="@{/balance}" th:text="#{balance.all}"></a>
+        </section>
+
         <!--/*
           このカードを使っているトッププレイヤーのうち、順位の高い人のデッキ。全員分はデッキ画面(カードで絞り込み)へつなぐ。
           誰も使っていないカードと、初回の集計が終わる前は出さない(使用率の欄に人数が出ているので、空の欄は置かない)。
