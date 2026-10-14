@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.domain.LeaderHistory;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
+import com.example.clashroyaleapi.domain.SeasonRankLog;
 import com.example.clashroyaleapi.store.RankingSnapshotStore;
 
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -61,6 +63,7 @@ public class RankingHistoryService {
     private final RankingSnapshotStore store;
     private final Clock clock;
     private volatile List<RankingSnapshotStore.Summary> summaries;
+    private volatile SeasonRankLog seasonLog;
     private final Map<Instant, RankingSnapshot> cache = new LinkedHashMap<>(CACHED_SNAPSHOTS, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<Instant, RankingSnapshot> eldest) {
@@ -86,6 +89,44 @@ public class RankingHistoryService {
             loaded = List.of();
         }
         this.summaries = List.copyOf(loaded);
+        this.seasonLog = loadSeasonLog(this.summaries);
+    }
+
+    /**
+     * 最新の記録と同じシーズンの記録を、1時間に1つ(その時間の最後の記録)だけ読む。
+     * 1か月分でも約720ファイル(約30MB)で、起動を数秒延ばす程度。
+     */
+    private SeasonRankLog loadSeasonLog(List<RankingSnapshotStore.Summary> all) {
+        if (all.isEmpty()) {
+            return null;
+        }
+        RankingSnapshotStore.Summary last = all.getLast();
+        Map<Instant, Instant> lastOfHour = new LinkedHashMap<>();
+        all.stream()
+                .filter(summary -> sameSeason(summary, last))
+                .forEach(summary -> lastOfHour.put(summary.takenAt().truncatedTo(ChronoUnit.HOURS), summary.takenAt()));
+        SeasonRankLog log = new SeasonRankLog(last.finishedSeason());
+        for (Instant takenAt : lastOfHour.values()) {
+            try {
+                store.read(takenAt).ifPresent(log::add);
+            } catch (IOException e) {
+                RankingHistoryService.log.warn("could not read the ranking record at {}: {}", takenAt, e.toString());
+            }
+        }
+        return log;
+    }
+
+    /**
+     * 今シーズンの、そのプレイヤーの順位とレーティングの推移(1時間ごと、古い順)。
+     * 記録が止まっているとき(シーズンの切り替え直後は前のシーズンの記録が最新のまま残る)と、2点に満たないときは空。
+     */
+    public List<SeasonRankLog.Point> seasonHistory(String playerTag) {
+        SeasonRankLog log = seasonLog;
+        if (log == null || log.lastAt() == null || clock.instant().isAfter(log.lastAt().plus(STALE_AFTER))) {
+            return List.of();
+        }
+        List<SeasonRankLog.Point> points = log.of(playerTag);
+        return points.size() < 2 ? List.of() : points;
     }
 
     /** 記録を足す。呼ぶのは記録のバッチ(スケジューラーのスレッド1本)だけ。 */
@@ -101,6 +142,12 @@ public class RankingHistoryService {
         summaries = List.copyOf(next);
         synchronized (cache) {
             cache.put(snapshot.takenAt(), snapshot);
+        }
+        SeasonRankLog log = seasonLog;
+        if (log == null || !log.add(snapshot)) {
+            SeasonRankLog fresh = new SeasonRankLog(snapshot.finishedSeason());
+            fresh.add(snapshot);
+            seasonLog = fresh;
         }
     }
 

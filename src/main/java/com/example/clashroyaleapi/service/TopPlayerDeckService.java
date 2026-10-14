@@ -1,5 +1,7 @@
 package com.example.clashroyaleapi.service;
 
+import com.example.clashroyaleapi.domain.PopularDeck;
+import com.example.clashroyaleapi.domain.SimilarDecks;
 import com.example.clashroyaleapi.domain.TopDecks;
 
 import org.springframework.stereotype.Service;
@@ -21,6 +23,9 @@ public class TopPlayerDeckService {
     public static final int PAGE_SIZE = 100;
     /** 絞り込みで同時に選べるカードの数(2026-10-10にユーザーが決定)。タワーユニットもこの数に含める。 */
     public static final int MAX_FILTER_CARDS = 8;
+    /** デッキ画面の「人気のデッキ」に出す数。1人しか使っていないデッキは「人気」と言えないので出さない。 */
+    public static final int POPULAR_LIMIT = 5;
+    static final int POPULAR_MIN_PLAYERS = 2;
 
     private final CardUsageService usageService;
 
@@ -35,9 +40,11 @@ public class TopPlayerDeckService {
      * @param sampleSize 絞り込む前の人数(集計した全員)
      * @param topRank    絞り込み後の最上位の順位。該当者がいなければ null
      * @param finishedSeason 前のシーズンの最終順位の上位で集めたときのシーズン。今シーズンのランキングで集めたときは null
+     * @param popular    絞り込み後の人のうち、同じ8枚を2人以上が使っているデッキ(人数の多い順に{@link #POPULAR_LIMIT}件まで)
      */
     public record Page(Instant collectedAt, List<TopDecks.SampledDeck> decks, int total, int page, int from,
-                       boolean hasNext, int sampleSize, Integer topRank, YearMonth finishedSeason) {
+                       boolean hasNext, int sampleSize, Integer topRank, YearMonth finishedSeason,
+                       List<PopularDeck> popular) {
     }
 
     /**
@@ -67,10 +74,7 @@ public class TopPlayerDeckService {
      */
     public Optional<Page> page(List<Integer> cardIds, int page, int pageSize) {
         return usageService.topDecks().flatMap(topDecks -> {
-            List<TopDecks.SampledDeck> ranked = topDecks.decks().stream()
-                    .filter(deck -> deck.player() != null)
-                    .sorted(Comparator.comparingInt(deck -> deck.player().rank()))
-                    .toList();
+            List<TopDecks.SampledDeck> ranked = ranked(topDecks);
             if (ranked.isEmpty()) {
                 return Optional.empty();
             }
@@ -83,7 +87,26 @@ public class TopPlayerDeckService {
             int end = Math.min(start + pageSize, matched.size());
             return Optional.of(new Page(topDecks.collectedAt(), matched.subList(start, end), matched.size(), current,
                     matched.isEmpty() ? 0 : start + 1, current < lastPage, ranked.size(),
-                    matched.isEmpty() ? null : matched.get(0).player().rank(), topDecks.finishedSeason()));
+                    matched.isEmpty() ? null : matched.get(0).player().rank(), topDecks.finishedSeason(),
+                    PopularDeck.rank(matched, POPULAR_MIN_PLAYERS, POPULAR_LIMIT)));
         });
+    }
+
+    /**
+     * プレイヤー情報画面の「同じデッキの世界ランカー」。8〜6枚が同じデッキを使っているトッププレイヤーがいなければ空。
+     * まだ一度も集計していないときも空。
+     *
+     * @param deck 使用中のデッキのカード(タワーユニットを除く)
+     */
+    public Optional<SimilarDecks> similar(List<Integer> deck, String playerTag) {
+        return usageService.topDecks()
+                .flatMap(topDecks -> SimilarDecks.find(deck, ranked(topDecks), playerTag));
+    }
+
+    private static List<TopDecks.SampledDeck> ranked(TopDecks topDecks) {
+        return topDecks.decks().stream()
+                .filter(deck -> deck.player() != null)
+                .sorted(Comparator.comparingInt(deck -> deck.player().rank()))
+                .toList();
     }
 }

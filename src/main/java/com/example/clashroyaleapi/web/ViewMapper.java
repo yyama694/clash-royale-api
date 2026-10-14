@@ -24,9 +24,12 @@ import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
+import com.example.clashroyaleapi.domain.PopularDeck;
 import com.example.clashroyaleapi.domain.RankChange;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
+import com.example.clashroyaleapi.domain.SeasonRankLog;
+import com.example.clashroyaleapi.domain.SimilarDecks;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.domain.TrophyChange;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
@@ -68,17 +71,24 @@ import com.example.clashroyaleapi.web.view.PlayerProfileView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.PlayerRankingView;
+import com.example.clashroyaleapi.web.view.PopularDeckView;
 import com.example.clashroyaleapi.web.view.RankChangeView;
+import com.example.clashroyaleapi.web.view.RankHistoryView;
 import com.example.clashroyaleapi.web.view.RankingReportView;
 import com.example.clashroyaleapi.web.view.SeasonLinkView;
+import com.example.clashroyaleapi.web.view.SimilarDecksView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
 
 import com.ibm.icu.text.Collator;
+import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.text.ListFormatter;
+import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -203,26 +213,186 @@ public class ViewMapper {
     public TopPlayerDeckView toTopPlayerDeck(TopDecks.SampledDeck deck, Map<Integer, CardsResponse.Card> cardsById,
             Locale locale) {
         TopDecks.Player player = deck.player();
+        List<CardView> cards = sampledCards(deck, cardsById, true, locale);
+        return new TopPlayerDeckView(player.rank(), player.name(), Tags.toPathSegment(player.tag()), player.rating(),
+                cards, sampledSupportCards(deck, cardsById, true, locale),
+                sampledDeckMeta(deck, cardsById, toNullable(Deck.averageLevel(player.levels()))));
+    }
+
+    /** 人気のデッキ。レベルは人ごとに違うので出さない(平均レベルも)。 */
+    public PopularDeckView toPopularDeck(PopularDeck popular, Map<Integer, CardsResponse.Card> cardsById,
+            Locale locale) {
+        TopDecks.SampledDeck deck = popular.best();
+        TopDecks.Player player = deck.player();
+        return new PopularDeckView(popular.players(), player.rank(), player.name(), Tags.toPathSegment(player.tag()),
+                sampledCards(deck, cardsById, false, locale), sampledSupportCards(deck, cardsById, false, locale),
+                sampledDeckMeta(deck, cardsById, null), deck.cardIds());
+    }
+
+    private List<CardView> sampledCards(TopDecks.SampledDeck deck, Map<Integer, CardsResponse.Card> cardsById,
+            boolean withLevels, Locale locale) {
+        TopDecks.Player player = deck.player();
         List<CardView> cards = new ArrayList<>();
-        List<Integer> elixirCosts = new ArrayList<>();
         for (int i = 0; i < deck.cardIds().size(); i++) {
             int id = deck.cardIds().get(i);
-            int level = i < player.levels().size() ? player.levels().get(i) : 0;
-            CardsResponse.Card card = cardsById.get(id);
-            cards.add(toCardView(id, card, level, player.formAt(i), false, locale));
-            elixirCosts.add(card == null ? null : card.elixirCost());
+            int level = withLevels && i < player.levels().size() ? player.levels().get(i) : 0;
+            cards.add(toCardView(id, cardsById.get(id), level, player.formAt(i), false, locale));
         }
-        List<CardView> support = deck.towerTroopId() == null ? List.of()
+        return cards;
+    }
+
+    private List<CardView> sampledSupportCards(TopDecks.SampledDeck deck,
+            Map<Integer, CardsResponse.Card> cardsById, boolean withLevels, Locale locale) {
+        Integer towerLevel = deck.player().towerLevel();
+        return deck.towerTroopId() == null ? List.of()
                 : List.of(toCardView(deck.towerTroopId(), cardsById.get(deck.towerTroopId()),
-                        player.towerLevel() == null ? 0 : player.towerLevel(), CardForm.NORMAL, true, locale));
+                        withLevels && towerLevel != null ? towerLevel : 0, CardForm.NORMAL, true, locale));
+    }
+
+    private static DeckMetaView sampledDeckMeta(TopDecks.SampledDeck deck,
+            Map<Integer, CardsResponse.Card> cardsById, Double averageLevel) {
+        List<Integer> elixirCosts = deck.cardIds().stream()
+                .map(id -> cardsById.get(id) == null ? null : cardsById.get(id).elixirCost())
+                .toList();
         OptionalInt cycle = Deck.fourCardCycle(elixirCosts);
-        DeckMetaView meta = new DeckMetaView(
+        return new DeckMetaView(
                 toNullable(Deck.averageElixir(elixirCosts)),
                 cycle.isPresent() ? cycle.getAsInt() : null,
-                toNullable(Deck.averageLevel(player.levels())),
+                averageLevel,
                 Deck.copyUrl(deck.cardIds(), deck.towerTroopId()).orElse(null));
-        return new TopPlayerDeckView(player.rank(), player.name(), Tags.toPathSegment(player.tag()), player.rating(),
-                cards, support, meta);
+    }
+
+    /** 同じ8枚がいなければ「〇〇以外の7枚が同じ」のように、違うカードの名前を添える。 */
+    public SimilarDecksView toSimilarDecks(SimilarDecks similar, List<Integer> deck,
+            Map<Integer, CardsResponse.Card> cardsById, Locale locale) {
+        String text;
+        if (similar.sharedCards() == Deck.SIZE) {
+            text = labels.message("deck.similar.same", locale, similar.sampleSize(), similar.players());
+        } else {
+            List<String> others = deck.stream()
+                    .filter(id -> !similar.cardIds().contains(id))
+                    .map(id -> cardsById.containsKey(id) ? labels.cardName(cardsById.get(id).name(), locale)
+                            : String.valueOf(id))
+                    .toList();
+            text = labels.message("deck.similar.partial", locale, similar.sampleSize(), similar.players(),
+                    similar.sharedCards(), ListFormatter.getInstance(ULocale.forLocale(locale)).format(others));
+        }
+        return new SimilarDecksView(text, similar.cardIds(), similar.selfExcluded());
+    }
+
+    /** 記録の間がこれより空いたら、線を切る(1000位より下にいた間と、記録が止まっていた間)。 */
+    static final Duration RANK_HISTORY_GAP = Duration.ofMinutes(90);
+
+    /** @param points 古い順で2点以上 */
+    public RankHistoryView toRankHistory(List<SeasonRankLog.Point> points, Locale locale) {
+        long from = points.getFirst().at().getEpochSecond();
+        long to = points.getLast().at().getEpochSecond();
+        int[] axis = rankAxis(points.stream().mapToInt(SeasonRankLog.Point::rank).min().orElseThrow(),
+                points.stream().mapToInt(SeasonRankLog.Point::rank).max().orElseThrow());
+        int top = axis[0];
+        int bottom = axis[1];
+        int step = axis[2];
+
+        List<String> segments = new ArrayList<>();
+        StringBuilder segment = new StringBuilder();
+        SeasonRankLog.Point previous = null;
+        int inSegment = 0;
+        for (SeasonRankLog.Point point : points) {
+            if (previous != null && Duration.between(previous.at(), point.at()).compareTo(RANK_HISTORY_GAP) > 0) {
+                segments.add(closeSegment(segment, inSegment));
+                segment.setLength(0);
+                inSegment = 0;
+            }
+            String xy = svgCoordinate(ratio(point.at().getEpochSecond(), from, to)) + ","
+                    + svgCoordinate(ratio(point.rank(), top, bottom));
+            segment.append(inSegment == 0 ? "" : " ").append(xy);
+            inSegment++;
+            previous = point;
+        }
+        segments.add(closeSegment(segment, inSegment));
+
+        List<Integer> tickRanks = new ArrayList<>(List.of(top));
+        for (int rank = (top / step + 1) * step; rank <= bottom; rank += step) {
+            tickRanks.add(rank);
+        }
+        NumberFormat numberFormat = NumberFormat.getIntegerInstance(locale);
+        List<RankHistoryView.Tick> yTicks = tickRanks.stream()
+                .map(rank -> new RankHistoryView.Tick(percent(ratio(rank, top, bottom)),
+                        svgCoordinate(ratio(rank, top, bottom)), numberFormat.format(rank)))
+                .toList();
+
+        DateFormat dayFormat = DateFormat.getInstanceForSkeleton("Md", ULocale.forLocale(locale));
+        dayFormat.setTimeZone(TimeZone.GMT_ZONE);
+        List<LocalDate> days = new ArrayList<>();
+        for (LocalDate day = LocalDate.ofInstant(points.getFirst().at(), ZoneOffset.UTC).plusDays(1);
+                !day.atStartOfDay(ZoneOffset.UTC).toInstant().isAfter(points.getLast().at()); day = day.plusDays(1)) {
+            days.add(day);
+        }
+        int every = Math.max(1, (days.size() + RANK_HISTORY_MAX_DAY_TICKS - 1) / RANK_HISTORY_MAX_DAY_TICKS);
+        List<RankHistoryView.Tick> xTicks = new ArrayList<>();
+        for (int i = days.size() - 1; i >= 0; i -= every) {
+            Instant midnight = days.get(i).atStartOfDay(ZoneOffset.UTC).toInstant();
+            double x = ratio(midnight.getEpochSecond(), from, to);
+            xTicks.addFirst(new RankHistoryView.Tick(percent(x), svgCoordinate(x),
+                    dayFormat.format(Date.from(midnight))));
+        }
+
+        SeasonRankLog.Point last = points.getLast();
+        SeasonRankLog.Point best = points.stream().min(Comparator.comparingInt(SeasonRankLog.Point::rank)).orElseThrow();
+        double endY = ratio(last.rank(), top, bottom);
+        StringBuilder json = new StringBuilder("[");
+        for (SeasonRankLog.Point point : points) {
+            json.append(json.length() == 1 ? "" : ",").append('[').append(point.at().getEpochSecond()).append(',')
+                    .append(point.rank()).append(',').append(point.rating()).append(']');
+        }
+        json.append(']');
+        return new RankHistoryView(segments, yTicks, xTicks, percent(1.0), percent(endY),
+                labels.message("player.ranked.rank", locale, last.rank()), endY < 0.2,
+                labels.message("rankHistory.best", locale, best.rank(), dayFormat.format(Date.from(best.at()))),
+                json.toString(), labels.message("rankHistory.point", locale, "{rank}", "{rating}"), top, bottom);
+    }
+
+    static final int RANK_HISTORY_MAX_DAY_TICKS = 6;
+
+    /**
+     * 縦軸の上端・下端の順位と目盛りの間隔。目盛りが3〜5本ほどになるよう、間隔を1・2・5の10のべき乗倍から選ぶ。
+     * 上端は1位か間隔の倍数、下端は間隔の倍数にそろえる。
+     *
+     * @return {上端, 下端, 間隔}
+     */
+    static int[] rankAxis(int best, int worst) {
+        int step = 1;
+        while ((worst - best) / (double) step > 4) {
+            int magnitude = step;
+            step = switch (Integer.toString(step).charAt(0)) {
+                case '1' -> magnitude * 2;
+                case '2' -> magnitude / 2 * 5;
+                default -> magnitude * 2;
+            };
+        }
+        int top = Math.max(1, best / step * step);
+        int bottom = (worst + step - 1) / step * step;
+        if (bottom <= top) {
+            bottom = top + step;
+        }
+        return new int[] {top, bottom, step};
+    }
+
+    private static double ratio(double value, double from, double to) {
+        return to == from ? 0 : (value - from) / (to - from);
+    }
+
+    private static String percent(double ratio) {
+        return String.format(Locale.ROOT, "%.2f", ratio * 100);
+    }
+
+    private static String svgCoordinate(double ratio) {
+        return String.format(Locale.ROOT, "%.1f", ratio * 1000);
+    }
+
+    /** 1点だけの区間は、同じ点を2つ並べる(線の端の丸で点として見える)。 */
+    private static String closeSegment(StringBuilder segment, int points) {
+        return points == 1 ? segment + " " + segment : segment.toString();
     }
 
     private CardView toCardView(int id, CardsResponse.Card card, int level, CardForm form, boolean tower,

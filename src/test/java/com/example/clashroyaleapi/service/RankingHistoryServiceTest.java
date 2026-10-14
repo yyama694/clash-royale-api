@@ -181,4 +181,39 @@ class RankingHistoryServiceTest {
         assertEquals(List.of(LocalDate.parse("2026-10-06"), LocalDate.parse("2026-10-05")), service.archiveDays());
         assertFalse(service.archiveDays().contains(LocalDate.parse("2026-10-07")));
     }
+
+    @Test
+    void 今シーズンの順位の推移は1時間に1つの記録で作り_前のシーズンの記録は使わない() throws IOException {
+        RankingHistoryService service = serviceWith(
+                snapshot("2026-10-05T08:45:00Z", "2026-08", "A", 3500),
+                snapshot("2026-10-07T10:00:00Z", "2026-09", "A", 2900),
+                snapshot("2026-10-07T10:45:00Z", "2026-09", "B", 2950),
+                snapshot("2026-10-07T11:00:00Z", "2026-09", "A", 2990));
+
+        assertEquals(List.of(Instant.parse("2026-10-07T10:45:00Z"), Instant.parse("2026-10-07T11:00:00Z")),
+                service.seasonHistory("#Z").stream().map(point -> point.at()).toList());
+        assertEquals(List.of(), service.seasonHistory("#A"));
+
+        service.record(snapshot("2026-10-07T12:00:00Z", "2026-09", "A", 3000));
+        assertEquals(List.of(1, 1), service.seasonHistory("#A").stream().map(point -> point.rank()).toList());
+    }
+
+    @Test
+    void 記録が止まっていれば順位の推移は空() throws IOException {
+        RankingHistoryService stopped = serviceWith(
+                snapshot("2026-10-07T09:00:00Z", "2026-09", "A", 2900),
+                snapshot("2026-10-07T10:45:00Z", "2026-09", "A", 2950));
+
+        assertEquals(List.of(), stopped.seasonHistory("#A"));
+    }
+
+    @Test
+    void シーズンが変わったばかりなら順位の推移は空() throws IOException {
+        RankingHistoryService running = serviceWith(
+                snapshot("2026-10-07T10:00:00Z", "2026-09", "A", 2900),
+                snapshot("2026-10-07T11:45:00Z", "2026-09", "A", 2950));
+        assertEquals(2, running.seasonHistory("#A").size());
+        running.record(snapshot("2026-10-07T12:00:00Z", "2026-10", "A", 2000));
+        assertEquals(List.of(), running.seasonHistory("#A"));
+    }
 }
