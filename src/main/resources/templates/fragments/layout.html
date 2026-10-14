@@ -849,6 +849,7 @@
   公式APIのカード画像は 285x420 で統一されている。
   進化(限界突破)・ヒーローで使ったカードは、その形の画像と枠の色で示す。形の名前は読み上げと、マウスを重ねたときの表示に出す。
   マウスを重ねたときはカード名も出す。デッキ画面ではカード名を画面に出していないため(絵で分からない新カードなど)。
+  レベルが0のカード(人気のデッキのように、人ごとに違うレベルを出さないもの)はレベルの行を出さない。
 */-->
 <div th:fragment="deckGrid(cards)" class="deck-grid">
     <div class="deck-card" th:each="c : ${cards}" th:classappend="${c.formClass()}"
@@ -859,7 +860,7 @@
         </div>
         <div class="card-name"><span th:text="${c.name()}"></span><span class="visually-hidden"
              th:if="${c.formLabel() != null}" th:text="' ' + ${c.formLabel()}"></span></div>
-        <div class="card-sub" th:text="#{battle.level(${c.level()})}"></div>
+        <div class="card-sub" th:if="${c.level() > 0}" th:text="#{battle.level(${c.level()})}"></div>
     </div>
 </div>
 
@@ -878,7 +879,7 @@
     <div class="support-card" th:each="c : ${cards}">
         <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
         <span class="card-name" th:text="${c.name()}"></span>
-        <span class="card-sub" th:text="#{battle.level(${c.level()})}"></span>
+        <span class="card-sub" th:if="${c.level() > 0}" th:text="#{battle.level(${c.level()})}"></span>
     </div>
 </div>
 

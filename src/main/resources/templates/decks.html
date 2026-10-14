@@ -55,7 +55,32 @@
                th:text="${#lists.size(selectedCards) > 1} ? #{decks.filter.empty.all} : #{decks.filter.empty}"></p>
         </div>
 
+        <!--/*
+          人気のデッキ(同じ8枚を2人以上が使っているもの)。「〇〇 デッキ」で検索して来た人が欲しいのは、選手の一覧よりデッキそのものなので、一覧の前に置く。
+          レベルは人ごとに違うので出さない。カードの形とタワーユニットは、使っている人のうち最上位の人のもの。
+        */-->
+        <div class="card" th:if="${popularDecks != null and not #lists.isEmpty(popularDecks)}">
+            <h2 th:text="#{decks.popular.heading}"></h2>
+            <p class="notice" th:text="#{decks.popular.lead}"></p>
+            <div class="top-deck top-deck-item popular-deck" th:each="p : ${popularDecks}">
+                <div class="top-deck-head">
+                    <span class="top-deck-rank" th:text="#{decks.popular.players(${p.players()})}"></span>
+                    <span class="top-deck-rating"><span th:text="#{decks.popular.best(${p.topRank()})}"></span>
+                        <a th:href="@{/player/{tag}(tag=${p.topPathTag()},lang=${#locale.language})}"><bdi th:text="${p.topName()}"></bdi></a></span>
+                </div>
+                <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
+                <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
+                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
+                </th:block>
+                <div th:replace="~{fragments/layout :: deckMeta(${p.meta()})}"></div>
+                <a class="popular-deck-link" th:href="@{/decks(card=${p.cardIds()},lang=${#locale.language})}"
+                   th:text="#{decks.popular.link(${p.players()})}"></a>
+            </div>
+        </div>
+
         <th:block th:if="${decks != null and not #lists.isEmpty(decks)}">
+            <h2 class="section-heading" th:if="${popularDecks != null and not #lists.isEmpty(popularDecks)}"
+                th:text="#{decks.byRank.heading}"></h2>
             <p class="pager-range" th:text="#{decks.range(${from}, ${to}, ${total})}"></p>
             <div class="card top-deck" th:each="d : ${decks}">
                 <th:block th:replace="~{fragments/layout :: topDeck(${d})}"></th:block>

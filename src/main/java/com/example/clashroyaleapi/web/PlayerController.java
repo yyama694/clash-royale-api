@@ -5,14 +5,20 @@ import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.CardCollection;
+import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameSearch;
 import com.example.clashroyaleapi.domain.PlayerSearchResult;
+import com.example.clashroyaleapi.domain.SeasonRankLog;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerService;
+import com.example.clashroyaleapi.service.RankingHistoryService;
+import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
+import com.example.clashroyaleapi.web.view.RankHistoryView;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,14 +44,21 @@ public class PlayerController {
     private final FavoriteCookies favoriteCookies;
     private final MeCookie meCookie;
     private final PageSummaries pageSummaries;
+    private final TopPlayerDeckService topPlayerDeckService;
+    private final CardService cardService;
+    private final RankingHistoryService rankingHistoryService;
 
     public PlayerController(PlayerService playerService, ViewMapper viewMapper, FavoriteCookies favoriteCookies,
-            MeCookie meCookie, PageSummaries pageSummaries) {
+            MeCookie meCookie, PageSummaries pageSummaries, TopPlayerDeckService topPlayerDeckService,
+            CardService cardService, RankingHistoryService rankingHistoryService) {
         this.playerService = playerService;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
         this.meCookie = meCookie;
         this.pageSummaries = pageSummaries;
+        this.topPlayerDeckService = topPlayerDeckService;
+        this.cardService = cardService;
+        this.rankingHistoryService = rankingHistoryService;
     }
 
     /** 検索フォームの受け口。タグで特定できたら正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
@@ -123,16 +136,27 @@ public class PlayerController {
         if (streak != null) {
             model.addAttribute("streak", viewMapper.toStreakLabel(streak, locale));
         }
-        CurrentDeckView currentDeck = playerService.currentDeckOf(player, battleLog)
-                .map(deck -> viewMapper.toCurrentDeck(deck, locale))
-                .orElse(null);
+        CurrentDeck deck = playerService.currentDeckOf(player, battleLog).orElse(null);
+        CurrentDeckView currentDeck = deck == null ? null : viewMapper.toCurrentDeck(deck, locale);
         model.addAttribute("currentDeck", currentDeck);
+        if (deck != null) {
+            List<Integer> cardIds = deck.cards().stream().map(BattleLogEntry.Card::id).toList();
+            topPlayerDeckService.similar(cardIds, player.tag()).ifPresent(similar -> model.addAttribute(
+                    "similarDecks", viewMapper.toSimilarDecks(similar, cardIds, cardService.allById(), locale)));
+        }
+        model.addAttribute("rankHistory", rankHistoryOf(player, locale));
 
         model.addAttribute("pageTitle", pageSummaries.playerTitle(player, playerName, locale));
         model.addAttribute("shareText", pageSummaries.playerShareText(player, playerName, streak, locale));
         model.addAttribute("pageDescription", pageSummaries.playerSummary(player, playerName, streak,
                 currentDeck == null ? null : currentDeck.meta().averageElixir(), stats, locale));
         return "player";
+    }
+
+    /** 今シーズンに世界上位1000人に入ったことのある人だけ。それ以外は null で、欄ごと出さない。 */
+    private RankHistoryView rankHistoryOf(PlayerResponse player, Locale locale) {
+        List<SeasonRankLog.Point> points = rankingHistoryService.seasonHistory(player.tag());
+        return points.isEmpty() ? null : viewMapper.toRankHistory(points, locale);
     }
 
     @GetMapping("/{tag}/battles/{battleTime}")

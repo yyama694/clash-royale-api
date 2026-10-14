@@ -161,7 +161,7 @@ class PageSummariesTest {
 
     private static TopPlayerDeckService.Page decksPage(int total, Integer topRank) {
         return new TopPlayerDeckService.Page(Instant.parse("2026-10-02T13:20:00Z"), List.of(), total, 1,
-                total == 0 ? 0 : 1, false, 988, topRank, null);
+                total == 0 ? 0 : 1, false, 988, topRank, null, List.of());
     }
 
     @Test

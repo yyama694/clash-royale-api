@@ -60,6 +60,12 @@ public class TopPlayerDeckController {
             model.addAttribute("decks", result.decks().stream()
                     .map(deck -> viewMapper.toTopPlayerDeck(deck, cardsById, locale))
                     .toList());
+            // 8枚とも選んだら束ねても1件になり、下の一覧と同じなので出さない。2ページ目以降は一覧の続きを見に来た人なので出さない。
+            if (result.page() == 1 && selected.size() < TopPlayerDeckService.MAX_FILTER_CARDS) {
+                model.addAttribute("popularDecks", result.popular().stream()
+                        .map(popular -> viewMapper.toPopularDeck(popular, cardsById, locale))
+                        .toList());
+            }
             model.addAttribute("collectedAt", timeFormatter.instant(result.collectedAt(), locale));
             model.addAttribute("seasonNotice", viewMapper.topDecksSeasonNotice(result.finishedSeason(), locale));
             model.addAttribute("total", result.total());

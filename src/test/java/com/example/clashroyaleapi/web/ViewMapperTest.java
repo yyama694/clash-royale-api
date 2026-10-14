@@ -11,6 +11,7 @@ import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
+import com.example.clashroyaleapi.domain.SimilarDecks;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardImageService;
 import com.example.clashroyaleapi.service.CardService;
@@ -42,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -533,5 +535,28 @@ class ViewMapperTest {
 
     private static BattleLogEntry.Participant participant(String tag, String name) {
         return new BattleLogEntry.Participant(tag, name, 1, List.of(), List.of(), null);
+    }
+
+    @Test
+    void 順位の推移の縦軸は目盛りが4本以内になる間隔で上端と下端をそろえる() {
+        assertEquals(List.of(1, 1000, 500), Arrays.stream(ViewMapper.rankAxis(3, 950)).boxed().toList());
+        assertEquals(List.of(120, 180, 20), Arrays.stream(ViewMapper.rankAxis(120, 180)).boxed().toList());
+        assertEquals(List.of(1, 5, 1), Arrays.stream(ViewMapper.rankAxis(1, 5)).boxed().toList());
+        assertEquals(List.of(7, 8, 1), Arrays.stream(ViewMapper.rankAxis(7, 7)).boxed().toList());
+    }
+
+    @Test
+    void 同じデッキの世界ランカーは8枚とも同じでなければ違うカードの名前を添える() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        List<Integer> deck = List.of(1, 2, 3, 4, 5, 6, 7, 8);
+        Map<Integer, CardsResponse.Card> cards = Map.of(1, new CardsResponse.Card(1, "Knight", 16, null, 3,
+                "common", null));
+
+        assertEquals("世界のトッププレイヤー950人のうち12人が、8枚とも同じデッキを使っています。",
+                mapper.toSimilarDecks(new SimilarDecks(deck, 12, 950, false), deck, cards, Locale.JAPANESE).text());
+        assertEquals("Of 950 top players worldwide, 1 uses the same 7 cards (all except ⁨Knight⁩).",
+                mapper.toSimilarDecks(new SimilarDecks(deck.subList(1, 8), 1, 950, true), deck, cards,
+                        Locale.ENGLISH).text());
     }
 }

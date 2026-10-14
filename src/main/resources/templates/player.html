@@ -58,6 +58,40 @@
             </div>
         </div>
 
+        <!--/*
+          今シーズンの順位の推移(世界上位1000人に入ったことのある人だけ)。15分ごとの記録を1時間ごとに間引いたもの。
+          線はSVGを描画域いっぱいに引き伸ばし(線の太さは vector-effect で保つ)、目盛り・最新の点・ホバーの読み取りはHTMLで重ねる。
+          SVGごと縮めると、スマホ幅で目盛りの文字が読めないほど小さくなるため。位置は描画域に対する割合(--pos・--x・--y、単位なしの%)。
+        */-->
+        <div class="card rank-history" th:if="${rankHistory}" th:with="h=${rankHistory}">
+            <h2 th:text="#{rankHistory.heading}"></h2>
+            <p class="rank-history-best" th:text="${h.best()}"></p>
+            <div class="rank-chart" th:attr="data-points=${h.pointsJson()},data-point-label=${h.pointLabel()},data-rank-top=${h.rankTop()},data-rank-bottom=${h.rankBottom()}">
+                <div class="rank-chart-y" aria-hidden="true">
+                    <span th:each="t : ${h.yTicks()}" th:style="|--pos:${t.position()}|" th:text="${t.label()}"></span>
+                </div>
+                <div class="rank-chart-plot" role="img" tabindex="0" th:aria-label="${h.best()}">
+                    <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+                        <line th:each="t : ${h.yTicks()}" class="rank-chart-grid" x1="0" x2="1000"
+                              th:y1="${t.svgPosition()}" th:y2="${t.svgPosition()}"></line>
+                        <polyline th:each="s : ${h.segments()}" class="rank-chart-line" th:points="${s}"></polyline>
+                    </svg>
+                    <span class="rank-chart-dot" th:style="|--x:${h.endX()};--y:${h.endY()}|"></span>
+                    <span class="rank-chart-end" th:classappend="${h.endBelow()} ? 'below'" th:style="|--y:${h.endY()}|"
+                          th:text="${h.endLabel()}"></span>
+                    <span class="rank-chart-crosshair" hidden></span>
+                    <span class="rank-chart-dot rank-chart-hover" hidden></span>
+                    <div class="rank-chart-tip" hidden aria-live="polite"></div>
+                </div>
+                <div class="rank-chart-x" aria-hidden="true">
+                    <span th:each="t : ${h.xTicks()}" th:style="|--pos:${t.position()}|" th:text="${t.label()}"></span>
+                </div>
+            </div>
+            <div class="card-notes">
+                <p th:replace="~{fragments/layout :: notice(#{rankHistory.notice})}"></p>
+            </div>
+        </div>
+
         <div class="card current-deck">
             <h2 th:text="#{deck.heading}"></h2>
             <th:block th:if="${currentDeck}">
@@ -66,6 +100,13 @@
                     <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${currentDeck.supportCards()})}"></div>
                 </th:block>
                 <div th:replace="~{fragments/layout :: deckMeta(${currentDeck.meta()})}"></div>
+                <!--/* 同じデッキを使う世界ランカーの人数と、デッキ画面の絞り込みへのリンク。検索から着地した人が次に見るページの入口にする。 */-->
+                <p class="similar-decks" th:if="${similarDecks}">
+                    <span aria-hidden="true">🏅</span>
+                    <span th:text="${similarDecks.text()}"></span>
+                    <span class="similar-decks-note" th:if="${similarDecks.selfExcluded()}" th:text="#{deck.similar.selfExcluded}"></span>
+                    <a th:href="@{/decks(card=${similarDecks.cardIds()},lang=${#locale.language})}" th:text="#{deck.similar.link}"></a>
+                </p>
                 <div class="card-notes" th:if="${currentDeck.completedFromBattle()}">
                     <p th:replace="~{fragments/layout :: notice(#{deck.completed})}"></p>
                 </div>
@@ -195,5 +236,79 @@
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 
     <script th:replace="~{fragments/layout :: sinceLastScript}"></script>
+    <!--/*
+      順位の推移のホバー。縦線は指した時刻に一番近い記録に吸い付き、日時(UTC)と順位・レーティングを出す。
+      キーボードでは、グラフにフォーカスして左右の矢印キーで1時間ずつ動かす。
+    */-->
+    <script th:if="${rankHistory}">
+        (function () {
+            document.querySelectorAll('.rank-chart').forEach(function (chart) {
+                var points = JSON.parse(chart.dataset.points);
+                var top = Number(chart.dataset.rankTop);
+                var bottom = Number(chart.dataset.rankBottom);
+                var from = points[0][0];
+                var to = points[points.length - 1][0];
+                var plot = chart.querySelector('.rank-chart-plot');
+                var crosshair = chart.querySelector('.rank-chart-crosshair');
+                var dot = chart.querySelector('.rank-chart-hover');
+                var tip = chart.querySelector('.rank-chart-tip');
+                var lang = document.documentElement.lang;
+                var number = new Intl.NumberFormat(lang);
+                var time = new Intl.DateTimeFormat(lang, {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                    timeZone: 'UTC', timeZoneName: 'short'
+                });
+                var index = points.length - 1;
+
+                function show(i) {
+                    index = Math.min(Math.max(i, 0), points.length - 1);
+                    var p = points[index];
+                    var x = (p[0] - from) / (to - from) * 100;
+                    var y = (p[1] - top) / (bottom - top) * 100;
+                    crosshair.style.setProperty('--x', x);
+                    dot.style.setProperty('--x', x);
+                    dot.style.setProperty('--y', y);
+                    var value = document.createElement('strong');
+                    value.textContent = chart.dataset.pointLabel
+                        .replace('{rank}', number.format(p[1]))
+                        .replace('{rating}', number.format(p[2]));
+                    tip.textContent = '';
+                    tip.append(value, document.createElement('br'), time.format(new Date(p[0] * 1000)));
+                    crosshair.hidden = dot.hidden = tip.hidden = false;
+                    var width = plot.clientWidth;
+                    var left = x / 100 * width - tip.offsetWidth / 2;
+                    tip.style.left = Math.min(Math.max(left, 0), width - tip.offsetWidth) + 'px';
+                }
+
+                function hide() {
+                    crosshair.hidden = dot.hidden = tip.hidden = true;
+                }
+
+                function nearest(clientX) {
+                    var rect = plot.getBoundingClientRect();
+                    var t = from + (clientX - rect.left) / rect.width * (to - from);
+                    var best = 0;
+                    for (var i = 1; i < points.length; i++) {
+                        if (Math.abs(points[i][0] - t) < Math.abs(points[best][0] - t)) {
+                            best = i;
+                        }
+                    }
+                    return best;
+                }
+
+                plot.addEventListener('pointermove', function (e) { show(nearest(e.clientX)); });
+                plot.addEventListener('pointerdown', function (e) { show(nearest(e.clientX)); });
+                plot.addEventListener('pointerleave', hide);
+                plot.addEventListener('focus', function () { show(index); });
+                plot.addEventListener('blur', hide);
+                plot.addEventListener('keydown', function (e) {
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        show(index + (e.key === 'ArrowLeft' ? -1 : 1));
+                    }
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
