@@ -1,10 +1,13 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.CardsResponse;
+import com.example.clashroyaleapi.domain.BalanceUpdate;
 import com.example.clashroyaleapi.domain.CardUsage;
+import com.example.clashroyaleapi.service.BalanceService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
+import com.example.clashroyaleapi.web.view.BalanceUpdateView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
@@ -34,16 +37,18 @@ public class CardController {
     private final ViewMapper viewMapper;
     private final PageSummaries pageSummaries;
     private final TimeFormatter timeFormatter;
+    private final BalanceService balanceService;
 
     public CardController(CardService cardService, CardUsageService cardUsageService,
             TopPlayerDeckService topPlayerDeckService, ViewMapper viewMapper, PageSummaries pageSummaries,
-            TimeFormatter timeFormatter) {
+            TimeFormatter timeFormatter, BalanceService balanceService) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.topPlayerDeckService = topPlayerDeckService;
         this.viewMapper = viewMapper;
         this.pageSummaries = pageSummaries;
         this.timeFormatter = timeFormatter;
+        this.balanceService = balanceService;
     }
 
     @GetMapping("/cards")
@@ -83,6 +88,7 @@ public class CardController {
             model.addAttribute("usage", usageView);
             model.addAttribute("pageDescription", pageSummaries.cardSummary(card.name(), usageView, locale));
         });
+        model.addAttribute("balanceHistory", balanceHistory(card.englishName(), id, locale));
         // 全員分はデッキ画面(カードで絞り込み)にあるので、ここでは順位の高い数人だけを出してそこへつなぐ。
         topPlayerDeckService.page(List.of(id), 1, TOP_DECKS_ON_CARD_PAGE).ifPresent(page -> {
             model.addAttribute("topDecks", page.decks().stream()
@@ -91,5 +97,23 @@ public class CardController {
             model.addAttribute("topDecksTotal", page.total());
         });
         return "card";
+    }
+
+    /** このカードに触れたバランス調整(新しい順)。進化・ヒーローだけの変更も含む。 */
+    private List<BalanceUpdateView.CardHistoryEntry> balanceHistory(String englishName, int id, Locale locale) {
+        List<BalanceUpdate> updates = balanceService.updatesOf(englishName);
+        if (updates.isEmpty()) {
+            return List.of();
+        }
+        Map<String, CardsResponse.Card> cardsByName = cardService.cardsByName();
+        CardUsage current = cardUsageService.current().orElse(null);
+        return updates.stream()
+                .map(update -> viewMapper.toBalanceUpdate(update, balanceService.baseline(update).orElse(null),
+                        current, cardsByName, locale))
+                .flatMap(view -> view.groups().stream()
+                        .flatMap(group -> group.cards().stream())
+                        .filter(change -> change.cardId() == id)
+                        .map(change -> new BalanceUpdateView.CardHistoryEntry(view.anchor(), view.heading(), change)))
+                .toList();
     }
 }

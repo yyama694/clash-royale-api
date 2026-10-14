@@ -8,6 +8,8 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
+import com.example.clashroyaleapi.domain.BalanceBaseline;
+import com.example.clashroyaleapi.domain.BalanceUpdate;
 import com.example.clashroyaleapi.domain.BattleExclusion;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
@@ -29,6 +31,7 @@ import com.example.clashroyaleapi.domain.RankChange;
 import com.example.clashroyaleapi.domain.RankedLeague;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
+import com.example.clashroyaleapi.domain.SeasonCalendar;
 import com.example.clashroyaleapi.domain.SeasonRankLog;
 import com.example.clashroyaleapi.domain.SimilarDecks;
 import com.example.clashroyaleapi.domain.TopDecks;
@@ -39,6 +42,7 @@ import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
+import com.example.clashroyaleapi.web.view.BalanceUpdateView;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.BattleStatsView;
 import com.example.clashroyaleapi.web.view.BattleSummaryView;
@@ -85,10 +89,14 @@ import com.example.clashroyaleapi.web.view.TrophyChangeView;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.ListFormatter;
+import com.ibm.icu.text.MeasureFormat;
+import com.ibm.icu.util.Measure;
+import com.ibm.icu.util.MeasureUnit;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -101,7 +109,9 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -162,6 +172,100 @@ public class ViewMapper {
      * 進化画像は、進化が実装されているカードにだけ付く(maxEvolutionLevelがあっても画像が無いカードがある)。
      * URLがあっても画像の置き場所にまだ無いものは、画像が無いのと同じに扱う。
      */
+    /**
+     * バランス調整1回分。カードの名前・画像はカード一覧から引き、一覧に無いカード(名前の変わったカードなど)は英語名のまま出す。
+     *
+     * @param baseline 調整前の使用率。無ければ null
+     * @param current  今の使用率。まだ集計が無ければ null
+     */
+    public BalanceUpdateView toBalanceUpdate(BalanceUpdate update, BalanceBaseline baseline, CardUsage current,
+            Map<String, CardsResponse.Card> cardsByName, Locale locale) {
+        Map<BalanceUpdate.Kind, List<BalanceUpdateView.CardChangeView>> byKind = new LinkedHashMap<>();
+        for (BalanceUpdate.CardChanges changes : update.byCard()) {
+            byKind.computeIfAbsent(changes.kind(), kind -> new ArrayList<>())
+                    .add(toCardChange(changes, baseline, current, cardsByName, locale));
+        }
+        List<BalanceUpdateView.KindGroup> groups = byKind.entrySet().stream()
+                .map(entry -> new BalanceUpdateView.KindGroup(entry.getKey().code(),
+                        labels.message("balance.kind." + entry.getKey().code(), locale), List.copyOf(entry.getValue())))
+                .toList();
+        return new BalanceUpdateView(update.date().toString(),
+                labels.message("balance.update.heading", locale, utcNoon(update.date())), update.sourceUrl(), groups,
+                baseline == null ? null : labels.message("balance.date", locale, utcNoon(baseline.collectedOn())),
+                baseline == null ? null : baseline.sampleSize(), current == null ? null : current.sampleSize());
+    }
+
+    private BalanceUpdateView.CardChangeView toCardChange(BalanceUpdate.CardChanges changes, BalanceBaseline baseline,
+            CardUsage current, Map<String, CardsResponse.Card> cardsByName, Locale locale) {
+        CardsResponse.Card card = cardsByName.get(changes.card());
+        CardsResponse.Card.IconUrls icons = card == null ? null : card.iconUrls();
+        String iconUrl = icons == null ? null : switch (changes.form()) {
+            case NORMAL -> icons.medium();
+            case EVOLUTION -> Objects.requireNonNullElse(cardImages.usable(icons.evolutionMedium()), icons.medium());
+            case HERO -> Objects.requireNonNullElse(cardImages.usable(icons.heroMedium()), icons.medium());
+        };
+        String formLabel = switch (changes.form()) {
+            case NORMAL -> null;
+            case EVOLUTION -> labels.message("card.evolution", locale);
+            case HERO -> labels.message("card.hero", locale);
+        };
+        boolean showUsage = changes.form() == CardForm.NORMAL && card != null;
+        Double before = showUsage && baseline != null
+                ? baseline.percent().apply(changes.card()).map(ViewMapper::oneDecimal).orElse(null) : null;
+        Double now = showUsage && current != null ? oneDecimal(current.usageOf(card.id()).percent()) : null;
+        return new BalanceUpdateView.CardChangeView(card == null ? 0 : card.id(),
+                labels.cardName(changes.card(), locale), iconUrl, formLabel, changes.kind().code(),
+                labels.message("balance.kind." + changes.kind().code(), locale),
+                changes.changes().stream().map(change -> balanceLine(change, locale)).toList(), showUsage, before, now);
+    }
+
+    /** 「ダメージ: 232 → 215(-8%)」。数値の無い変更は項目の文言だけ。 */
+    private String balanceLine(BalanceUpdate.Change change, Locale locale) {
+        // 公式の訳が確かめられない項目名は、英語だけにある balance.statEn.* に置いている(他の言語でも英語で出る)。
+        String key = "balance.stat." + change.stat();
+        String stat = labels.message(key, locale);
+        if (stat.equals(key)) {
+            stat = labels.message("balance.statEn." + change.stat(), locale);
+        }
+        if (!change.hasValues()) {
+            return stat;
+        }
+        String values = balanceValue(change.before(), locale) + " → " + balanceValue(change.after(), locale);
+        return change.percent() == null
+                ? labels.message("balance.line", locale, stat, values)
+                : labels.message("balance.line.percent", locale, stat, values, change.percent());
+    }
+
+    /** 末尾の s は秒。60秒以上は「1分33秒」のように分と秒に分ける(公式の記事も "1m 33s")。 */
+    static String balanceValue(String raw, Locale locale) {
+        ULocale uLocale = ULocale.forLocale(locale);
+        if (!raw.endsWith("s")) {
+            return com.ibm.icu.text.NumberFormat.getInstance(uLocale).format(new BigDecimal(raw));
+        }
+        BigDecimal seconds = new BigDecimal(raw.substring(0, raw.length() - 1));
+        // 日本語は一番短い書式だと「1.5s」になるので、ゲーム内と同じ「1.5秒」になる書式にして、ICUが入れる空白を詰める。
+        boolean japanese = locale.getLanguage().equals(Locale.JAPANESE.getLanguage());
+        MeasureFormat format = MeasureFormat.getInstance(uLocale,
+                japanese ? MeasureFormat.FormatWidth.SHORT : MeasureFormat.FormatWidth.NARROW);
+        String formatted;
+        if (seconds.compareTo(BigDecimal.valueOf(60)) < 0) {
+            formatted = format.format(new Measure(seconds, MeasureUnit.SECOND));
+        } else {
+            BigDecimal[] minutes = seconds.divideAndRemainder(BigDecimal.valueOf(60));
+            formatted = format.formatMeasures(new Measure(minutes[0], MeasureUnit.MINUTE),
+                    new Measure(minutes[1], MeasureUnit.SECOND));
+        }
+        return japanese ? formatted.replaceAll("\\s", "") : formatted;
+    }
+
+    private static Date utcNoon(LocalDate day) {
+        return Date.from(day.atTime(12, 0).toInstant(ZoneOffset.UTC));
+    }
+
+    private static double oneDecimal(double value) {
+        return Math.round(value * 10) / 10.0;
+    }
+
     public CardDetailView toCardDetail(CardsResponse.Card card, Locale locale) {
         CardsResponse.Card.IconUrls icons = card.iconUrls();
         return new CardDetailView(
@@ -465,9 +569,14 @@ public class ViewMapper {
     }
 
     public PlayerProgressView toPlayerProgress(PlayerResponse player) {
+        return toPlayerProgress(player, Instant.now());
+    }
+
+    PlayerProgressView toPlayerProgress(PlayerResponse player, Instant now) {
         PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
+        String season = YearMonth.from(SeasonCalendar.currentSeasonStart(now).atOffset(ZoneOffset.UTC)).toString();
         return new PlayerProgressView(player.trophies(), player.wins(), player.losses(),
-                ranked != null && ranked.hasRank() ? ranked.rank() : null, rankedRating(player));
+                ranked != null && ranked.hasRank() ? ranked.rank() : null, rankedRating(player), season);
     }
 
     /** ランク戦の順位が無い人のレーティングは0などの意味の無い値なので、順位があるときだけ返す。 */
@@ -559,7 +668,8 @@ public class ViewMapper {
                 toPerformances(stats.weakCards(), locale));
     }
 
-    public List<ClanMemberView> toMembers(List<ClanResponse.Member> members, Locale locale) {
+    public List<ClanMemberView> toMembers(List<ClanResponse.Member> members, Map<String, Integer> worldRanks,
+            Locale locale) {
         // 一覧内で基準時刻がずれないよう、1回だけ現在時刻を取る。
         Instant now = Instant.now();
         return members.stream()
@@ -569,7 +679,7 @@ public class ViewMapper {
                             Tags.toPathSegment(member.tag()), GameText.stripFormatting(member.name()),
                             labels.role(member.role(), locale), member.trophies(), member.donations(),
                             days.isPresent() ? days.getAsLong() : null, MemberActivity.isLongInactive(days),
-                            timeFormatter.apiTimestamp(member.lastSeen(), locale).iso());
+                            timeFormatter.apiTimestamp(member.lastSeen(), locale).iso(), worldRanks.get(member.tag()));
                 })
                 .toList();
     }

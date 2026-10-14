@@ -517,6 +517,7 @@
         <a th:href="@{/decks}" th:text="#{nav.decks}"></a>
         <a th:href="@{/ranking}" th:text="#{nav.clanRanking}"></a>
         <a th:href="@{/cards}" th:text="#{nav.cards}"></a>
+        <a th:href="@{/balance}" th:text="#{nav.balance}"></a>
         <a th:href="@{/favorites}" th:text="#{nav.favorites}"></a>
     </nav>
     <!--/*
@@ -602,7 +603,8 @@
 */-->
 <div th:fragment="sinceLast(tag, progress)" id="since-last" class="since-last" hidden
      th:data-tag="${tag}" th:data-trophies="${progress.trophies()}" th:data-wins="${progress.wins()}"
-     th:data-losses="${progress.losses()}" th:data-rank="${progress.rank()}" th:data-rating="${progress.rankedRating()}">
+     th:data-losses="${progress.losses()}" th:data-rank="${progress.rank()}" th:data-rating="${progress.rankedRating()}"
+     th:data-season="${progress.season()}">
     <p class="since-last-heading"><span th:text="#{player.sinceLast.heading}"></span><span class="since-last-when"></span></p>
     <ul class="since-last-items">
         <li data-item="trophies" hidden><span th:text="#{player.trophies}"></span> <span class="delta"></span></li>
@@ -617,7 +619,8 @@
 <!--/*
   「前回見たときからの変化」。プレイヤーごとに、比べる相手(前回の訪問)と最後に見た値を localStorage に残す。
   30分以内の読み込み直しは同じ訪問とみなして比べる相手を動かさない(読み込み直すたびに「変化なし」になるのを防ぐ)。
-  ランク戦の値がどのシーズンのものかは公式APIから分からないので、シーズンをまたいでもそのまま比べる。
+  レーティングはシーズンごとにリセットされるので、前回とシーズンが違えば順位・レーティングは比べない
+  (シーズンを持たない古い記録も比べない)。トロフィー・勝敗数はシーズンをまたいでも比べる。
 */-->
 <script th:fragment="sinceLastScript">
     (function () {
@@ -634,7 +637,7 @@
         }
         var now = Date.now();
         var current = {at: now, trophies: value('trophies'), wins: value('wins'), losses: value('losses'),
-            rank: value('rank'), rating: value('rating')};
+            rank: value('rank'), rating: value('rating'), season: box.dataset.season};
         var all;
         try {
             all = JSON.parse(localStorage.getItem(storageKey));
@@ -695,13 +698,15 @@
             }
         });
         // 順位は数字が小さくなるほど上がる
-        var climbed = -diff('rank');
-        if (climbed) {
-            show('rank', (climbed > 0 ? '↑' : '↓') + numbers.format(Math.abs(climbed)), climbed);
-        }
-        var rating = diff('rating');
-        if (rating) {
-            show('rating', signed(rating), rating);
+        if (base.season === current.season) {
+            var climbed = -diff('rank');
+            if (climbed) {
+                show('rank', (climbed > 0 ? '↑' : '↓') + numbers.format(Math.abs(climbed)), climbed);
+            }
+            var rating = diff('rating');
+            if (rating) {
+                show('rating', signed(rating), rating);
+            }
         }
         if (!shown) {
             box.querySelector('[data-item="none"]').hidden = false;
@@ -829,6 +834,33 @@
       th:alt="${c.formLabel() == null} ? ${c.name()} : ${c.name()} + ' ' + ${c.formLabel()}"
       th:title="${c.formLabel() == null} ? ${c.name()} : ${c.name()} + ' ' + ${c.formLabel()}"
       th:classappend="${c.formClass()}" width="285" height="420" loading="lazy"></a></span>
+
+<!--/*
+  バランス調整の1枚のカードの変更。バランス調整の画面と、カード詳細画面の「バランス調整」で共用する。
+  カード詳細画面(heading を渡す)では、カード名・画像の代わりに、その調整へのリンクを出す。
+*/-->
+<li th:fragment="balanceChange(c, heading, anchor)" class="balance-item" th:classappend="'kind-' + ${c.kindCode()}">
+    <th:block th:if="${heading == null}">
+        <a th:replace="~{fragments/layout :: cardLink(${c.cardId()}, ${c.name()}, ${c.iconUrl()})}"></a>
+    </th:block>
+    <div class="balance-body">
+        <p class="balance-title">
+            <a th:if="${heading == null}" th:href="@{/card/{id}(id=${c.cardId()})}"><bdi th:text="${c.name()}"></bdi></a>
+            <a th:if="${heading != null}" th:href="@{/balance} + '#' + ${anchor}" th:text="${heading}"></a>
+            <span class="badge balance-form" th:if="${c.formLabel() != null}" th:text="${c.formLabel()}"></span>
+            <!--/* バランス調整の画面では種類ごとの見出しがあるので、カード詳細画面だけに出す */-->
+            <span class="badge balance-kind" th:if="${heading != null}" th:text="${c.kindLabel()}"></span>
+        </p>
+        <ul class="balance-lines">
+            <li th:each="line : ${c.lines()}" th:text="${line}"></li>
+        </ul>
+        <th:block th:if="${c.showUsage() and c.now() != null}">
+            <p class="balance-usage" th:if="${c.before() != null}"
+               th:text="#{balance.usage.change(${c.before()}, ${c.now()}, ${c.delta()})}"></p>
+            <p class="balance-usage" th:if="${c.before() == null}" th:text="#{balance.usage.nowOnly(${c.now()})}"></p>
+        </th:block>
+    </div>
+</li>
 
 <a th:fragment="cardLink(id, name, iconUrl)" th:if="${iconUrl != null}" class="card-link"
    th:href="@{/card/{id}(id=${id})}" th:aria-label="#{card.detail.link(${name})}">

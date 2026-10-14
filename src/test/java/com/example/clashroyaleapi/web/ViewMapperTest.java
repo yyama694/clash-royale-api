@@ -345,10 +345,30 @@ class ViewMapperTest {
         PlayerResponse justReset = new PlayerResponse("#DDD", "四郎", 16, 14000, 14000, 900, 400, 100, null,
                 List.of(), List.of(), new PlayerResponse.RankedSeasonResult(1, 0, 1), null, List.of());
 
-        assertEquals(new PlayerProgressView(14000, 900, 400, 25, 3100), viewMapper.toPlayerProgress(ranked));
-        assertEquals(new PlayerProgressView(1000, 30, 20, null, null), viewMapper.toPlayerProgress(noRank));
-        assertEquals(new PlayerProgressView(0, 0, 0, null, null), viewMapper.toPlayerProgress(noResult));
-        assertEquals(new PlayerProgressView(14000, 900, 400, null, null), viewMapper.toPlayerProgress(justReset));
+        Instant now = Instant.parse("2026-10-15T00:00:00Z");
+        assertEquals(new PlayerProgressView(14000, 900, 400, 25, 3100, "2026-10"), viewMapper.toPlayerProgress(ranked, now));
+        assertEquals(new PlayerProgressView(1000, 30, 20, null, null, "2026-10"), viewMapper.toPlayerProgress(noRank, now));
+        assertEquals(new PlayerProgressView(0, 0, 0, null, null, "2026-10"), viewMapper.toPlayerProgress(noResult, now));
+        assertEquals(new PlayerProgressView(14000, 900, 400, null, null, "2026-10"),
+                viewMapper.toPlayerProgress(justReset, now));
+    }
+
+    @Test
+    void バランス調整の値は言語ごとの書き方にし_60秒以上は分と秒に分ける() {
+        assertEquals("1,210", ViewMapper.balanceValue("1210", Locale.ENGLISH));
+        assertEquals("5,5", ViewMapper.balanceValue("5.5", Locale.GERMAN));
+        assertEquals("1.5秒", ViewMapper.balanceValue("1.5s", Locale.JAPANESE));
+        assertEquals("1分33秒", ViewMapper.balanceValue("93s", Locale.JAPANESE));
+        assertEquals("0.93s", ViewMapper.balanceValue("0.93s", Locale.ENGLISH));
+    }
+
+    @Test
+    void 前回からの変化のシーズンは切り替えの時刻で次の月になる() {
+        PlayerResponse player = new PlayerResponse("#AAA", "太郎", 10, 14000, 14000, 900, 400, 100, null,
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(7, 3100, 25), null, List.of());
+
+        assertEquals("2026-10", viewMapper.toPlayerProgress(player, Instant.parse("2026-11-02T08:59:59Z")).season());
+        assertEquals("2026-11", viewMapper.toPlayerProgress(player, Instant.parse("2026-11-02T09:00:00Z")).season());
     }
 
     @Test

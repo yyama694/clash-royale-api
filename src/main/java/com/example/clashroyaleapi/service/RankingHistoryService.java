@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * ランキングの記録(RankingRecorderが定期的に取る)を持ち、ランキングの動き画面の中身を組み立てる。
@@ -180,6 +181,17 @@ public class RankingHistoryService {
     public Optional<RankingSnapshot> latestSnapshot() {
         List<RankingSnapshotStore.Summary> all = summaries;
         return all.isEmpty() ? Optional.empty() : snapshot(all.getLast().takenAt());
+    }
+
+    /**
+     * 今の世界順位(タグ→順位)。最新の記録が古い(記録が止まっている)ときは、今の順位と言えないので空。
+     */
+    public Map<String, Integer> currentWorldRanks() {
+        return latestSnapshot()
+                .filter(snapshot -> !clock.instant().isAfter(snapshot.takenAt().plus(STALE_AFTER)))
+                .map(snapshot -> snapshot.byTag().values().stream()
+                        .collect(Collectors.toUnmodifiableMap(RankingSnapshot.Entry::tag, RankingSnapshot.Entry::rank)))
+                .orElse(Map.of());
     }
 
     /**

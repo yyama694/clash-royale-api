@@ -37,6 +37,23 @@ class CardUsageServiceTest {
         assertEquals(Optional.of(second), new TopDecksFile(dir.resolve("top-decks.tsv")).read());
     }
 
+    @Test
+    void その時刻より前の最後の集計を履歴から読み_無ければ空() throws IOException {
+        CardUsageService service = new CardUsageService(new TopDecksFile(dir.resolve("top-decks.tsv")),
+                dir.resolve("history"));
+        assertEquals(Optional.empty(), service.lastBefore(Instant.parse("2026-10-12T00:00:00Z")));
+
+        service.publish(topDecks("2026-10-10T11:20:27Z", null));
+        service.publish(topDecks("2026-10-11T11:25:00Z", null));
+        service.publish(topDecks("2026-10-12T11:30:00Z", null));
+
+        CardUsageService restarted = new CardUsageService(new TopDecksFile(dir.resolve("top-decks.tsv")),
+                dir.resolve("history"));
+        assertEquals(Instant.parse("2026-10-11T11:25:00Z"),
+                restarted.lastBefore(Instant.parse("2026-10-12T00:00:00Z")).orElseThrow().collectedAt());
+        assertEquals(Optional.empty(), restarted.lastBefore(Instant.parse("2026-10-10T11:20:27Z")));
+    }
+
     private static TopDecks topDecks(String collectedAt, YearMonth finishedSeason) {
         return new TopDecks(Instant.parse(collectedAt), List.of(
                 new TopDecks.SampledDeck(List.of(26000000, 26000001), 159000000,

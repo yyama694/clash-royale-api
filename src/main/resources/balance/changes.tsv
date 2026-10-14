@@ -1,0 +1,27 @@
+# バランス調整の内容。公式のリリースノートから写す(数値も変化率も公式の表記のまま。変化率は計算し直さない)。
+# update<TAB>実施日(UTC)<TAB>公式の記事のURL
+# change<TAB>カード(公式APIの英語名)<TAB>形(normal/evolution/hero)<TAB>種類(buff/nerf/rework/fix)<TAB>項目<TAB>前<TAB>後<TAB>変化率(%)
+# 項目は messages の balance.stat.<項目>。前・後の末尾の s は秒。前・後が無い行は数値の無い変更(文言だけ出す)。
+update	2026-10-06	https://supercell.com/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/
+change	Ice Wizard	hero	nerf	freezeDamage	89	46	-49
+change	Ice Wizard	hero	nerf	freezeIgnoresSkeletonsBats
+change	Cannon	evolution	nerf	barrageDamage	281	261	-7
+change	Barbarian Barrel	normal	nerf	damage	232	215	-8
+change	Elixir Collector	normal	nerf	lifetime	93s	110s	18
+change	Elixir Collector	normal	nerf	productionSpeed	13s	15s	15
+change	Minion Giant	normal	nerf	hitSpeed	1.5s	1.7s	13
+change	Royal Ghost	normal	nerf	hitpoints	1210	1152	-5
+change	Skeletons	normal	nerf	tighterSpawnSpread
+change	Goblin Barrel	normal	buff	firstHitSpeed	0.4s	0.3s	-25
+change	Goblin Drill	normal	buff	crownTowerSpawnDamage	0	20
+change	Lava Hound	normal	buff	damage	53	71	33
+change	Lava Hound	normal	buff	hitSpeed	1.3s	1.5s	15
+change	Ram Rider	normal	buff	damage	250	271	8
+change	Wall Breakers	normal	buff	damage	281	302	7
+change	X-Bow	normal	buff	damage	58	61	4
+change	Monk	normal	buff	abilityCastTime	0.93s	0.7s	-25
+change	Three Musketeers	normal	buff	hitpoints	883	906	3
+change	Golden Knight	normal	rework	damage	161	168	5
+change	Golden Knight	normal	rework	dashRange	5.5	5	-9
+change	Elite Barbarians	evolution	fix	spearSightRange	4.5	6	33
+change	Royal Ghost	normal	fix	damage	261	263	1

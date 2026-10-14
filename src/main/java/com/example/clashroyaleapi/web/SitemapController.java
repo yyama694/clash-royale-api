@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 public class SitemapController {
 
     private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players",
-            "/ranking/players/movements", "/ranking/players/seasons", "/about", "/privacy");
+            "/ranking/players/movements", "/ranking/players/seasons", "/balance", "/about", "/privacy");
 
     private final CardService cardService;
     private final CardUsageService cardUsageService;
@@ -143,6 +143,8 @@ public class SitemapController {
                 - Clan rankings: %s/ranking
                 - Card list: %s/cards
                 - Card usage rankings (share of the global top players using each card, updated daily): %s/cards?sort=usage
+                - Balance changes (official buffs and nerfs, with each card's usage among the global top players
+                  before the change and now): %s/balance
 
                 ## Notes
 
@@ -150,7 +152,7 @@ public class SitemapController {
                 - Available languages: %s
                 - Not affiliated with or endorsed by Supercell.
                 - About this site and contact: %s/about
-                """.formatted(siteName, base, base, base, base, base, base, base, base, languages, base);
+                """.formatted(siteName, base, base, base, base, base, base, base, base, base, languages, base);
     }
 
     private Stream<String> cardPaths() {
