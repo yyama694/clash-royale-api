@@ -722,6 +722,89 @@
     })();
 </script>
 
+<!--/*
+  トップページの「最近見たもの」。プレイヤー情報画面・クラン情報画面で開いた相手の名前とタグを、新しい順に localStorage に残し
+  (トップページに出す分だけ)、トップページではそれを並べる。サーバーには送らない。
+  記録する画面は kind('player'・'clan')・tag・name を渡し、トップページは null を渡す。
+  「前回見たときから」の記録(playerSnapshots)とは分けている。「履歴を消す」で消しても、前回の値との比較は残すため。
+*/-->
+<script th:fragment="recentViewsScript(kind, tag, name)" th:data-kind="${kind}" th:data-tag="${tag}" th:data-name="${name}">
+    (function () {
+        var storageKey = 'recentViews';
+        var limits = {player: 10, clan: 5};
+        var script = document.currentScript;
+        var views;
+        try {
+            views = JSON.parse(localStorage.getItem(storageKey));
+        } catch (e) {
+            return;
+        }
+        if (!views || typeof views !== 'object' || Array.isArray(views)) {
+            views = {};
+        }
+        Object.keys(limits).forEach(function (kind) {
+            views[kind] = Array.isArray(views[kind]) ? views[kind].filter(function (v) {
+                return v && typeof v.tag === 'string' && typeof v.name === 'string' && v.name;
+            }) : [];
+        });
+
+        var kind = script ? script.dataset.kind : null;
+        if (limits[kind]) {
+            var tag = script.dataset.tag;
+            var list = views[kind].filter(function (v) { return v.tag !== tag; });
+            list.unshift({tag: tag, name: script.dataset.name, at: Date.now()});
+            views[kind] = list.slice(0, limits[kind]);
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(views));
+            } catch (e) {
+                // 保存できなくても、この画面の表示には関係しない
+            }
+            return;
+        }
+
+        var box = document.getElementById('recent-views');
+        if (!box) {
+            return;
+        }
+        var shown = 0;
+        Object.keys(limits).forEach(function (kind) {
+            var row = box.querySelector('[data-kind="' + kind + '"]');
+            var url = box.dataset[kind + 'Url'];
+            views[kind].forEach(function (v) {
+                // 「これは自分」の人は「自分の成績」に出ているので重ねない(登録する前に見た記録が残っている場合)
+                if (kind === 'player' && v.tag === box.dataset.me) {
+                    return;
+                }
+                var chip = document.createElement('a');
+                chip.className = 'favorite-chip';
+                chip.href = url + encodeURIComponent(v.tag);
+                chip.title = '#' + v.tag;
+                var name = document.createElement('bdi');
+                name.textContent = v.name;
+                chip.appendChild(name);
+                row.appendChild(chip);
+                shown++;
+            });
+            // 隠すだけだと、次の行に「行の間の余白」が残るので取り除く
+            if (!row.querySelector('.favorite-chip')) {
+                row.remove();
+            }
+        });
+        if (!shown) {
+            return;
+        }
+        box.querySelector('.recent-views-clear').addEventListener('click', function () {
+            try {
+                localStorage.removeItem(storageKey);
+            } catch (e) {
+                // 消せなくても、この画面からは消す
+            }
+            box.hidden = true;
+        });
+        box.hidden = false;
+    })();
+</script>
+
 <!--/* トップページと、見つからなかったときの画面で共用する検索フォーム。value は再検索時に入力値を残すために使う。 */-->
 <div th:fragment="playerSearchForm(value)" class="card">
     <h2 th:text="#{home.player.heading}"></h2>
