@@ -144,8 +144,8 @@ public class ViewMapper {
                 battle.battleTime(),
                 timeFormatter.apiTimestamp(battle.battleTime(), locale),
                 gameModeOf(battle, locale),
-                toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, battle.type(), viewerTag, locale),
-                toParticipants(battle.opponent(), teamResult.opposite(), battle.type(), viewerTag, locale));
+                toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, battle, viewerTag, locale),
+                toParticipants(battle.opponent(), teamResult.opposite(), battle, viewerTag, locale));
     }
 
     /** デッキが空(公式APIが返さなかった)の場合は、画面に案内文を出すため空を返す。 */
@@ -823,13 +823,13 @@ public class ViewMapper {
                 toOpponents(battle.opponent(), locale),
                 toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()),
                 battle.team().stream().filter(p -> isViewer(p, viewerTag)).findFirst()
-                        .map(viewer -> toTrophyChange(battle.type(), viewer, locale)).orElse(null),
+                        .map(viewer -> toTrophyChange(battle, viewer, locale)).orElse(null),
                 battle.team().stream().filter(p -> isViewer(p, viewerTag)).findFirst()
                         .map(viewer -> toCards(viewer.cards(), false, locale)).orElse(List.of()));
     }
 
-    private TrophyChangeView toTrophyChange(String battleType, BattleLogEntry.Participant participant, Locale locale) {
-        return TrophyChange.of(battleType, participant.trophyChange())
+    private TrophyChangeView toTrophyChange(BattleLogEntry battle, BattleLogEntry.Participant participant, Locale locale) {
+        return TrophyChange.of(battle.type(), participant.trophyChange(), battle.leagueNumber())
                 .map(change -> new TrophyChangeView(
                         labels.message(change.kind() == TrophyChange.Kind.TROPHIES
                                 ? "battlelog.change.trophies" : "battlelog.change.rating", locale),
@@ -867,7 +867,7 @@ public class ViewMapper {
     }
 
     private List<ParticipantView> toParticipants(List<BattleLogEntry.Participant> side, BattleResult result,
-            String battleType, String viewerTag, Locale locale) {
+            BattleLogEntry battle, String viewerTag, Locale locale) {
         return side.stream()
                 .map(participant -> new ParticipantView(
                         participant.tag(),
@@ -879,7 +879,7 @@ public class ViewMapper {
                         toCards(participant.supportCards(), true, locale),
                         toDeckMeta(participant.cards(), participant.supportCards()),
                         isViewer(participant, viewerTag),
-                        toTrophyChange(battleType, participant, locale)))
+                        toTrophyChange(battle, participant, locale)))
                 .toList();
     }
 
