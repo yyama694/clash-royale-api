@@ -35,6 +35,23 @@
         <div th:replace="~{fragments/layout :: clanSearchForm(null)}"></div>
 
         <!--/*
+          最近見たプレイヤー・クラン。検索し直さずに開けるよう、検索フォームのすぐ下に置く(2026-10-15にユーザーが決定)。
+          記録はブラウザにだけあるので、中身は recentViewsScript が作り、記録が無ければ枠ごと出さない。
+        */-->
+        <div class="card" id="recent-views" hidden th:data-me="${meTag}"
+             th:data-player-url="@{/player/}" th:data-clan-url="@{/clan/}">
+            <h2 th:text="#{home.recent.heading}"></h2>
+            <div class="favorite-chip-row" data-kind="player">
+                <span class="favorite-chip-label" th:text="#{favorites.players}"></span>
+            </div>
+            <div class="favorite-chip-row" data-kind="clan">
+                <span class="favorite-chip-label" th:text="#{favorites.clans}"></span>
+            </div>
+            <button type="button" class="btn btn-secondary btn-small card-action recent-views-clear"
+                    th:text="#{home.recent.clear}"></button>
+        </div>
+
+        <!--/*
           お気に入りは名前だけ(公式APIは呼ばない)。1件も無いときはカードごと出さない
           (初めての訪問者に空の枠を見せないため。登録方法の案内はお気に入り画面が受け持つ)。
         */-->
@@ -74,5 +91,6 @@
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 
     <th:block th:if="${me != null}"><script th:replace="~{fragments/layout :: sinceLastScript}"></script></th:block>
+    <script th:replace="~{fragments/layout :: recentViewsScript(null, null, null)}"></script>
 </body>
 </html>
