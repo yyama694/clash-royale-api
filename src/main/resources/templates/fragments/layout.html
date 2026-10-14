@@ -76,13 +76,17 @@
       loadではなくDOMContentLoadedで送る。loadは画面内のカード画像(公式CDN)を読み終えるまで起きず、
       XアプリからすぐXに戻った人の分が漏れていたとみられるため(9/22〜9/30、iPhoneのXアプリで27人中6人)。
       sendBeaconは非同期に送るだけなので、ここで送っても表示は遅れない。
+      再訪(前日以前にも来た人)の数を見るため、初めて来た時刻と最後に表示した時刻をlocalStorageに残し、
+      再訪のときだけ r=1 を付ける。時刻そのものは送らない(再訪した人は全員同じ値なので識別には使えない)。
+      IPは携帯回線やVPNで日ごとに変わり、IPの一致だけでは再訪を取りこぼすため(2026-10-15に決定)。
     */-->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // ?from= はX等に出したURLに付けている。どの宣伝から来た表示かをここでも拾う。
             var from = new URLSearchParams(location.search).get('from');
             var url = '/beacon?p=' + encodeURIComponent(location.pathname)
-                + (from ? '&from=' + encodeURIComponent(from.slice(0, 20)) : '');
+                + (from ? '&from=' + encodeURIComponent(from.slice(0, 20)) : '')
+                + (isReturningVisit() ? '&r=1' : '');
             try {
                 // sendBeaconはページを離れても送信が保証され、描画も妨げない。
                 if (!(navigator.sendBeacon && navigator.sendBeacon(url))) {
@@ -92,6 +96,62 @@
                 // 計測は付随的な処理なので、失敗しても画面には影響させない。
             }
         });
+
+        // 30分以上あいだが空いたら別の訪問とみなし(GA等と同じ区切り)、その訪問の始まりが初めて来た日より後の日なら再訪。
+        // 訪問の途中で日付が変わっても、その訪問は再訪にしない。
+        function isReturningVisit() {
+            var key = 'visitHistory';
+            var visitGapMs = 30 * 60 * 1000;
+            var now = Date.now();
+            try {
+                var history;
+                try {
+                    history = JSON.parse(localStorage.getItem(key));
+                } catch (e) {
+                    history = null;
+                }
+                if (!history || typeof history.first !== 'number') {
+                    history = {first: earliestKnownVisit(now)};
+                }
+                if (!history.last || now - history.last >= visitGapMs) {
+                    history.returning = localDay(now) > localDay(history.first);
+                }
+                history.last = now;
+                localStorage.setItem(key, JSON.stringify(history));
+                return history.returning;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // 導入(2026-10-15)より前から来ている人を初めての人と数えないよう、ほかの機能が残した記録から最初の訪問を推す。
+        function earliestKnownVisit(now) {
+            var earliest = now;
+            var snapshots;
+            try {
+                snapshots = JSON.parse(localStorage.getItem('playerSnapshots'));
+            } catch (e) {
+                snapshots = null;
+            }
+            Object.keys(snapshots && typeof snapshots === 'object' ? snapshots : {}).forEach(function (tag) {
+                ['previous', 'last'].forEach(function (name) {
+                    var at = snapshots[tag] && snapshots[tag][name] && snapshots[tag][name].at;
+                    if (at && at < earliest) {
+                        earliest = at;
+                    }
+                });
+            });
+            // お気に入りの案内の回数は日時を持たないので、前日以前に来たものとみなす(導入当日だけ多めに数えうる)。
+            if (earliest === now && localStorage.getItem('favoriteHintViews')) {
+                earliest = 0;
+            }
+            return earliest;
+        }
+
+        function localDay(ms) {
+            var d = new Date(ms);
+            return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+        }
     </script>
     <!--/*
       言語メニュー(details)は標準では外側を押しても閉じないため、外側のクリックとEscキーで閉じる。

@@ -212,11 +212,13 @@ if [ -s /tmp/access-check-beacon.log ]; then
     # JSを実行するヘッドレスブラウザ型のボットもビーコンを送るため(Hetznerで実例あり)、
     # 送信元ごとに逆引きを出し、データセンター・スキャナー由来には * を付ける。
     echo "-- 送信元IP別(* はデータセンター・スキャナー由来) --"
+    : > /tmp/access-check-beacon-senders.txt
     awk '{print $1}' /tmp/access-check-beacon.log | sort | uniq -c | while read -r cnt ip; do
         name=$(lookup "$ip") || true
         case "$name" in *' '*|''|*in-addr.arpa.) name='-' ;; esac
         if printf '%s' "$name" | grep -qP "$DC_REGEX|$SCANNER_REGEX"; then mark='*'; else mark=' '; fi
         printf '%s %3d %-16s %s\n' "$mark" "$cnt" "$ip" "$name"
+        printf '%s\t%s\t%s\t%s\n' "$mark" "$cnt" "$ip" "$name" >> /tmp/access-check-beacon-senders.txt
     done
     echo "-- 表示されたページ別 --"
     cat /tmp/access-check-beacon.log \
@@ -229,6 +231,43 @@ else
     else
         echo "除外後: 0件(除外前も0件。ビーコンの仕組み自体が動いているか確認すること)"
     fi
+fi
+
+# 再訪(前日以前にも来た人。2026-10-15追加)。目印は2つあり、どちらか一方でも当たれば再訪の候補とする。
+# - 目印: ビーコンの r=1。ブラウザが初めて来た日時を覚えていて、別の日の訪問なら付ける。IPが変わっても分かるが、
+#   Xアプリ内のブラウザとSafariのように保存領域が別になると分からない(iPhoneのSafariは7日使わないと消す)。
+# - 前の来訪: 同じIPから前日以前にビーコンが来ていた日。ログが残る約5週間分だけ見る。入口が変わっても
+#   同じ回線なら分かるが、携帯回線やVPNはIPが変わるので取りこぼす(9/29→9/30のドコモの人で実例あり)。
+echo
+echo "== 再訪(前日以前にも来た人) =="
+if [ -s /tmp/access-check-beacon.log ]; then
+    mapfile -t ALL_LOG_FILES < <(sudo find /var/log/httpd -maxdepth 1 -name 'access_log*' | sort)
+    sudo zcat -f "${ALL_LOG_FILES[@]}" | { LC_ALL=C grep -F '"POST /beacon' || true; } \
+      | { grep -viE "$BOT_REGEX" || true; } | { grep -vE "^($NOISE_REGEX) " || true; } \
+      | awk -v start="$START_KEY" '
+        BEGIN {
+            split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", months, " ");
+            for (i = 1; i <= 12; i++) monnum[months[i]] = i;
+        }
+        {
+            if (!match($0, /\[([0-9]{2})\/([A-Za-z]{3})\/([0-9]{4}):([0-9]{2}):([0-9]{2}):([0-9]{2})/, m)) next;
+            key = sprintf("%04d%02d%02d%02d%02d%02d", m[3], monnum[m[2]], m[1], m[4], m[5], m[6]);
+            if (key >= start) next;
+            utc = mktime(sprintf("%d %d %d %d %d %d", m[3], monnum[m[2]], m[1], m[4], m[5], m[6]), 1);
+            print $1, strftime("%m/%d", utc + 9 * 3600, 1);
+        }' | sort -u > /tmp/access-check-beacon-past.txt
+    echo "(目印=その日のビーコンのうち r=1 が付いた件数。前の来訪=同じIPから前日以前にビーコンがあった日(日本時間)。* はデータセンター・スキャナー由来)"
+    : > /tmp/access-check-revisit-ips.txt
+    while IFS=$'\t' read -r mark cnt ip name; do
+        flagged=$(awk -v ip="$ip" '$1 == ip && $7 ~ /[?&]r=1(&|$)/' /tmp/access-check-beacon.log | wc -l)
+        past=$(awk -v ip="$ip" '$1 == ip {print $2}' /tmp/access-check-beacon-past.txt | sort | tail -5 | paste -sd ',' -)
+        printf '%s %-16s 目印 %s/%s件  前の来訪: %s  (%s)\n' "$mark" "$ip" "$flagged" "$cnt" "${past:-なし}" "$name"
+        if [ "$mark" != '*' ] && { [ "$flagged" -gt 0 ] || [ -n "$past" ]; }; then echo "$ip" >> /tmp/access-check-revisit-ips.txt; fi
+    done < /tmp/access-check-beacon-senders.txt
+    echo "-- 再訪の候補(データセンター以外で、目印か前の来訪のどちらかあり) --"
+    echo "人数(ユニークIP): $(wc -l < /tmp/access-check-revisit-ips.txt)"
+else
+    echo "(ビーコンなし)"
 fi
 
 # 検索エンジンから来た訪問(2026-10-04追加、TODO.mdの「ページビュー向上」12)。検索対策の効果はこれで測る。
