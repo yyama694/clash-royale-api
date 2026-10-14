@@ -16,6 +16,7 @@ import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardImageService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerRanking;
+import com.example.clashroyaleapi.web.view.RankedLeagueView;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
@@ -517,6 +518,54 @@ class ViewMapperTest {
         assertEquals("hero.png", view.cards().get(0).iconUrl());
         assertEquals("normal.png", view.cards().get(1).iconUrl());
         assertEquals("3", view.cards().get(0).elixir().text());
+    }
+
+    @Test
+    void ランク戦の対戦はモード名にその対戦のリーグを添える() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        BattleLogEntry ranked = new BattleLogEntry("pathOfLegend", "20261014T000000.000Z",
+                new BattleLogEntry.GameMode("Ranked1v1_NewArena"), List.of(participant("#VIEWER", "Viewer")),
+                List.of(participant("#OPP1", "Opp1")), null, 2);
+        BattleLogEntry unknownLeague = new BattleLogEntry("pathOfLegend", "20261014T000000.000Z",
+                new BattleLogEntry.GameMode("Ranked1v1_NewArena"), List.of(participant("#VIEWER", "Viewer")),
+                List.of(participant("#OPP1", "Opp1")), null, 9);
+
+        List<BattleSummaryView> rows = mapper.toBattleSummaries(List.of(ranked, unknownLeague), "#VIEWER", Locale.JAPANESE);
+
+        assertEquals("ランク戦(マスターII)", rows.get(0).gameMode());
+        assertEquals("ランク戦", rows.get(1).gameMode());
+        assertTrue(mapper.toBattleSummaries(List.of(new BattleLogEntry("pathOfLegend", "20261014T000000.000Z",
+                new BattleLogEntry.GameMode("Ranked1v1_NewArena"), List.of(participant("#VIEWER", "Viewer")),
+                List.of(participant("#OPP1", "Opp1")), null, 7)), "#VIEWER", Locale.ENGLISH)
+                .getFirst().gameMode().endsWith(" (Ultimate Champion)"));
+        assertEquals("フレンドバトル", mapper.toBattleSummaries(List.of(new BattleLogEntry("friendly",
+                "20261014T000000.000Z", new BattleLogEntry.GameMode("Friendly"),
+                List.of(participant("#VIEWER", "Viewer")), List.of(participant("#OPP1", "Opp1")), null, 1)),
+                "#VIEWER", Locale.JAPANESE).getFirst().gameMode());
+    }
+
+    @Test
+    void 世界の順位の無い人には今シーズンのリーグを出し_天界ならレーティングも添える() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+
+        assertEquals(new RankedLeagueView("マスターIII", null), mapper.toCurrentRankedLeague(
+                rankedPlayer(14000, new PlayerResponse.RankedSeasonResult(3, 0, null)), Locale.JAPANESE));
+        assertEquals(new RankedLeagueView("天界", 1650), mapper.toCurrentRankedLeague(
+                rankedPlayer(14000, new PlayerResponse.RankedSeasonResult(7, 1650, null)), Locale.JAPANESE));
+        assertEquals(new RankedLeagueView("マスターI", null), mapper.toCurrentRankedLeague(
+                rankedPlayer(14000, new PlayerResponse.RankedSeasonResult(1, 0, null)), Locale.JAPANESE));
+        assertNull(mapper.toCurrentRankedLeague(
+                rankedPlayer(9000, new PlayerResponse.RankedSeasonResult(1, 0, null)), Locale.JAPANESE));
+        assertNull(mapper.toCurrentRankedLeague(
+                rankedPlayer(14000, new PlayerResponse.RankedSeasonResult(7, 3100, 25)), Locale.JAPANESE));
+        assertNull(mapper.toCurrentRankedLeague(rankedPlayer(14000, null), Locale.JAPANESE));
+    }
+
+    private static PlayerResponse rankedPlayer(int trophies, PlayerResponse.RankedSeasonResult current) {
+        return new PlayerResponse("#AAA", "太郎", 10, trophies, trophies, 900, 400, 100, null,
+                List.of(), List.of(), current, null, List.of());
     }
 
     private static BattleLogEntry.Card card(int level, int maxLevel) {
