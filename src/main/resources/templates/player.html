@@ -41,6 +41,7 @@
             <ul class="stat-highlights">
                 <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{player.trophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(player.trophies(), 1, 'DEFAULT')}"></span></li>
                 <th:block th:with="r=${player.currentPathOfLegendSeasonResult()}"><li th:if="${r != null and r.hasRank()}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.current}"></span></span><span class="value" th:text="#{player.ranked.rank(${r.rank()})}"></span><span class="sub" th:text="#{player.ranked.rating(${r.trophies()})}"></span></li></th:block>
+                <li th:if="${rankedLeague}"><span class="label"><span aria-hidden="true">🏅</span> <span th:text="#{player.ranked.current}"></span></span><span class="value" th:text="${rankedLeague.name()}"></span><span class="sub" th:if="${rankedLeague.rating() != null}" th:text="#{player.ranked.rating(${rankedLeague.rating()})}"></span></li>
                 <li th:if="${streak}"><span class="label"><span aria-hidden="true">🔥</span> <span th:text="#{player.streak}"></span></span><span class="value" th:text="${streak}"></span></li>
             </ul>
             <ul class="stat-grid stat-grid-compact">

@@ -26,6 +26,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.PopularDeck;
 import com.example.clashroyaleapi.domain.RankChange;
+import com.example.clashroyaleapi.domain.RankedLeague;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.SeasonRankLog;
@@ -73,6 +74,7 @@ import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.PlayerRankingView;
 import com.example.clashroyaleapi.web.view.PopularDeckView;
 import com.example.clashroyaleapi.web.view.RankChangeView;
+import com.example.clashroyaleapi.web.view.RankedLeagueView;
 import com.example.clashroyaleapi.web.view.RankHistoryView;
 import com.example.clashroyaleapi.web.view.RankingReportView;
 import com.example.clashroyaleapi.web.view.SeasonLinkView;
@@ -936,6 +938,32 @@ public class ViewMapper {
         if (BattleExclusion.of(battle).orElse(null) == BattleExclusion.BOAT_DEFENSE) {
             return labels.message("battletype.boatDefense", locale);
         }
-        return labels.gameMode(battle.type(), battle.gameMode() != null ? battle.gameMode().name() : null, locale);
+        String mode = labels.gameMode(battle.type(), battle.gameMode() != null ? battle.gameMode().name() : null, locale);
+        if ("pathOfLegend".equals(battle.type())) {
+            OptionalInt league = RankedLeague.of(battle.leagueNumber());
+            if (league.isPresent()) {
+                return labels.message("battlelog.modeWithLeague", locale, mode, leagueName(league.getAsInt(), locale));
+            }
+        }
+        return mode;
+    }
+
+    private String leagueName(int league, Locale locale) {
+        return labels.message("ranked.league." + league, locale);
+    }
+
+    /** 世界の順位がある人(上の段に順位とレーティングを出す)と、リーグを出せない人は null。 */
+    public RankedLeagueView toCurrentRankedLeague(PlayerResponse player, Locale locale) {
+        PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
+        if (ranked == null || ranked.hasRank()) {
+            return null;
+        }
+        OptionalInt league = RankedLeague.currentOf(ranked.leagueNumber(), player.trophies());
+        if (league.isEmpty()) {
+            return null;
+        }
+        Integer rating = league.getAsInt() == RankedLeague.TOP && ranked.trophies() != null && ranked.trophies() > 0
+                ? ranked.trophies() : null;
+        return new RankedLeagueView(leagueName(league.getAsInt(), locale), rating);
     }
 }

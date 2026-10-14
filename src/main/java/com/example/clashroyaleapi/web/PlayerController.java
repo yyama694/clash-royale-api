@@ -103,6 +103,7 @@ public class PlayerController {
         model.addAttribute("player", player);
         model.addAttribute("kingTowerLevel", viewMapper.kingTowerLevel(player));
         model.addAttribute("progress", viewMapper.toPlayerProgress(player));
+        model.addAttribute("rankedLeague", viewMapper.toCurrentRankedLeague(player, locale));
         model.addAttribute("playerName", playerName);
         model.addAttribute("playerPathTag", playerPathTag);
         model.addAttribute("favorite",
