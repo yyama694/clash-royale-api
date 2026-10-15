@@ -161,7 +161,7 @@ class PageSummariesTest {
 
     private static TopPlayerDeckService.Page decksPage(int total, Integer topRank) {
         return new TopPlayerDeckService.Page(Instant.parse("2026-10-02T13:20:00Z"), List.of(), total, 1,
-                total == 0 ? 0 : 1, false, 988, topRank, null, List.of());
+                total == 0 ? 0 : 1, false, 988, topRank, null);
     }
 
     @Test
@@ -290,6 +290,24 @@ class PageSummariesTest {
                 summaries.decksHeading(List.of("Hog Rider", "The Log", "Earthquake"), Locale.ENGLISH));
         assertEquals(FSI + "ホグライダー、アースクエイク" + PDI + "入りのデッキ(世界トップ層の12人が使用中)【クラロワ】",
                 summaries.decksTitle(List.of("ホグライダー", "アースクエイク"), page, Locale.JAPANESE));
+    }
+
+    @Test
+    void 人気のデッキ画面は集計した人数とデッキの種類の数を説明文に入れ_絞り込んだ画面は見出しだけにする() {
+        TopPlayerDeckService.PopularPage page = new TopPlayerDeckService.PopularPage(
+                Instant.parse("2026-10-02T13:20:00Z"), List.of(), 97, 1, 1, true, 988, 988, null);
+
+        assertEquals("人気のデッキ", summaries.popularDecksHeading(List.of(), Locale.JAPANESE));
+        assertEquals("人気のデッキ(世界トップ層で同じ8枚を使う人数の順)【クラロワ】",
+                summaries.popularDecksTitle(List.of(), Locale.JAPANESE));
+        assertEquals("クラロワのランク戦の世界ランキング上位988人のデッキのうち、8枚とも同じデッキを2人以上が使っている"
+                        + "97種類を、使っている人数の多い順に紹介。そのままゲームにコピーできます。毎日更新。",
+                summaries.popularDecksSummary(List.of(), page, Locale.JAPANESE));
+
+        assertEquals(FSI + "ホグライダー" + PDI + "入りの人気のデッキ",
+                summaries.popularDecksTitle(List.of("ホグライダー"), Locale.JAPANESE));
+        assertNull(summaries.popularDecksSummary(List.of("ホグライダー"), page, Locale.JAPANESE));
+        assertNull(summaries.popularDecksSummary(List.of(), null, Locale.JAPANESE));
     }
 
     @Test

@@ -1085,6 +1085,39 @@
   トッププレイヤーの1人分のデッキ(順位・名前・レーティング、8枚とタワーユニット、指標とコピーボタン)。
   デッキ画面とカード詳細画面で使う。外側の枠(top-deck)は使う側で付ける(デッキ画面は1人1枚のカード、カード詳細画面は1枚のカードの中に並べる)。
 */-->
+<!--/*
+  選んだカードすべてが入ったデッキに絞る(デッキ画面と人気のデッキ画面で共通。path は送信先の画面)。選んだら送信する。スクリプトが動かないときのために送信ボタンも残す。
+  「＋」で開く空の欄は最初から置いておき、hidden で隠す(スクリプトが動かなければ最初から見せる)。
+  ?lang= はCookieに保存しないので、絞り込みのたびに言語が変わらないよう、送信とリンクに今の言語を付ける。
+*/-->
+<form th:fragment="deckFilter(path)" class="search-form deck-filter" method="get" th:action="@{${path}}">
+    <input type="hidden" name="lang" th:value="${#locale.language}">
+    <span class="deck-filter-label" id="deck-filter-label" th:text="#{decks.filter.label}"></span>
+    <div class="deck-filter-row" th:each="row : ${filterRows}" th:hidden="${row.added()}">
+        <select name="card" aria-labelledby="deck-filter-label" onchange="this.form.submit()">
+            <option value="" th:text="${#lists.isEmpty(selectedCards)} ? #{decks.filter.all} : #{decks.filter.choose}"></option>
+            <th:block th:each="o : ${cardOptions}">
+                <option th:unless="${row.otherCards().contains(o.id())}" th:value="${o.id()}" th:text="${o.name()}"
+                        th:selected="${row.cardId() != null and row.cardId() == o.id()}"></option>
+            </th:block>
+        </select>
+        <a th:if="${row.cardId() != null}" class="deck-filter-remove"
+           th:href="${#lists.isEmpty(row.withoutThis())} ? @{${path}(lang=${#locale.language})}
+                   : @{${path}(card=${row.withoutThis()},lang=${#locale.language})}"
+           th:title="#{action.remove}" th:aria-label="#{action.remove}">×</a>
+    </div>
+    <div class="deck-filter-actions">
+        <button type="button" class="btn btn-secondary deck-filter-add"
+                th:if="${canAddCard}"
+                onclick="this.hidden = true; var row = this.form.querySelector('.deck-filter-row[hidden]'); row.hidden = false; row.querySelector('select').focus();"
+                th:text="'＋ ' + #{decks.filter.add}"></button>
+        <noscript>
+            <style>.deck-filter-row[hidden] { display: flex; } .deck-filter-add { display: none; }</style>
+            <button type="submit" class="btn btn-secondary" th:text="#{decks.filter.submit}"></button>
+        </noscript>
+    </div>
+</form>
+
 <th:block th:fragment="topDeck(d)">
     <div class="top-deck-head">
         <span class="top-deck-rank" th:text="#{decks.rank(${d.rank()})}"></span>

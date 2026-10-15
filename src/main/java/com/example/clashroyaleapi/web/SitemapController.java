@@ -28,8 +28,8 @@ import java.util.stream.Stream;
 @RestController
 public class SitemapController {
 
-    private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/ranking", "/ranking/players",
-            "/ranking/players/movements", "/ranking/players/seasons", "/balance", "/about", "/privacy");
+    private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/decks/popular", "/ranking",
+            "/ranking/players", "/ranking/players/movements", "/ranking/players/seasons", "/balance", "/about", "/privacy");
 
     private final CardService cardService;
     private final CardUsageService cardUsageService;
@@ -136,6 +136,8 @@ public class SitemapController {
                 - Player rankings: %s/ranking/players
                 - Top players' decks (latest Rank Battle deck of the global top players, updated daily; filter by up to
                   8 cards to show only decks with all of them, e.g. /decks?card=26000021&card=28000014): %s/decks
+                - Popular decks (decks with exactly the same 8 cards used by two or more of the global top players,
+                  most-used first; filterable by card like the page above): %s/decks/popular
                 - Rank Battle world ranking report (who is #1 and since when, #1 changes, top 10 and biggest
                   rating gains of the last 24 hours; recorded every 15 minutes, with a page for each day): %s/ranking/players/movements
                 - Final Rank Battle standings of each finished season (global top 1000, since October 2022):
@@ -152,7 +154,7 @@ public class SitemapController {
                 - Available languages: %s
                 - Not affiliated with or endorsed by Supercell.
                 - About this site and contact: %s/about
-                """.formatted(siteName, base, base, base, base, base, base, base, base, base, languages, base);
+                """.formatted(siteName, base, base, base, base, base, base, base, base, base, base, languages, base);
     }
 
     private Stream<String> cardPaths() {

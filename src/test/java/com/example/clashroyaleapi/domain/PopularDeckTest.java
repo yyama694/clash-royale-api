@@ -20,7 +20,7 @@ class PopularDeckTest {
     @Test
     void 並び順が違っても同じ8枚なら束ね_最上位の人のデッキを代表にする() {
         List<PopularDeck> popular = PopularDeck.rank(List.of(
-                deck(1, A), deck(2, A.reversed()), deck(3, B)), 2, 5);
+                deck(1, A), deck(2, A.reversed()), deck(3, B)), 2);
 
         assertEquals(1, popular.size());
         assertEquals(2, popular.getFirst().players());
@@ -30,19 +30,18 @@ class PopularDeckTest {
     @Test
     void 人数の多い順で同じ人数なら最上位の人の順位が高い方を先にする() {
         List<PopularDeck> popular = PopularDeck.rank(List.of(
-                deck(1, B), deck(2, A), deck(3, C), deck(4, A), deck(5, C), deck(6, B), deck(7, A)), 2, 5);
+                deck(1, B), deck(2, A), deck(3, C), deck(4, A), deck(5, C), deck(6, B), deck(7, A)), 2);
 
         assertEquals(List.of(2, 1, 3), popular.stream().map(p -> p.best().player().rank()).toList());
         assertEquals(List.of(3, 2, 2), popular.stream().map(PopularDeck::players).toList());
     }
 
     @Test
-    void 下限の人数に満たないものと8枚そろっていないものは出さず_件数を上限で切る() {
+    void 下限の人数に満たないものと8枚そろっていないものは出さない() {
         List<PopularDeck> popular = PopularDeck.rank(List.of(
                 deck(1, A), deck(2, A), deck(3, B), deck(4, B), deck(5, C),
-                deck(6, List.of(1, 2, 3)), deck(7, List.of(1, 2, 3))), 2, 1);
+                deck(6, List.of(1, 2, 3)), deck(7, List.of(1, 2, 3))), 2);
 
-        assertEquals(1, popular.size());
-        assertEquals(1, popular.getFirst().best().player().rank());
+        assertEquals(List.of(1, 3), popular.stream().map(p -> p.best().player().rank()).toList());
     }
 }

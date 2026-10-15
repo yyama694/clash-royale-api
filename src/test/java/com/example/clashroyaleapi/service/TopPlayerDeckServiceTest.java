@@ -165,5 +165,48 @@ class TopPlayerDeckServiceTest {
 
         given(List.of(new TopDecks.SampledDeck(List.of(1), null)));
         assertTrue(service.page(List.of(), 1).isEmpty());
+        assertTrue(service.popular(List.of(), 1).isEmpty());
+    }
+
+    private static List<Integer> eight(int first) {
+        return IntStream.range(first, first + 8).boxed().toList();
+    }
+
+    @Test
+    void 人気のデッキは絞り込んだ人の中で束ね_2人以上のものをすべて出す() {
+        given(List.of(
+                deck(1, eight(1), null), deck(2, eight(1), null),
+                deck(3, eight(GOLDEN_KNIGHT), null), deck(4, eight(GOLDEN_KNIGHT), null),
+                deck(5, eight(GOLDEN_KNIGHT), null), deck(6, eight(100), null)));
+
+        TopPlayerDeckService.PopularPage all = service.popular(List.of(), 1).orElseThrow();
+        assertEquals(List.of(3, 2), all.decks().stream().map(p -> p.players()).toList());
+        assertEquals(2, all.total());
+        assertEquals(6, all.players());
+        assertEquals(6, all.sampleSize());
+
+        TopPlayerDeckService.PopularPage filtered = service.popular(List.of(GOLDEN_KNIGHT), 1).orElseThrow();
+        assertEquals(1, filtered.total());
+        assertEquals(3, filtered.players());
+        assertEquals(3, filtered.decks().getFirst().best().player().rank());
+    }
+
+    @Test
+    void 人気のデッキは50件ずつ区切る() {
+        List<TopDecks.SampledDeck> decks = new ArrayList<>();
+        IntStream.range(0, 60).forEach(i -> {
+            decks.add(deck(i * 2 + 1, eight(i * 10), null));
+            decks.add(deck(i * 2 + 2, eight(i * 10), null));
+        });
+        given(decks);
+
+        TopPlayerDeckService.PopularPage first = service.popular(List.of(), 1).orElseThrow();
+        assertEquals(50, first.decks().size());
+        assertTrue(first.hasNext());
+
+        TopPlayerDeckService.PopularPage second = service.popular(List.of(), 2).orElseThrow();
+        assertEquals(51, second.from());
+        assertEquals(10, second.decks().size());
+        assertFalse(second.hasNext());
     }
 }

@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 同じ8枚を使っているトッププレイヤーを束ねたもの(デッキ画面の「人気のデッキ」)。
+ * 同じ8枚を使っているトッププレイヤーを束ねたもの(人気のデッキ画面)。
  * カードの並び順・形(進化・ヒーロー)・タワーユニットは区別しない。
  *
  * @param best    束ねたうち最上位の人のデッキ。表示とコピーには、この人の並び順・形・タワーユニットを使う
@@ -18,9 +18,8 @@ public record PopularDeck(TopDecks.SampledDeck best, int players) {
     /**
      * @param ranked     順位の順(上位が先)
      * @param minPlayers これより少ない人数のデッキは出さない
-     * @param limit      出す数
      */
-    public static List<PopularDeck> rank(List<TopDecks.SampledDeck> ranked, int minPlayers, int limit) {
+    public static List<PopularDeck> rank(List<TopDecks.SampledDeck> ranked, int minPlayers) {
         Map<Set<Integer>, PopularDeck> groups = new LinkedHashMap<>();
         for (TopDecks.SampledDeck deck : ranked) {
             if (deck.cardIds().size() != Deck.SIZE) {
@@ -33,7 +32,6 @@ public record PopularDeck(TopDecks.SampledDeck best, int players) {
         return groups.values().stream()
                 .filter(group -> group.players() >= minPlayers)
                 .sorted(Comparator.comparingInt(PopularDeck::players).reversed())
-                .limit(limit)
                 .toList();
     }
 }

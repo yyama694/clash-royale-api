@@ -284,6 +284,29 @@ public class PageSummaries {
                 page.total(), page.topRank());
     }
 
+    /** @param cardNames 絞り込んだカードの名前。絞り込んでいなければ空 */
+    public String popularDecksHeading(List<String> cardNames, Locale locale) {
+        return cardNames.isEmpty() ? labels.message("decks.popular.heading", locale)
+                : labels.message("decks.popular.heading.card", locale, cardList(cardNames, locale));
+    }
+
+    /** 絞り込んだ画面は検索結果に出さないので、見出しのままにする。 */
+    public String popularDecksTitle(List<String> cardNames, Locale locale) {
+        return cardNames.isEmpty() ? labels.message("decks.popular.seo.title", locale)
+                : popularDecksHeading(cardNames, locale);
+    }
+
+    /**
+     * @param page まだ集計していなければ null
+     * @return 絞り込んだ画面と、載せる中身が無いときは null(サイト共通の説明文になる)
+     */
+    public String popularDecksSummary(List<String> cardNames, TopPlayerDeckService.PopularPage page, Locale locale) {
+        if (!cardNames.isEmpty() || page == null || page.total() == 0) {
+            return null;
+        }
+        return labels.message("decks.popular.summary.all", locale, page.sampleSize(), page.total());
+    }
+
     /** 複数枚はその言語の「AとB」の形でつなぐ(すべて入ったデッキなので、「または」の形にはしない)。 */
     private static String cardList(List<String> cardNames, Locale locale) {
         return ListFormatter.getInstance(ULocale.forLocale(locale)).format(cardNames);

@@ -10,38 +10,7 @@
         <div class="card">
             <h1 th:text="${heading}"></h1>
             <p th:text="#{decks.lead}"></p>
-            <!--/*
-              選んだカードすべてが入ったデッキに絞る。選んだら送信する。スクリプトが動かないときのために送信ボタンも残す。
-              「＋」で開く空の欄は最初から置いておき、hidden で隠す(スクリプトが動かなければ最初から見せる)。
-              ?lang= はCookieに保存しないので、絞り込みのたびに言語が変わらないよう、送信とリンクに今の言語を付ける。
-            */-->
-            <form class="search-form deck-filter" method="get" th:action="@{/decks}">
-                <input type="hidden" name="lang" th:value="${#locale.language}">
-                <span class="deck-filter-label" id="deck-filter-label" th:text="#{decks.filter.label}"></span>
-                <div class="deck-filter-row" th:each="row : ${filterRows}" th:hidden="${row.added()}">
-                    <select name="card" aria-labelledby="deck-filter-label" onchange="this.form.submit()">
-                        <option value="" th:text="${#lists.isEmpty(selectedCards)} ? #{decks.filter.all} : #{decks.filter.choose}"></option>
-                        <th:block th:each="o : ${cardOptions}">
-                            <option th:unless="${row.otherCards().contains(o.id())}" th:value="${o.id()}" th:text="${o.name()}"
-                                    th:selected="${row.cardId() != null and row.cardId() == o.id()}"></option>
-                        </th:block>
-                    </select>
-                    <a th:if="${row.cardId() != null}" class="deck-filter-remove"
-                       th:href="${#lists.isEmpty(row.withoutThis())} ? @{/decks(lang=${#locale.language})}
-                               : @{/decks(card=${row.withoutThis()},lang=${#locale.language})}"
-                       th:title="#{action.remove}" th:aria-label="#{action.remove}">×</a>
-                </div>
-                <div class="deck-filter-actions">
-                    <button type="button" class="btn btn-secondary deck-filter-add"
-                            th:if="${canAddCard}"
-                            onclick="this.hidden = true; var row = this.form.querySelector('.deck-filter-row[hidden]'); row.hidden = false; row.querySelector('select').focus();"
-                            th:text="'＋ ' + #{decks.filter.add}"></button>
-                    <noscript>
-                        <style>.deck-filter-row[hidden] { display: flex; } .deck-filter-add { display: none; }</style>
-                        <button type="submit" class="btn btn-secondary" th:text="#{decks.filter.submit}"></button>
-                    </noscript>
-                </div>
-            </form>
+            <form th:replace="~{fragments/layout :: deckFilter('/decks')}"></form>
             <th:block th:if="${decks != null}">
                 <th:block th:if="${seasonNotice != null}">
                     <p th:replace="~{fragments/layout :: notice(${seasonNotice})}"></p>
@@ -50,37 +19,16 @@
                 <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
                     <time th:replace="~{fragments/layout :: localTime(${collectedAt})}"></time></p>
             </th:block>
+            <p th:if="${showPopularLink and decks != null and not #lists.isEmpty(decks)}" class="popular-decks-link">
+                <a th:href="${#lists.isEmpty(selectedCards)} ? @{/decks/popular(lang=${#locale.language})}
+                           : @{/decks/popular(card=${selectedCards},lang=${#locale.language})}"
+                   th:text="#{decks.popular.open}"></a></p>
             <p th:if="${decks == null}" class="empty-state" th:text="#{decks.notCollected}"></p>
             <p th:if="${decks != null and #lists.isEmpty(decks)}" class="empty-state"
                th:text="${#lists.size(selectedCards) > 1} ? #{decks.filter.empty.all} : #{decks.filter.empty}"></p>
         </div>
 
-        <!--/*
-          人気のデッキ(同じ8枚を2人以上が使っているもの)。「〇〇 デッキ」で検索して来た人が欲しいのは、選手の一覧よりデッキそのものなので、一覧の前に置く。
-          レベルは人ごとに違うので出さない。カードの形とタワーユニットは、使っている人のうち最上位の人のもの。
-        */-->
-        <div class="card" th:if="${popularDecks != null and not #lists.isEmpty(popularDecks)}">
-            <h2 th:text="#{decks.popular.heading}"></h2>
-            <p class="notice" th:text="#{decks.popular.lead}"></p>
-            <div class="top-deck top-deck-item popular-deck" th:each="p : ${popularDecks}">
-                <div class="top-deck-head">
-                    <span class="top-deck-rank" th:text="#{decks.popular.players(${p.players()})}"></span>
-                    <span class="top-deck-rating"><span th:text="#{decks.popular.best(${p.topRank()})}"></span>
-                        <a th:href="@{/player/{tag}(tag=${p.topPathTag()},lang=${#locale.language})}"><bdi th:text="${p.topName()}"></bdi></a></span>
-                </div>
-                <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
-                <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
-                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
-                </th:block>
-                <div th:replace="~{fragments/layout :: deckMeta(${p.meta()})}"></div>
-                <a class="popular-deck-link" th:href="@{/decks(card=${p.cardIds()},lang=${#locale.language})}"
-                   th:text="#{decks.popular.link(${p.players()})}"></a>
-            </div>
-        </div>
-
         <th:block th:if="${decks != null and not #lists.isEmpty(decks)}">
-            <h2 class="section-heading" th:if="${popularDecks != null and not #lists.isEmpty(popularDecks)}"
-                th:text="#{decks.byRank.heading}"></h2>
             <p class="pager-range" th:text="#{decks.range(${from}, ${to}, ${total})}"></p>
             <div class="card top-deck" th:each="d : ${decks}">
                 <th:block th:replace="~{fragments/layout :: topDeck(${d})}"></th:block>
