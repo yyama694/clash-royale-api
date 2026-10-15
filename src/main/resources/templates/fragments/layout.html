@@ -32,12 +32,13 @@
       SNSでリンクを貼ったときのカード表示用(OGP)。titleと説明文は<title>・meta descriptionと同じものを使う。
       画像は正方形(630x630)なので、1.91:1を前提とするtwitter:cardは"summary"(正方形サムネイル)にする。
       og:urlは正規URLと同じにする(?lang=ja のページで言語の無いURLを示すと、カードが英語版で作られるため)。
+      ただしカードの版(?v=)だけは残す(GlobalModelAttributes#ogUrl)。
     */-->
     <meta property="og:type" content="website">
     <meta property="og:site_name" th:content="#{app.name}">
     <meta property="og:title" th:content="#{title.format(${title}, #{app.name})}">
     <meta property="og:description" th:content="${pageDescription} ?: #{app.description}">
-    <meta property="og:url" th:if="${canonicalUrl != null}" th:content="${canonicalUrl}">
+    <meta property="og:url" th:if="${ogUrl != null}" th:content="${ogUrl}">
     <th:block th:if="${ogLocale != null}">
         <meta property="og:locale" th:content="${ogLocale}">
         <meta property="og:locale:alternate" th:each="alternate : ${ogLocaleAlternates}" th:content="${alternate}">

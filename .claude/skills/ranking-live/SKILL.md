@@ -112,9 +112,11 @@ python .claude/skills/ranking-live/scripts/collect.py
 
 {切り口を補足する一文}
 
-非公式ファンサイト → https://princess-tower.duckdns.org/ranking/players/movements?from=x
+非公式ファンサイト → https://princess-tower.duckdns.org/ranking/players/movements?lang=ja&from=x&v={月日時分}
 #クラロワ #ClashRoyale
 ```
+
+**リンクには`&v={月日時分}`(例 `&v=10151231`)を付ける**(2026-10-15から)。この画面は毎回同じURLなので、付けないとXが前回の投稿のカード(古い世界1位)を出す。`v`はサイトの`og:url`にだけ残り、正規URLには入らない(`x-post`スキルの「URLパラメータ」)。
 
 **世界の実況のリンク先は「ランキングの動き」画面にする**(2026-10-06から)。首位交代・急上昇が文章で残っているので、
 Xから来た人が投稿の続きを読める。国別の実況は、国別の動きの画面が無いので従来どおり個人ランキング画面

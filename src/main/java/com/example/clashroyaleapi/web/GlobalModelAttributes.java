@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,7 +24,9 @@ import java.util.stream.Stream;
 public class GlobalModelAttributes {
 
     private static final Set<String> NOT_CARRIED_PARAMS = Set.of(WebConstants.LANGUAGE_PARAM,
-            WebConstants.SAVE_LANGUAGE_PARAM, WebConstants.SOURCE_PARAM);
+            WebConstants.SAVE_LANGUAGE_PARAM, WebConstants.SOURCE_PARAM, WebConstants.CARD_VERSION_PARAM);
+
+    private static final Pattern CARD_VERSION = Pattern.compile("[A-Za-z0-9_-]{1,20}");
 
     private static final Set<String> NOT_FOR_SEARCH_ENGINES_PARAMS = Stream.concat(NOT_CARRIED_PARAMS.stream(),
             Stream.of("sortBy", "sortDir", "favoriteLimit")).collect(Collectors.toUnmodifiableSet());
@@ -91,6 +94,17 @@ public class GlobalModelAttributes {
                 .map(locale -> url + (url.contains("?") ? "&" : "?") + WebConstants.LANGUAGE_PARAM + "="
                         + locale.getLanguage())
                 .orElse(url);
+    }
+
+    /** SNSのカード表示のURL(og:url)。正規URLに、カードの版(?v=)が付いていればそれだけを足す。 */
+    @ModelAttribute("ogUrl")
+    public String ogUrl(HttpServletRequest request) {
+        String url = canonicalUrl(request);
+        String version = request.getParameter(WebConstants.CARD_VERSION_PARAM);
+        if (url == null || version == null || !CARD_VERSION.matcher(version).matches()) {
+            return url;
+        }
+        return url + (url.contains("?") ? "&" : "?") + WebConstants.CARD_VERSION_PARAM + "=" + version;
     }
 
     @ModelAttribute("languageCodes")

@@ -14,6 +14,12 @@ public final class WebConstants {
     /** X等に出したURLに付けている流入元タグ(?from=x など)。表示の計測はビーコンが行う。 */
     public static final String SOURCE_PARAM = "from";
 
+    /**
+     * 同じページをXに貼り直すときにカードを作り直させる版(?v=1015 など)。Xは一度作ったカードを覚えていて、
+     * 中身が変わるページ(ランキングの動きなど)を2回目に貼ると前回のカードのままになるため。og:urlにだけ残す。
+     */
+    public static final String CARD_VERSION_PARAM = "v";
+
     private WebConstants() {
     }
 }

@@ -79,6 +79,22 @@ class GlobalModelAttributesTest {
     }
 
     @Test
+    void カードの版vはog_urlにだけ残す() {
+        MockHttpServletRequest request = request("/ranking/players/movements", "lang=ja&from=x&v=1015");
+        assertEquals("http://localhost/ranking/players/movements?lang=ja", attributes.canonicalUrl(request));
+        assertEquals("/ranking/players/movements", attributes.currentUri(request));
+        assertEquals("http://localhost/ranking/players/movements?lang=ja&v=1015", attributes.ogUrl(request));
+        assertEquals("http://localhost/decks?card=26000021&v=a1",
+                attributes.ogUrl(request("/decks", "v=a1&card=26000021")));
+    }
+
+    @Test
+    void カードの版が無いか不正な値ならog_urlは正規URLと同じ() {
+        assertEquals("http://localhost/?lang=ja", attributes.ogUrl(request("/", "lang=ja&from=x")));
+        assertEquals("http://localhost/", attributes.ogUrl(request("/", "v=%3Cscript%3E")));
+    }
+
+    @Test
     void 言語メニューのsetlangも取り除く() {
         assertEquals("/clan/ABC?sortBy=name", attributes.currentUri(request("/clan/ABC", "sortBy=name&setlang=ja")));
     }
