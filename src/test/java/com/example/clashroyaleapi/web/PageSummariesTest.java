@@ -231,7 +231,8 @@ class PageSummariesTest {
 
     private static List<ParticipantView> participants(List<String> names) {
         return names.stream()
-                .map(name -> new ParticipantView("#" + name, name, name, 0, null, List.of(), List.of(), null, false, null))
+                .map(name -> new ParticipantView("#" + name, name, name, 0, null, List.of(), List.of(), null, false, null,
+                        null))
                 .toList();
     }
 

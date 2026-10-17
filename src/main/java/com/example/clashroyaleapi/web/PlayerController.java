@@ -16,6 +16,7 @@ import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerService;
 import com.example.clashroyaleapi.service.RankingHistoryService;
+import com.example.clashroyaleapi.service.TopBattleService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
@@ -48,10 +49,11 @@ public class PlayerController {
     private final TopPlayerDeckService topPlayerDeckService;
     private final CardService cardService;
     private final RankingHistoryService rankingHistoryService;
+    private final TopBattleService topBattleService;
 
     public PlayerController(PlayerService playerService, ViewMapper viewMapper, FavoriteCookies favoriteCookies,
             MeCookie meCookie, PageSummaries pageSummaries, TopPlayerDeckService topPlayerDeckService,
-            CardService cardService, RankingHistoryService rankingHistoryService) {
+            CardService cardService, RankingHistoryService rankingHistoryService, TopBattleService topBattleService) {
         this.playerService = playerService;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
@@ -60,6 +62,7 @@ public class PlayerController {
         this.topPlayerDeckService = topPlayerDeckService;
         this.cardService = cardService;
         this.rankingHistoryService = rankingHistoryService;
+        this.topBattleService = topBattleService;
     }
 
     /** 検索フォームの受け口。タグで特定できたら正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
@@ -129,7 +132,10 @@ public class PlayerController {
             model.addAttribute("battles", viewMapper.toBattleSummaries(battleLog, player.tag(), locale));
             if (!battleLog.isEmpty()) {
                 stats = playerService.statsOf(battleLog);
-                model.addAttribute("battleStats", viewMapper.toStats(stats, locale));
+                model.addAttribute("battleStats",
+                        viewMapper.toStats(stats, topBattleService.matchups().orElse(null), locale));
+                model.addAttribute("elixirLeak", viewMapper.toElixirLeak(playerService.elixirLeakOf(battleLog),
+                        topBattleService.elixirLeak().orElse(null), topBattleService.players()));
             }
         } catch (ClashRoyaleApiException e) {
             model.addAttribute("battleLogErrorKey", e.messageKey());

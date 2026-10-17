@@ -7,8 +7,10 @@ import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
 import com.example.clashroyaleapi.domain.CardForm;
+import com.example.clashroyaleapi.domain.TopBattle;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.TopBattleService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ class TopDeckCollectorTest {
 
     private ClashRoyaleApiClient apiClient;
     private CardUsageService usageService;
+    private TopBattleService battleService;
     private MutableClock clock;
     private TopDeckCollector collector;
 
@@ -48,9 +51,10 @@ class TopDeckCollectorTest {
         apiClient = mock(ClashRoyaleApiClient.class);
         usageService = mock(CardUsageService.class);
         when(usageService.topDecks()).thenReturn(Optional.empty());
+        battleService = mock(TopBattleService.class);
         // 10月シーズン(2026-10-05 09:00 UTC 開始)が始まって3日以内。
         clock = new MutableClock(Instant.parse("2026-10-06T00:00:00Z"));
-        collector = new TopDeckCollector(apiClient, usageService,
+        collector = new TopDeckCollector(apiClient, usageService, battleService,
                 new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1000), clock);
     }
 
@@ -207,7 +211,7 @@ class TopDeckCollectorTest {
 
     @Test
     void 今シーズンのランキングが埋まっていれば前のシーズンは見ない() {
-        TopDeckCollector smallTarget = new TopDeckCollector(apiClient, usageService,
+        TopDeckCollector smallTarget = new TopDeckCollector(apiClient, usageService, battleService,
                 new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1), clock);
         when(apiClient.getPathOfLegendRankings("global", 1)).thenReturn(List.of(ranked("#A")));
         when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(ranked(deck(0, 8), null)));
@@ -333,6 +337,52 @@ class TopDeckCollectorTest {
         TopDecks legacy = new TopDecks(clock.instant().minus(Duration.ofHours(1)),
                 List.of(new TopDecks.SampledDeck(List.of(1), null)));
         when(usageService.topDecks()).thenReturn(Optional.of(legacy));
+
+        collector.collectNext();
+
+        verify(apiClient).getPathOfLegendRankings("global", 1000);
+    }
+
+    /** 消費漏れは、勝った側を1.5・負けた側を4.0にする(同じ対戦をどちらの対戦履歴から見ても同じ値になるように)。 */
+    private static BattleLogEntry rankedAgainst(String time, String me, List<BattleLogEntry.Card> myCards,
+            int myCrowns, String opponent, List<BattleLogEntry.Card> opponentCards, int opponentCrowns) {
+        return new BattleLogEntry("pathOfLegend", time, null,
+                List.of(new BattleLogEntry.Participant(me, "name", myCrowns, myCards, List.of(), null,
+                        myCrowns > opponentCrowns ? 1.5 : 4.0)),
+                List.of(new BattleLogEntry.Participant(opponent, "name", opponentCrowns, opponentCards, List.of(),
+                        null, opponentCrowns > myCrowns ? 1.5 : 4.0)),
+                null);
+    }
+
+    @Test
+    void 相手も集める対象の人だった1対1のランク戦を同じ対戦は1つにして渡す() {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(ranked("#A"), ranked("#B")));
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(
+                rankedAgainst("20261017T120000.000Z", "#A", deck(0, 8), 1, "#B", deck(100, 8), 0),
+                // 相手が上位に入っていない対戦は数えない(勝ち越している上位の人のカードほど勝率が高く出るため)。
+                rankedAgainst("20261017T110000.000Z", "#A", deck(0, 8), 3, "#Z", deck(200, 8), 0),
+                battle("friendly", deck(0, 8), List.of())));
+        // 同じ対戦が相手の対戦履歴にも出る。
+        when(apiClient.getBattleLogUncached("#B")).thenReturn(List.of(
+                rankedAgainst("20261017T120000.000Z", "#B", deck(100, 8), 0, "#A", deck(0, 8), 1)));
+
+        IntStream.range(0, 3).forEach(i -> collector.collectNext());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TopBattle>> captor = ArgumentCaptor.forClass(List.class);
+        verify(battleService).publish(captor.capture());
+        List<TopBattle> battles = captor.getValue();
+        assertEquals(1, battles.size());
+        assertEquals(Instant.parse("2026-10-17T12:00:00Z"), battles.get(0).time());
+        assertEquals("#A", battles.get(0).winner().orElseThrow().tag());
+        assertEquals(4.0, battles.get(0).loser().orElseThrow().elixirLeaked());
+    }
+
+    @Test
+    void 対戦を集め始める前の集計しか無ければ時間が経っていなくても集め直す() {
+        TopDecks recent = new TopDecks(clock.instant().minus(Duration.ofHours(2)), sampledDecks(980));
+        when(usageService.topDecks()).thenReturn(Optional.of(recent));
+        when(battleService.awaitingFirstCollection()).thenReturn(true);
 
         collector.collectNext();
 

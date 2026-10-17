@@ -10,6 +10,7 @@ import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.domain.BattleInLog;
 import com.example.clashroyaleapi.domain.CurrentDeck;
+import com.example.clashroyaleapi.domain.ElixirLeak;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.PlayerNameSearch;
@@ -171,6 +172,10 @@ public class PlayerService {
 
     public PlayerBattleStats statsOf(List<BattleLogEntry> battleLog) {
         return PlayerBattleStats.from(battleLog);
+    }
+
+    public ElixirLeak elixirLeakOf(List<BattleLogEntry> battleLog) {
+        return ElixirLeak.ofPlayer(battleLog);
     }
 
     /** @param battleLog 取得できなかったときは空。その場合、公式APIが返さなかったカードは補わない */

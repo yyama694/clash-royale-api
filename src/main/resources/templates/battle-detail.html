@@ -32,6 +32,9 @@
                 <a th:if="${newerBattleTime}" class="btn btn-secondary btn-small battle-nav-newer"
                    th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${newerBattleTime},lang=${#locale.language})}"><span th:text="#{battle.nav.newer}"></span> &rsaquo;</a>
             </nav>
+            <th:block th:if="${battle.team()[0].elixirLeaked() != null}">
+                <p th:replace="~{fragments/layout :: notice(#{battle.leak.notice})}"></p>
+            </th:block>
         </div>
 
         <!--/*

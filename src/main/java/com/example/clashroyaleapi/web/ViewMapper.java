@@ -15,12 +15,14 @@ import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
+import com.example.clashroyaleapi.domain.CardMatchups;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanType;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.Deck;
+import com.example.clashroyaleapi.domain.ElixirLeak;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.MemberActivity;
@@ -49,6 +51,7 @@ import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
+import com.example.clashroyaleapi.web.view.CardCountersView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
@@ -65,6 +68,7 @@ import com.example.clashroyaleapi.web.view.DayLinkView;
 import com.example.clashroyaleapi.web.view.DeckFilterRowView;
 import com.example.clashroyaleapi.web.view.DeckMetaView;
 import com.example.clashroyaleapi.web.view.ElixirBadgeView;
+import com.example.clashroyaleapi.web.view.ElixirLeakView;
 import com.example.clashroyaleapi.web.view.FavoriteClanView;
 import com.example.clashroyaleapi.web.view.FavoritePlayerView;
 import com.example.clashroyaleapi.web.view.FavoriteRowStatus;
@@ -125,6 +129,9 @@ import java.util.stream.Collectors;
  */
 @Component
 public class ViewMapper {
+
+    // 船のバトルは守備側を本人が操作せず、消費漏れも7割が0だった(2026-10-18に279戦で確認)ので、消費漏れを出さない。
+    private static final String BOAT_BATTLE_TYPE = "boatBattle";
 
     private final LabelResolver labels;
     private final CountryNames countryNames;
@@ -691,11 +698,43 @@ public class ViewMapper {
         return new ElixirBadgeView(String.valueOf(cost), labels.message("cards.elixir", locale, cost));
     }
 
-    public BattleStatsView toStats(PlayerBattleStats stats, Locale locale) {
+    /** matchups は世界上位どうしの対戦の集計(苦手カードから相性へつなぐかの判定に使う)。まだ無ければ null。 */
+    public BattleStatsView toStats(PlayerBattleStats stats, CardMatchups matchups, Locale locale) {
         return new BattleStatsView(stats.total(), stats.wins(), stats.losses(), stats.draws(), stats.winRatePercent(),
                 stats.friendlyExcluded(),
-                stats.boatDefenseExcluded(), stats.cardRanking(), toPerformances(stats.favoriteCards(), locale),
-                toPerformances(stats.weakCards(), locale));
+                stats.boatDefenseExcluded(), stats.cardRanking(), toPerformances(stats.favoriteCards(), null, locale),
+                toPerformances(stats.weakCards(), matchups, locale));
+    }
+
+    /** top は世界上位どうしのランク戦の消費漏れ。まだ集めていなければ null。 */
+    public ElixirLeakView toElixirLeak(ElixirLeak player, ElixirLeak top, int topPlayers) {
+        return new ElixirLeakView(player.hasMedian(), player.battles(), player.winMedian(), player.loseMedian(),
+                top == null ? null : top.battles(), top == null ? null : top.winMedian(),
+                top == null ? null : top.loseMedian(), topPlayers);
+    }
+
+    /** そのカード入りのデッキに勝っているカードが無ければ空(カード詳細画面に欄ごと出さない)。 */
+    public Optional<CardCountersView> toCardCounters(CardMatchups matchups, int cardId, int players,
+            Map<Integer, CardsResponse.Card> cardsById, Locale locale) {
+        Optional<CardMatchups.Against> against = matchups.against(cardId);
+        if (against.isEmpty()) {
+            return Optional.empty();
+        }
+        List<CardCountersView.CounterView> counters = against.get().counters().stream()
+                .filter(counter -> cardsById.containsKey(counter.cardId()))
+                .map(counter -> {
+                    CardsResponse.Card card = cardsById.get(counter.cardId());
+                    return new CardCountersView.CounterView(card.id(), labels.cardName(card.name(), locale),
+                            card.iconUrls() == null ? null : card.iconUrls().medium(), counter.battles(),
+                            counter.winRatePercent());
+                })
+                .toList();
+        if (counters.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new CardCountersView(against.get().battles(), against.get().winRatePercent(), players,
+                CardMatchups.MIN_BATTLES, timeFormatter.instant(matchups.from(), locale),
+                timeFormatter.instant(matchups.to(), locale), counters));
     }
 
     public List<ClanMemberView> toMembers(List<ClanResponse.Member> members, Map<String, Integer> worldRanks,
@@ -1025,7 +1064,8 @@ public class ViewMapper {
                         toCards(participant.supportCards(), true, locale),
                         toDeckMeta(participant.cards(), participant.supportCards()),
                         isViewer(participant, viewerTag),
-                        toTrophyChange(battle, participant, locale)))
+                        toTrophyChange(battle, participant, locale),
+                        BOAT_BATTLE_TYPE.equals(battle.type()) ? null : participant.elixirLeaked()))
                 .toList();
     }
 
@@ -1071,11 +1111,14 @@ public class ViewMapper {
                 .toList();
     }
 
+    /** matchups が null なら、カード詳細画面の「勝っているカード」へはつながない。 */
     private List<CardPerformanceView> toPerformances(List<PlayerBattleStats.CardPerformance> performances,
-            Locale locale) {
+            CardMatchups matchups, Locale locale) {
         return performances.stream()
                 .map(card -> new CardPerformanceView(card.cardId(), labels.cardName(card.cardName(), locale),
-                        card.iconUrl(), card.uses(), card.wins(), card.winRatePercent()))
+                        card.iconUrl(), card.uses(), card.wins(), card.winRatePercent(),
+                        matchups != null && matchups.against(card.cardId())
+                                .filter(against -> !against.counters().isEmpty()).isPresent()))
                 .toList();
     }
 

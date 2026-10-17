@@ -1074,6 +1074,9 @@
         <a th:replace="~{fragments/layout :: cardLink(${c.cardId()}, ${c.name()}, ${c.iconUrl()})}"></a>
         <div class="card-name" th:text="${c.name()}"></div>
         <div class="card-sub perf-rate" th:text="#{stats.record(${c.winRatePercent()}, ${c.wins()}, ${c.uses()})}"></div>
+        <!--/* 苦手カードから、世界上位でそのカード入りのデッキに勝っているカード(カード詳細画面)へ */-->
+        <a class="perf-counters" th:if="${c.counters()}" th:href="@{/card/{id}(id=${c.cardId()})} + '#counters'"
+           th:text="#{stats.weak.counters}"></a>
     </div>
 </div>
 
@@ -1167,6 +1170,7 @@
     <div class="side-name" th:each="p : ${side}" th:classappend="${p.viewer()} ? 'is-viewer'">
         <a th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.name()}"></bdi></a>
         <th:block th:if="${p.trophyChange()}"><span th:replace="~{fragments/layout :: trophyChange(${p.trophyChange()})}"></span></th:block>
+        <span class="side-leak" th:if="${p.elixirLeaked() != null}"><span th:text="#{leak.heading}"></span> <strong th:text="${#numbers.formatDecimal(p.elixirLeaked(), 1, 1)}"></strong></span>
     </div>
     <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
     <div class="visually-hidden" th:text="#{battle.crowns(${side[0].crowns()})}"></div>

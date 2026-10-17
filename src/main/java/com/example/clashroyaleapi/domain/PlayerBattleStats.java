@@ -25,8 +25,6 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, int 
     // Wilson score で少数回のカードの順位が下がるからといって下げないこと。
     private static final int MIN_USES_FOR_RANKING = 5;
     private static final int MAX_RANKING_SIZE = 3;
-    // Wilson score interval の z 値。1.96 は95%信頼区間に対応する。
-    private static final double Z = 1.96;
 
     public record CardPerformance(int cardId, String cardName, String iconUrl, int uses, int wins,
             int winRatePercent, double lowerBound, double upperBound) {
@@ -127,26 +125,9 @@ public record PlayerBattleStats(int total, int wins, int losses, int draws, int 
 
     private static CardPerformance toPerformance(String name, CardTally tally) {
         int winRate = Math.round(100f * tally.wins / tally.uses);
+        // 相手デッキ8枚に同じ勝敗を記録する集計方式なので試行は厳密には独立ではないが、試行回数による補正の目安としては十分機能する。
         return new CardPerformance(tally.cardId, name, tally.iconUrl, tally.uses, tally.wins, winRate,
-                wilsonBound(tally.wins, tally.uses, -1), wilsonBound(tally.wins, tally.uses, 1));
-    }
-
-    /**
-     * Wilson score interval(母比率の信頼区間)の下限(sign=-1)と上限(sign=+1)。
-     * 試行回数が少ないほど区間が広がるため、下限で並べれば少数回の全勝が、上限で並べれば少数回の全敗が、
-     * それぞれ自動的に順位を下げる。相手デッキ8枚に同じ勝敗を記録する集計方式なので試行は厳密には
-     * 独立ではないが、試行回数による補正の目安としては十分機能する。
-     */
-    private static double wilsonBound(int wins, int uses, int sign) {
-        if (uses == 0) {
-            return 0;
-        }
-        double n = uses;
-        double p = wins / n;
-        double denominator = 1 + Z * Z / n;
-        double centre = p + Z * Z / (2 * n);
-        double margin = Z * Math.sqrt(p * (1 - p) / n + Z * Z / (4 * n * n));
-        return (centre + sign * margin) / denominator;
+                WilsonScore.lowerBound(tally.wins, tally.uses), WilsonScore.upperBound(tally.wins, tally.uses));
     }
 
     private static final class CardTally {

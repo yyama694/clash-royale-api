@@ -1070,11 +1070,17 @@ td.cell-action {
     color: var(--color-lose);
 }
 
-.matchup .side .trophy-change {
+.matchup .side .trophy-change,
+.matchup .side .side-leak {
     display: block;
     font-size: 0.8rem;
     font-weight: 400;
     color: var(--color-text-muted);
+}
+
+.matchup .side .side-leak strong {
+    color: var(--color-text);
+    font-weight: 700;
 }
 
 .badge {
@@ -1889,6 +1895,29 @@ td.cell-action {
 .deck-card.perf-bad .perf-rate {
     color: var(--color-lose);
     font-weight: 700;
+}
+
+.perf-counters {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+}
+
+/* 消費漏れの表。行の見出し(誰の値か)が長いので、数値の列は詰めて右に寄せる。 */
+.leak-table {
+    min-width: 0;
+    max-width: 560px;
+}
+
+.leak-table tbody th {
+    font-weight: 400;
+    text-align: left;
+    padding: 0.6rem 0.7rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.leak-table .leak-top {
+    color: var(--color-text-muted);
 }
 
 .support-row {
