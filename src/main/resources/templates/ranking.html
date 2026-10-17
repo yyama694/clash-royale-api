@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(#{ranking.pageTitle})}"></head>
+<head th:replace="~{fragments/layout :: head(${pageTitle} ?: #{ranking.pageTitle})}"></head>
 <body>
     <header th:replace="~{fragments/layout :: header}"></header>
 
@@ -8,7 +8,7 @@
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <div class="card">
-            <h1 th:text="#{ranking.heading}"></h1>
+            <h1 th:text="${pageTitle} ?: #{ranking.heading}"></h1>
             <div th:replace="~{fragments/layout :: rankingTabs(
                      ~{fragments/layout :: rankingTable(${globalRanking}, true)},
                      ~{fragments/layout :: rankingTable(${localRanking}, false)},

@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.Tags;
+import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
@@ -13,6 +14,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
@@ -427,6 +429,44 @@ public class PageSummaries {
             args.add(player.eloRating());
         });
         return labels.message("season.summary", locale, args.toArray());
+    }
+
+    /**
+     * 国別の個人ランキング画面の見出し・タイトル。「クラロワ 日本 ランキング」のような国名つきの検索の受け皿にするため、
+     * 国を選んだ画面ではタイトルにも国名を入れる(2026-10)。
+     */
+    public String countryPlayerRankingTitle(String countryName, Locale locale) {
+        return labels.message("playerRanking.country.title", locale, countryName);
+    }
+
+    /** 今シーズンの上位3人の名前とレーティング。3人そろわない・前のシーズンの順位を出しているときは国名だけの文にする。 */
+    public String countryPlayerRankingSummary(String countryName, PlayerRanking ranking, Locale locale) {
+        boolean currentSeason = ranking.status() == PlayerRanking.Status.CURRENT_SEASON
+                || ranking.status() == PlayerRanking.Status.NEW_SEASON;
+        if (!currentSeason || ranking.players().size() < 3) {
+            return labels.message("playerRanking.country.lead", locale, countryName);
+        }
+        List<Object> args = new ArrayList<>(List.of(countryName));
+        ranking.players().stream().limit(3).forEach(player -> {
+            args.add(GameText.stripFormatting(player.name()));
+            args.add(player.eloRating());
+        });
+        return labels.message("playerRanking.country.summary", locale, args.toArray());
+    }
+
+    public String countryClanRankingTitle(String countryName, Locale locale) {
+        return labels.message("ranking.country.title", locale, countryName);
+    }
+
+    /** 上位3クランの名前。3クランそろわなければ国名だけの文にする。 */
+    public String countryClanRankingSummary(String countryName, List<ClanRankingResponse.RankedClan> clans,
+            Locale locale) {
+        if (clans.size() < 3) {
+            return labels.message("ranking.country.lead", locale, countryName);
+        }
+        List<Object> args = new ArrayList<>(List.of(countryName));
+        clans.stream().limit(3).forEach(clan -> args.add(GameText.stripFormatting(clan.name())));
+        return labels.message("ranking.country.summary", locale, args.toArray());
     }
 
     // 月名は言語ごとにICUに書かせる(引数は日時)。サーバーのタイムゾーンで前後の月にずれないよう、月の半ばにする。

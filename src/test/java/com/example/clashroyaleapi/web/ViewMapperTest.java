@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
+import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
@@ -20,6 +21,7 @@ import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.web.view.RankedLeagueView;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
+import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
@@ -643,5 +645,57 @@ class ViewMapperTest {
         assertEquals(List.of("B", "C"), view.members().stream().map(ClanWarView.MemberView::name).toList());
         assertEquals(List.of("A"), view.notAttackedThisWeek().stream().map(ClanWarView.MemberView::name).toList());
         assertEquals(3, view.memberCount());
+    }
+
+    @Test
+    void 使用率ランキングは約1週間前の集計からの増減を表示どおりの値の差で出す() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        List<CardService.CardGroup> groups = List.of(new CardService.CardGroup("common", List.of(
+                new CardsResponse.Card(1, "Knight", 14, null, 3, "common", null),
+                new CardsResponse.Card(2, "Archers", 14, null, 3, "common", null),
+                new CardsResponse.Card(3, "Giant", 14, null, 5, "rare", null))));
+        // 今: Knight 2/3=66.7%・Archers 1/3=33.3%・Giant 1/3=33.3%。1週間前: Knight 1/2=50.0%・Archers 1/2=50.0%・Giant 1/2=50.0%
+        CardUsage now = CardUsage.of(decks("2026-10-18T19:15:00Z", List.of(1, 2), List.of(1, 3), List.of(9)));
+        CardUsage weekAgo = CardUsage.of(decks("2026-10-11T12:18:18Z", List.of(1, 2), List.of(3)));
+
+        List<CardCatalogItemView> cards = mapper.toCardUsageRanking(groups, now, weekAgo, Locale.JAPANESE).get(0).cards();
+
+        assertEquals("▲16.7", cards.get(0).usageChange().text());
+        assertEquals("1週間前より16.7ポイント増", cards.get(0).usageChange().label());
+        assertEquals("up", cards.get(0).usageChange().direction());
+        assertEquals("▼16.7", cards.get(1).usageChange().text());
+        assertEquals("down", cards.get(1).usageChange().direction());
+        assertEquals("▲16,7", mapper.toCardUsageRanking(groups, now, weekAgo, Locale.GERMAN).get(0).cards().get(0)
+                .usageChange().text());
+        assertEquals("▲16.7", mapper.toCardUsageRanking(groups, now, weekAgo, Locale.ENGLISH).get(0).cards().get(0)
+                .usageChange().text());
+        assertNull(mapper.toCardUsageRanking(groups, now, null, Locale.JAPANESE).get(0).cards().get(0).usageChange());
+        assertEquals("▲▼は、約1週間前(10月11日)の集計と比べた使用率の増減(ポイント)です。",
+                mapper.usageChangeNotice(weekAgo, Locale.JAPANESE));
+    }
+
+    @Test
+    void 使用率が変わらなければ増減なしとして出す() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        List<CardService.CardGroup> groups = List.of(new CardService.CardGroup("common", List.of(
+                new CardsResponse.Card(1, "Knight", 14, null, 3, "common", null))));
+        CardUsage now = CardUsage.of(decks("2026-10-18T19:15:00Z", List.of(1), List.of(2)));
+        CardUsage weekAgo = CardUsage.of(decks("2026-10-11T12:18:18Z", List.of(1), List.of(2), List.of(1), List.of(3)));
+
+        CardCatalogItemView knight = mapper.toCardUsageRanking(groups, now, weekAgo, Locale.JAPANESE).get(0).cards().get(0);
+
+        assertEquals("±0", knight.usageChange().text());
+        assertEquals("1週間前と同じ", knight.usageChange().label());
+        assertEquals("same", knight.usageChange().direction());
+    }
+
+    @SafeVarargs
+    private static TopDecks decks(String collectedAt, List<Integer>... cardIds) {
+        return new TopDecks(Instant.parse(collectedAt), Arrays.stream(cardIds)
+                .map(ids -> new TopDecks.SampledDeck(ids, null, new TopDecks.Player("#ABC", "Miku", 1, 2887,
+                        ids.stream().map(id -> 16).toList(), 16)))
+                .toList(), null);
     }
 }

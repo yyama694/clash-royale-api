@@ -54,6 +54,25 @@ class CardUsageServiceTest {
         assertEquals(Optional.empty(), restarted.lastBefore(Instant.parse("2026-10-10T11:20:27Z")));
     }
 
+    @Test
+    void 約1週間前の集計は最新より6日半以上前のうち最後のもの_たまるまでは空() throws IOException {
+        CardUsageService service = new CardUsageService(new TopDecksFile(dir.resolve("top-decks.tsv")),
+                dir.resolve("history"));
+        assertEquals(Optional.empty(), service.weekAgo());
+
+        // 本番と同じく、集計の時刻は1日に約1時間ずつ遅れていく。
+        service.publish(topDecks("2026-10-11T12:18:18Z", null));
+        service.publish(topDecks("2026-10-12T13:16:06Z", null));
+        service.publish(topDecks("2026-10-17T18:15:00Z", null));
+        assertEquals(Optional.empty(), service.weekAgo());
+
+        service.publish(topDecks("2026-10-18T19:15:00Z", null));
+        assertEquals(Instant.parse("2026-10-11T12:18:18Z"), service.weekAgo().orElseThrow().collectedAt());
+
+        service.publish(topDecks("2026-10-19T08:00:00Z", null));
+        assertEquals(Instant.parse("2026-10-12T13:16:06Z"), service.weekAgo().orElseThrow().collectedAt());
+    }
+
     private static TopDecks topDecks(String collectedAt, YearMonth finishedSeason) {
         return new TopDecks(Instant.parse(collectedAt), List.of(
                 new TopDecks.SampledDeck(List.of(26000000, 26000001), 159000000,

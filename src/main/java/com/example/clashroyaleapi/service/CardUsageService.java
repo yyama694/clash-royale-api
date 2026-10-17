@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -33,6 +34,8 @@ public class CardUsageService {
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ISO_LOCAL_DATE.withZone(ZoneOffset.UTC);
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HHmmss").withZone(ZoneOffset.UTC);
+
+    static final Duration WEEK_AGO = Duration.ofDays(7).minusHours(12);
 
     private final TopDecksFile file;
     private final Path historyDir;
@@ -81,6 +84,15 @@ public class CardUsageService {
         } catch (IOException e) {
             log.warn("could not save the card usage history: {}", e.toString());
         }
+    }
+
+    /**
+     * 使用率ランキングの増減を比べる、約1週間前の集計。最新の集計より6日半以上前のうち最後のもの。
+     * 集計は約25時間おきに時刻がずれていくので、ちょうど7日前の集計は無い。履歴が1週間分たまるまでは空。
+     */
+    public Optional<CardUsage> weekAgo() {
+        CardUsage latest = current;
+        return latest == null ? Optional.empty() : lastBefore(latest.collectedAt().minus(WEEK_AGO));
     }
 
     /**

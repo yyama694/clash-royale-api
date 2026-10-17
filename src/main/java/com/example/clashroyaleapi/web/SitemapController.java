@@ -3,8 +3,10 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.LocationService;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
 
@@ -31,20 +33,30 @@ public class SitemapController {
     private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/decks/popular", "/ranking",
             "/ranking/players", "/ranking/players/movements", "/ranking/players/seasons", "/balance", "/about", "/privacy");
 
+    /**
+     * 国別ランキングをsitemapに載せる国。「クラロワ 日本 ランキング」のような国名つきの検索の入口にする(2026-10)。
+     * 国ごとに公式APIを呼ぶ画面(クランは最大21回)なので、全約200か国ではなく、対応言語の国とプレイヤーの多い国に絞る
+     * (国の数は2026-10-17にユーザーが決定)。
+     */
+    static final List<String> RANKING_COUNTRIES = List.of("JP", "US", "GB", "CA", "AU", "DE", "AT", "FR", "IT", "ES",
+            "PT", "NL", "PL", "RU", "UA", "TR", "KR", "BR", "MX", "AR", "CO", "CL", "PE", "ID", "PH");
+
     private final CardService cardService;
     private final CardUsageService cardUsageService;
     private final RankingHistoryService rankingHistoryService;
     private final RankingService rankingService;
+    private final LocationService locationService;
     private final GlobalModelAttributes modelAttributes;
     private final LabelResolver labels;
 
     public SitemapController(CardService cardService, CardUsageService cardUsageService,
             RankingHistoryService rankingHistoryService, RankingService rankingService,
-            GlobalModelAttributes modelAttributes, LabelResolver labels) {
+            LocationService locationService, GlobalModelAttributes modelAttributes, LabelResolver labels) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.rankingHistoryService = rankingHistoryService;
         this.rankingService = rankingService;
+        this.locationService = locationService;
         this.modelAttributes = modelAttributes;
         this.labels = labels;
     }
@@ -58,8 +70,8 @@ public class SitemapController {
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" "
                 + "xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
-        Stream.of(STATIC_PATHS.stream(), cardUsageRankingPaths(), cardPaths(), cardDeckPaths(), movementDayPaths(),
-                        seasonPaths())
+        Stream.of(STATIC_PATHS.stream(), cardUsageRankingPaths(), cardPaths(), cardDeckPaths(), countryRankingPaths(),
+                        movementDayPaths(), seasonPaths())
                 .flatMap(paths -> paths)
                 .forEach(path -> appendUrl(xml, base, path, languageCodes));
         xml.append("</urlset>\n");
@@ -148,6 +160,7 @@ public class SitemapController {
                   card collection
                 - Clan search by name or tag: member list with role, trophies, donations, last seen
                 - Rankings: top 1000 players and top 1000 clans, global or by country
+                  (e.g. %s/ranking/players?country=JP, %s/ranking?country=BR)
                 - Cards: full card list and per-card detail pages, including Evolution artwork
 
                 ## Pages
@@ -174,7 +187,7 @@ public class SitemapController {
                 - Available languages: %s
                 - Not affiliated with or endorsed by Supercell.
                 - About this site and contact: %s/about
-                """.formatted(siteName, base, base, base, base, base, base, base, base, base, base, languages, base);
+                """.formatted(siteName, base, base, base, base, base, base, base, base, base, base, base, base, languages, base);
     }
 
     private Stream<String> cardPaths() {
@@ -195,6 +208,14 @@ public class SitemapController {
     /** カードの使用率ランキング(カード一覧の使用率順)。集計がまだ無いときは画面がレアリティ別と同じになるので載せない。 */
     private Stream<String> cardUsageRankingPaths() {
         return cardUsageService.current().stream().map(usage -> "/cards?sort=usage");
+    }
+
+    /** 国別の個人ランキングとクランランキング。国の一覧が取れなければ(公式APIの障害)、そのときは載せない。 */
+    private Stream<String> countryRankingPaths() {
+        List<Country> countries = locationService.countries();
+        return RANKING_COUNTRIES.stream()
+                .filter(code -> Country.find(countries, code).isPresent())
+                .flatMap(code -> Stream.of("/ranking/players?country=" + code, "/ranking?country=" + code));
     }
 
     /** 日ごとのランキングの動き。内容が固定されたページなので、記録のある終わった日をすべて載せる。 */
