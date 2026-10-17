@@ -83,7 +83,10 @@ public final class SupportedLanguages {
      * request.getLocale() は先頭の1言語しか見ないため、fr,ja;q=0.9 で日本語を選べない。
      */
     public static Locale fromAcceptLanguage(HttpServletRequest request) {
-        String header = request.getHeader(HttpHeaders.ACCEPT_LANGUAGE);
+        return fromAcceptLanguage(request.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
+    }
+
+    static Locale fromAcceptLanguage(String header) {
         if (header == null || header.isBlank()) {
             return INTERNATIONAL;
         }
@@ -97,6 +100,24 @@ public final class SupportedLanguages {
             // 壊れたAccept-Languageは「希望なし」と同じ扱いにする。
             return INTERNATIONAL;
         }
+    }
+
+    /**
+     * ?lang= で着地した人に勧める、その人の言語。?lang= が無ければ言語メニューで選んだ言語(Cookie)か
+     * Accept-Languageの言語で出ていたはずなので、それが今の表示と違うときだけ返す。
+     * 検索結果から、ブラウザの言語と違う ?lang= のページに着地する人がいたため(2026-10-17)。
+     * Accept-Languageを送らない訪問者(検索エンジンのクローラーなど)には勧めない。
+     * 対応外の言語の人には英語を勧める(?lang= が無いときに出る言語と同じ)。
+     */
+    public static Optional<Locale> suggestion(Locale shown, String requested, String saved, String acceptLanguage) {
+        if (fromParameter(requested).isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<Locale> preferred = saved == null ? Optional.empty() : match(Locale.forLanguageTag(saved));
+        if (preferred.isEmpty() && acceptLanguage != null && !acceptLanguage.isBlank()) {
+            preferred = Optional.of(fromAcceptLanguage(acceptLanguage));
+        }
+        return preferred.filter(locale -> !locale.getLanguage().equals(shown.getLanguage()));
     }
 
     /** 画面・国名・日時の表示に使うロケール。Controllerが受け取るLocaleは解決済みだが、念のため対応言語に寄せる。 */

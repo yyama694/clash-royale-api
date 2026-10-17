@@ -604,6 +604,12 @@
             </ul>
         </details>
     </nav>
+    <!--/* 検索結果などから、ブラウザの言語と違う ?lang= のページに着地した人向け(LanguageSuggestionAdvice)。 */-->
+    <p class="lang-suggestion" th:if="${languageSuggestion}">
+        <span class="lang-menu-icon" aria-hidden="true"></span>
+        <a th:href="@{${currentUri}(setlang=${languageSuggestion.code()})}" th:text="${languageSuggestion.text()}"
+           th:lang="${languageSuggestion.code()}" th:hreflang="${languageSuggestion.code()}" rel="nofollow"></a>
+    </p>
 </header>
 
 <!--/*
@@ -728,6 +734,21 @@
         }
         if (!base) {
             return;
+        }
+
+        // 同じプレイヤーを1日に何度も開き直す人が、どれが新しい対戦かをすぐ分かるように(プレイヤー情報画面だけ)
+        var battleList = document.querySelector('.battle-list[data-new-label]');
+        if (battleList) {
+            battleList.querySelectorAll('.battle-item').forEach(function (item) {
+                var time = item.querySelector('time[datetime]');
+                if (time && new Date(time.getAttribute('datetime')).getTime() > base.at) {
+                    var badge = document.createElement('span');
+                    badge.className = 'battle-new';
+                    badge.textContent = battleList.dataset.newLabel;
+                    badge.title = battleList.dataset.newTitle;
+                    item.querySelector('.battle-sub').prepend(badge);
+                }
+            });
         }
 
         var lang = document.documentElement.lang;

@@ -7,6 +7,12 @@
     <main class="container">
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
         <form th:replace="~{fragments/layout :: playerSearchBar}"></form>
+        <!--/*
+          検索エンジンから来た人だけに出す(末尾のスクリプト)。検索から着地した人の約6割が1ページで帰り、
+          2ページ以上見た人の多くはこの欄の名前検索で別のプレイヤーを探していた(2026-10-10〜17の実訪問)。
+        */-->
+        <p class="notice search-bar-hint" id="search-bar-hint" th:if="${nameSearchEnabled}" hidden
+           th:text="#{player.searchBar.fromSearch}"></p>
 
         <div class="card">
             <div class="page-heading">
@@ -163,7 +169,8 @@
               1戦を2行(対戦相手 / モード・日時)にまとめ、勝敗とクラウンは左端に縦に積む。表にするとスマホで1戦が6行になり、30戦で画面が非常に長くなっていた。
               勝敗は左端の色帯でも示し、連勝・連敗の流れを縦に見渡せるようにする。
             */-->
-            <ol class="battle-list" th:if="${battles != null and not #lists.isEmpty(battles)}">
+            <ol class="battle-list" th:if="${battles != null and not #lists.isEmpty(battles)}"
+                th:data-new-label="#{battlelog.new}" th:data-new-title="#{battlelog.new.title}">
                 <li class="battle-item" th:each="b : ${battles}" th:classappend="'battle-' + ${b.result().code()}">
                     <div class="battle-result">
                         <span th:replace="~{fragments/layout :: resultBadge(${b.result()})}"></span>
@@ -237,6 +244,14 @@
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 
     <script th:replace="~{fragments/layout :: sinceLastScript}"></script>
+    <script>
+        (function () {
+            var hint = document.getElementById('search-bar-hint');
+            if (hint && /^https?:\/\/([^\/]+\.)?(google|bing|duckduckgo|yahoo|yandex|naver|ecosia|baidu)\.[^\/]+/i.test(document.referrer)) {
+                hint.hidden = false;
+            }
+        })();
+    </script>
     <!--/* 「これは自分」の人はトップページの「自分の成績」に出るので、「最近見たもの」には残さない(10人の枠を使わないため) */-->
     <th:block th:unless="${isMe}">
         <script th:replace="~{fragments/layout :: recentViewsScript('player', ${playerPathTag}, ${playerName})}"></script>
