@@ -105,4 +105,41 @@ class SupportedLanguagesTest {
         assertEquals(Locale.KOREAN, SupportedLanguages.displayLocale(Locale.KOREA));
         assertEquals(Locale.ENGLISH, SupportedLanguages.displayLocale(Locale.forLanguageTag("pl")));
     }
+
+    @Test
+    void langで着地した言語がブラウザの言語と違えばブラウザの言語を勧める() {
+        assertEquals(Locale.forLanguageTag("it"),
+                SupportedLanguages.suggestion(Locale.JAPANESE, "ja", null, "it-IT,it;q=0.9,en;q=0.8").orElseThrow());
+    }
+
+    @Test
+    void 言語メニューで選んだ言語があればAcceptLanguageより優先して勧める() {
+        assertEquals(Locale.forLanguageTag("tr"),
+                SupportedLanguages.suggestion(Locale.JAPANESE, "ja", "tr", "en-US").orElseThrow());
+    }
+
+    @Test
+    void 対応外の言語の人には英語を勧める() {
+        assertEquals(Locale.ENGLISH,
+                SupportedLanguages.suggestion(Locale.JAPANESE, "ja", null, "sv-SE,sv;q=0.9").orElseThrow());
+    }
+
+    @Test
+    void 言語を勧めない場合() {
+        // 同じ言語
+        assertTrue(SupportedLanguages.suggestion(Locale.JAPANESE, "ja", null, "ja-JP").isEmpty());
+        assertTrue(SupportedLanguages.suggestion(Locale.JAPANESE, "ja", "ja", "it-IT").isEmpty());
+        // ?lang= が無い・対応外(表示はCookieかAccept-Languageの言語なので食い違わない)
+        assertTrue(SupportedLanguages.suggestion(Locale.ENGLISH, null, null, "it-IT").isEmpty());
+        assertTrue(SupportedLanguages.suggestion(Locale.ENGLISH, "pl", null, "it-IT").isEmpty());
+        // Accept-Languageを送らない訪問者(クローラーなど)
+        assertTrue(SupportedLanguages.suggestion(Locale.JAPANESE, "ja", null, null).isEmpty());
+        assertTrue(SupportedLanguages.suggestion(Locale.JAPANESE, "ja", null, " ").isEmpty());
+    }
+
+    @Test
+    void 壊れたCookieは無かったものとしてAcceptLanguageで決める() {
+        assertEquals(Locale.forLanguageTag("de"),
+                SupportedLanguages.suggestion(Locale.JAPANESE, "ja", "xx-broken", "de-DE").orElseThrow());
+    }
 }

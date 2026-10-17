@@ -216,6 +216,19 @@ a {
     content: "\1F310" / "";
 }
 
+/* 着地した言語がブラウザの言語と違うときの「〇〇語で表示」。ヘッダーの最後の段に1行で出す。 */
+.lang-suggestion {
+    flex: 1 0 100%;
+    order: 2;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.lang-suggestion a {
+    color: #fff;
+    font-weight: 700;
+}
+
 /* 開閉できることが分かるよう、閉じているときは下向き、開いているときは上向きの矢印を出す。 */
 .lang-menu summary::after {
     content: "\25BE" / "";
@@ -456,6 +469,11 @@ a {
     flex-wrap: nowrap;
     align-items: stretch;
     margin-bottom: 1rem;
+}
+
+/* 検索欄のすぐ下に、欄の説明として寄せて出す。 */
+.search-bar-hint {
+    margin: -0.6rem 0 1rem;
 }
 
 .search-bar label {
@@ -1019,6 +1037,19 @@ td.cell-action {
 .battle-sub > * + *::before {
     content: "\00B7" / "";
     margin-right: 0.5rem;
+}
+
+/* 前回見たとき以降の対戦の印(sinceLastScript が付ける)。印のすぐ後ろには区切りの点を入れない。 */
+.battle-new {
+    padding: 0 0.45rem;
+    border-radius: 999px;
+    background: var(--color-accent);
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.battle-sub > .battle-new + *::before {
+    content: none;
 }
 
 .battle-sub .teammates {
