@@ -66,6 +66,16 @@ ranking-history:
   enabled: ${RANKING_HISTORY_ENABLED:true}
   cron: ${RANKING_HISTORY_CRON:0 1/15 * * * *}
 
+# 新しくできた内容の変わらないページ(日ごとのランキングの動き・シーズンの最終順位)を、IndexNowでBing・Naver・Yandexなどに
+# 知らせる(IndexNowSubmitter)。Googleは非対応。送ったURLは player-index.dir の下の indexnow/submitted.txt に残し、二度送らない。
+# key は検索エンジンに見せる目印で、/<key>.txt で配信する(秘密情報ではない)。本番は /etc/clash-royale-api/env で有効にする。
+indexnow:
+  enabled: ${INDEXNOW_ENABLED:false}
+  key: c2e3388180783b347d75b69c6372455c
+  site-url: ${INDEXNOW_SITE_URL:https://princess-tower.duckdns.org}
+  # 前日(UTC)の動きのページが確定した後。起動の2分後にも1回送る(デプロイで溜まった分を送るため)。
+  cron: ${INDEXNOW_CRON:0 30 0 * * *}
+
 clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1
