@@ -10,10 +10,6 @@
         <div class="card">
             <h1 th:text="#{balance.heading}"></h1>
             <p th:text="#{balance.lead}"></p>
-            <!--/* 公式の訳が確かめられない項目名は、英語のまま出している(英語のUIでは断らない) */-->
-            <th:block th:if="${#locale.language != 'en'}">
-                <p th:replace="~{fragments/layout :: notice(#{balance.englishNotice})}"></p>
-            </th:block>
         </div>
 
         <section class="card" th:each="u : ${updates}" th:id="${u.anchor()}">

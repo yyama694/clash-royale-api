@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.domain.BalanceUpdate;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.DisplayContext;
 import com.ibm.icu.text.LocaleDisplayNames;
@@ -37,10 +38,9 @@ class MessagesConsistencyTest {
      * 英語(基本ファイル)には無くてよいキー。カード名は公式APIの英語名をそのまま使い、
      * 国名・カード名の読み仮名は漢字の読みが要る言語に、カードの通称は通称が定着している言語にだけある。
      * プライバシーポリシーの本文は英語と日本語にだけあり、他の言語では英語版が出る(下のテストで英語と日本語をそろえる)。
-     * バランス調整の項目名のうち公式の訳が確かめられないもの(balance.statEn.)は英語にだけあり、他の言語でも英語で出す。
      */
     private static final List<String> LANGUAGE_SPECIFIC_PREFIXES =
-            List.of("cardalias.", "cardreading.", "country.reading.", PRIVACY_PREFIX, "balance.statEn.");
+            List.of("cardalias.", "cardreading.", "country.reading.", PRIVACY_PREFIX);
 
     private static Properties load(String name) throws IOException {
         try (InputStream in = MessagesConsistencyTest.class.getResourceAsStream("/" + name)) {
@@ -100,6 +100,22 @@ class MessagesConsistencyTest {
 
             assertEquals(Set.of(), missingInTranslation, file + " に無いキー");
             assertEquals(Set.of(), missingInEnglish, "messages.properties に無いキー(" + file + ")");
+        }
+    }
+
+    // 他の言語は上のテストで英語とそろうので、英語にあるかだけを見る。
+    @Test
+    void バランス調整のすべての項目に名前がある() throws IOException {
+        Properties english = load("messages.properties");
+        try (InputStream in = MessagesConsistencyTest.class.getResourceAsStream("/balance/changes.tsv")) {
+            List<String> lines = new String(in.readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+            Set<String> missing = BalanceUpdate.parse(lines).stream()
+                    .flatMap(update -> update.changes().stream())
+                    .map(change -> "balance.stat." + change.stat())
+                    .filter(key -> !english.containsKey(key))
+                    .collect(Collectors.toCollection(TreeSet::new));
+
+            assertEquals(Set.of(), missing);
         }
     }
 

@@ -221,12 +221,7 @@ public class ViewMapper {
 
     /** 「ダメージ: 232 → 215(-8%)」。数値の無い変更は項目の文言だけ。 */
     private String balanceLine(BalanceUpdate.Change change, Locale locale) {
-        // 公式の訳が確かめられない項目名は、英語だけにある balance.statEn.* に置いている(他の言語でも英語で出る)。
-        String key = "balance.stat." + change.stat();
-        String stat = labels.message(key, locale);
-        if (stat.equals(key)) {
-            stat = labels.message("balance.statEn." + change.stat(), locale);
-        }
+        String stat = labels.message("balance.stat." + change.stat(), locale);
         if (!change.hasValues()) {
             return stat;
         }
