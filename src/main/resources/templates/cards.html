@@ -39,6 +39,9 @@
                 <p th:replace="~{fragments/layout :: notice(#{cardUsage.notice(${sampleSize})})}"></p>
                 <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
                     <time th:replace="~{fragments/layout :: localTime(${collectedAt})}"></time></p>
+                <th:block th:if="${usageChangeNotice != null}">
+                    <p th:replace="~{fragments/layout :: notice(${usageChangeNotice})}"></p>
+                </th:block>
             </th:block>
         </div>
 
@@ -55,6 +58,10 @@
                     <div class="card-sub card-usage" th:if="${c.usagePercent() != null}">
                         <span class="usage-rank" th:if="${c.usageRank() != null}" th:text="#{cards.usage.rank(${c.usageRank()})}"></span>
                         <span th:text="#{cardUsage.rate.value(${c.usagePercent()})}"></span>
+                        <span class="rank-change" th:if="${c.usageChange() != null}"
+                              th:classappend="${c.usageChange().direction()}" th:title="${c.usageChange().label()}"><span
+                              aria-hidden="true" th:text="${c.usageChange().text()}"></span><span class="visually-hidden"
+                              th:text="${c.usageChange().label()}"></span></span>
                     </div>
                 </div>
             </div>

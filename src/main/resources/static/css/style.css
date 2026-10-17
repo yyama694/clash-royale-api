@@ -1867,6 +1867,11 @@ td.cell-action {
     font-weight: 700;
 }
 
+/* 順位・使用率の行に収まるかは言語と幅で変わるので、増減は常に次の行にそろえる。 */
+.deck-card .card-usage .rank-change {
+    flex-basis: 100%;
+}
+
 /* 得意(good)は勝ち色、苦手(bad)は負け色。見出しを読まなくても強弱が伝わるようにする。 */
 .deck-card.perf-good {
     box-shadow: inset 0 -3px 0 var(--color-win);

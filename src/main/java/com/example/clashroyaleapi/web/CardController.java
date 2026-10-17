@@ -60,8 +60,11 @@ public class CardController {
         model.addAttribute("byUsage", byUsage);
         if (byUsage) {
             CardUsage current = usage.get();
+            CardUsage weekAgo = cardUsageService.weekAgo().orElse(null);
             List<CardCatalogGroupView> groups = viewMapper.toCardUsageRanking(cardService.byUsage(current), current,
-                    locale);
+                    weekAgo, locale);
+            model.addAttribute("usageChangeNotice",
+                    weekAgo == null ? null : viewMapper.usageChangeNotice(weekAgo, locale));
             model.addAttribute("groups", groups);
             model.addAttribute("pageTitle", pageSummaries.cardUsageRankingTitle(locale));
             model.addAttribute("pageDescription",

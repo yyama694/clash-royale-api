@@ -29,14 +29,17 @@ public class RankingController {
     private final LocationService locationService;
     private final RankingHistoryService rankingHistoryService;
     private final ViewMapper viewMapper;
+    private final PageSummaries pageSummaries;
 
     public RankingController(RankingService rankingService, RankingScope rankingScope,
-            LocationService locationService, RankingHistoryService rankingHistoryService, ViewMapper viewMapper) {
+            LocationService locationService, RankingHistoryService rankingHistoryService, ViewMapper viewMapper,
+            PageSummaries pageSummaries) {
         this.rankingService = rankingService;
         this.rankingScope = rankingScope;
         this.locationService = locationService;
         this.rankingHistoryService = rankingHistoryService;
         this.viewMapper = viewMapper;
+        this.pageSummaries = pageSummaries;
     }
 
     @GetMapping("/ranking")
@@ -48,9 +51,18 @@ public class RankingController {
         // 最初は開いているタブだけを描き、もう一方は切り替えたときに下の table で取りに来る。
         model.addAttribute("globalRanking", scope.localTabActive() ? List.of()
                 : toClanRankingRows(RankingService.GLOBAL_LOCATION_ID, locale));
-        model.addAttribute("localRanking", scope.localTabActive()
-                ? scope.country().map(c -> toClanRankingRows(c.locationId(), locale)).orElseGet(List::of)
-                : List.of());
+        model.addAttribute("localRanking", List.of());
+        // 国を指定したURL(?country=JP)は国名つきの検索の入口なので、タイトル・見出し・説明文もその国のものにする。
+        if (scope.localTabActive()) {
+            scope.country().ifPresent(selected -> {
+                List<ClanRankingResponse.RankedClan> clans = rankingService.topClans(selected.locationId());
+                String countryName = viewMapper.countryName(selected, locale);
+                model.addAttribute("localRanking", toClanRankingRows(selected.locationId(), clans, locale));
+                model.addAttribute("pageTitle", pageSummaries.countryClanRankingTitle(countryName, locale));
+                model.addAttribute("pageDescription",
+                        pageSummaries.countryClanRankingSummary(countryName, clans, locale));
+            });
+        }
         // 注記の「上位n件」を文言に直書きすると定数を変えたときにずれるため、件数も渡す。
         model.addAttribute("clanRankingSize", RankingService.CLAN_RANKING_SIZE);
         model.addAttribute("warTrophiesRankLimit", RankingService.WAR_TROPHIES_RANK_LIMIT);
@@ -76,7 +88,11 @@ public class RankingController {
 
     /** クランスコアが上限で並ぶ上位クランを見分けられるよう、上位だけクラン対戦トロフィーを添える。 */
     private List<ClanRankingRowView> toClanRankingRows(String locationId, Locale locale) {
-        List<ClanRankingResponse.RankedClan> clans = rankingService.topClans(locationId);
+        return toClanRankingRows(locationId, rankingService.topClans(locationId), locale);
+    }
+
+    private List<ClanRankingRowView> toClanRankingRows(String locationId, List<ClanRankingResponse.RankedClan> clans,
+            Locale locale) {
         return viewMapper.toClanRankingRows(clans, rankingService.warTrophiesOfTopClans(locationId, clans), locale);
     }
 
@@ -92,12 +108,17 @@ public class RankingController {
                 : viewMapper.toPlayerRanking(
                         rankingService.topPlayers(RankingService.GLOBAL_LOCATION_ID, PLAYER_RANKING_SIZE),
                         rankingHistoryService.dayAgoSnapshot().orElse(null), locale));
-        model.addAttribute("localRanking", scope.localTabActive()
-                ? scope.country()
-                        .map(c -> viewMapper.toPlayerRanking(
-                                rankingService.topPlayers(c.locationId(), PLAYER_RANKING_SIZE), locale))
-                        .orElse(null)
-                : null);
+        model.addAttribute("localRanking", null);
+        if (scope.localTabActive()) {
+            scope.country().ifPresent(selected -> {
+                PlayerRanking ranking = rankingService.topPlayers(selected.locationId(), PLAYER_RANKING_SIZE);
+                String countryName = viewMapper.countryName(selected, locale);
+                model.addAttribute("localRanking", viewMapper.toPlayerRanking(ranking, locale));
+                model.addAttribute("pageTitle", pageSummaries.countryPlayerRankingTitle(countryName, locale));
+                model.addAttribute("pageDescription",
+                        pageSummaries.countryPlayerRankingSummary(countryName, ranking, locale));
+            });
+        }
         model.addAttribute("playerRankingSize", PLAYER_RANKING_SIZE);
         return "player-ranking";
     }

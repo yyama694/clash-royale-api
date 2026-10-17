@@ -1,6 +1,8 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.client.dto.ClanRankingResponse;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
+import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
@@ -9,6 +11,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
@@ -255,7 +258,7 @@ class PageSummariesTest {
     }
 
     private static CardCatalogItemView ranked(String name, Integer rank) {
-        return new CardCatalogItemView(1, name, name, null, null, null, rank == null ? 0.0 : 10.0, rank);
+        return new CardCatalogItemView(1, name, name, null, null, null, rank == null ? 0.0 : 10.0, rank, null);
     }
 
     @Test
@@ -420,5 +423,39 @@ class PageSummariesTest {
 
         assertTrue(summary.startsWith("Из 988 топ-игроков мирового рейтинга Clash Royale в рейтинговом режиме карту "
                 + FSI + "Всадник на кабане" + PDI + " используют 2 игрока."), summary);
+    }
+    @Test
+    void 国別ランキングのタイトルと説明文に国名と上位3人を入れる() {
+        List<PlayerRankingResponse.RankedPlayer> players = List.of(
+                new PlayerRankingResponse.RankedPlayer("#A", "Taro", 2900, 1, null),
+                new PlayerRankingResponse.RankedPlayer("#B", "Jiro", 2850, 2, null),
+                new PlayerRankingResponse.RankedPlayer("#C", "Saburo", 2800, 3, null));
+
+        assertEquals("日本の個人ランキング", summaries.countryPlayerRankingTitle("日本", Locale.JAPANESE));
+        assertEquals("クラロワのランク戦で、日本のプレイヤーの今シーズンの順位。1位はTaro"
+                        + "(レーティング2,900)、2位はJiro(2,850)、3位はSaburo(2,800)。",
+                summaries.countryPlayerRankingSummary("日本", PlayerRanking.current(players), Locale.JAPANESE));
+        // 前のシーズンの順位を代わりに出しているとき・3人そろわないときは、今シーズンの上位と書かない。
+        assertEquals("クラロワのランク戦で、日本のプレイヤーの今シーズンの順位。",
+                summaries.countryPlayerRankingSummary("日本",
+                        PlayerRanking.finishedSeason(players, java.time.YearMonth.of(2026, 9)), Locale.JAPANESE));
+        assertEquals("クラロワのランク戦で、日本のプレイヤーの今シーズンの順位。",
+                summaries.countryPlayerRankingSummary("日本", PlayerRanking.newSeason(players.subList(0, 2)),
+                        Locale.JAPANESE));
+    }
+
+    @Test
+    void 国別のクランランキングの説明文に上位3クランを入れる() {
+        List<ClanRankingResponse.RankedClan> clans = List.of(
+                new ClanRankingResponse.RankedClan("#A", "Alpha", 1, 100000, 50, null),
+                new ClanRankingResponse.RankedClan("#B", "Beta", 2, 99000, 50, null),
+                new ClanRankingResponse.RankedClan("#C", "Gamma", 3, 98000, 50, null));
+
+        assertEquals("Brasil clan ranking", summaries.countryClanRankingTitle("Brasil", Locale.ENGLISH));
+        assertEquals("Ranking de clãs de Clash Royale: Brasil. 1º Alpha, 2º "
+                        + "Beta, 3º Gamma.",
+                summaries.countryClanRankingSummary("Brasil", clans, Locale.forLanguageTag("pt")));
+        assertEquals("Ranking de clãs de Clash Royale: Brasil.",
+                summaries.countryClanRankingSummary("Brasil", clans.subList(0, 1), Locale.forLanguageTag("pt")));
     }
 }

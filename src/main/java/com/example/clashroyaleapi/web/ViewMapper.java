@@ -609,34 +609,68 @@ public class ViewMapper {
                     boolean tower = group.rarity() == null;
                     return new CardCatalogGroupView(
                             tower ? labels.message("cards.group.tower", locale) : labels.rarity(group.rarity(), locale),
-                            group.cards().stream().map(card -> toCatalogItem(card, tower, null, locale)).toList());
+                            group.cards().stream().map(card -> toCatalogItem(card, tower, null, null, locale))
+                                    .toList());
                 })
                 .toList();
     }
 
-    /** @param groups {@link CardService#byUsage} の結果(通常のカードの1グループと、タワーユニットのグループ) */
+    /**
+     * @param groups  {@link CardService#byUsage} の結果(通常のカードの1グループと、タワーユニットのグループ)
+     * @param weekAgo 増減を比べる約1週間前の集計。無ければ null(増減を出さない)
+     */
     public List<CardCatalogGroupView> toCardUsageRanking(List<CardService.CardGroup> groups, CardUsage usage,
-            Locale locale) {
+            CardUsage weekAgo, Locale locale) {
         return groups.stream()
                 .map(group -> {
                     boolean tower = group.rarity() == null;
                     return new CardCatalogGroupView(
                             labels.message(tower ? "cards.group.tower" : "cards.group.cards", locale),
-                            group.cards().stream().map(card -> toCatalogItem(card, tower, usage, locale)).toList());
+                            group.cards().stream().map(card -> toCatalogItem(card, tower, usage, weekAgo, locale))
+                                    .toList());
                 })
                 .toList();
     }
 
+    /** 使用率の増減の注記。比べた集計の日付を入れる(集計は約25時間おきなので、ちょうど7日前とは限らない)。 */
+    public String usageChangeNotice(CardUsage weekAgo, Locale locale) {
+        return labels.message("cards.usage.change.notice", locale, Date.from(weekAgo.collectedAt()));
+    }
+
     /** @param usage 使用率順で出すときだけ渡す */
-    private CardCatalogItemView toCatalogItem(CardsResponse.Card card, boolean tower, CardUsage usage, Locale locale) {
+    private CardCatalogItemView toCatalogItem(CardsResponse.Card card, boolean tower, CardUsage usage,
+            CardUsage weekAgo, Locale locale) {
         String name = labels.cardName(card.name(), locale);
         CardUsage.Usage cardUsage = usage == null ? null : usage.usageOf(card.id());
+        Double percent = cardUsage == null ? null : roundPercent(cardUsage.percent());
+        RankChangeView change = percent == null || weekAgo == null ? null
+                : toUsageChange(percent - roundPercent(weekAgo.usageOf(card.id()).percent()), locale);
         return new CardCatalogItemView(card.id(), name,
                 searchText(name, card.name(), labels.cardAlias(card.name(), locale)),
                 card.iconUrls() == null ? null : card.iconUrls().medium(),
                 toElixirBadge(card.elixirCost(), tower, locale), card.elixirCost(),
-                cardUsage == null ? null : Math.round(cardUsage.percent() * 10) / 10.0,
-                cardUsage == null || cardUsage.rank() == 0 ? null : cardUsage.rank());
+                percent,
+                cardUsage == null || cardUsage.rank() == 0 ? null : cardUsage.rank(),
+                change);
+    }
+
+    private static double roundPercent(double percent) {
+        return Math.round(percent * 10) / 10.0;
+    }
+
+    /** 画面の使用率(小数第1位)どうしの差なので、表示どおりに引き算した値と合う。 */
+    private RankChangeView toUsageChange(double points, Locale locale) {
+        double rounded = roundPercent(points);
+        if (rounded > 0) {
+            return new RankChangeView(labels.message("cards.usage.change.up", locale, rounded),
+                    labels.message("cards.usage.change.upLabel", locale, rounded), "up");
+        }
+        if (rounded < 0) {
+            return new RankChangeView(labels.message("cards.usage.change.down", locale, -rounded),
+                    labels.message("cards.usage.change.downLabel", locale, -rounded), "down");
+        }
+        return new RankChangeView(labels.message("cards.usage.change.same", locale),
+                labels.message("cards.usage.change.sameLabel", locale), "same");
     }
 
     private static String searchText(String name, String englishName, String alias) {
