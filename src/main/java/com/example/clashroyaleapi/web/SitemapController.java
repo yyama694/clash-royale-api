@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.config.IndexNowProperties;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
@@ -48,10 +49,12 @@ public class SitemapController {
     private final LocationService locationService;
     private final GlobalModelAttributes modelAttributes;
     private final LabelResolver labels;
+    private final String indexNowKey;
 
     public SitemapController(CardService cardService, CardUsageService cardUsageService,
             RankingHistoryService rankingHistoryService, RankingService rankingService,
-            LocationService locationService, GlobalModelAttributes modelAttributes, LabelResolver labels) {
+            LocationService locationService, GlobalModelAttributes modelAttributes, LabelResolver labels,
+            IndexNowProperties indexNowProperties) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.rankingHistoryService = rankingHistoryService;
@@ -59,6 +62,7 @@ public class SitemapController {
         this.locationService = locationService;
         this.modelAttributes = modelAttributes;
         this.labels = labels;
+        this.indexNowKey = indexNowProperties.key();
     }
 
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
@@ -119,6 +123,15 @@ public class SitemapController {
                 .append("  </url>\n"));
         xml.append("</urlset>\n");
         return xml.toString();
+    }
+
+    /**
+     * IndexNowの鍵のファイル。検索エンジンが、送られてきたURLがこのサイトの持ち主からのものかを、ここを読んで確かめる
+     * (IndexNowSubmitter)。鍵は公開する前提の目印なので、送るのを止めているときも配信してよい。
+     */
+    @GetMapping(value = "/${indexnow.key}.txt", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String indexNowKey() {
+        return indexNowKey;
     }
 
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
