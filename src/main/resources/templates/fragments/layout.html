@@ -13,6 +13,13 @@
     <meta name="description" th:content="${pageDescription} ?: #{app.description}">
     <meta name="robots" content="noindex" th:if="${noindex}">
     <link rel="icon" type="image/png" th:href="@{/favicon.png}">
+    <!--/*
+      ホーム画面に追加できるようにする。常連は1日に何度も同じプレイヤーを開き直すため(2026-10-17の実訪問)。
+      マニフェストのstart_urlに ?from=pwa を付け、ホーム画面から開いた表示をビーコンで数える。
+      service workerは置かないので、ブラウザに保存するものは増えない。
+    */-->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <link rel="apple-touch-icon" th:href="@{/images/apple-touch-icon.png}">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <!--/* カード画像は公式CDNから読む。最初の画像の手前でDNS・TLSを済ませておく。 */-->
     <link rel="preconnect" href="https://api-assets.clashroyale.com" crossorigin>

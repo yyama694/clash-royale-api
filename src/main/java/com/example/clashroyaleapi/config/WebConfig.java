@@ -101,9 +101,9 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         register(registry, "classpath:/static/css/", "/css/**");
         register(registry, "classpath:/static/images/", "/images/**");
-        // ルート直下に置くもの。favicon と、Search Consoleの所有権確認ファイル。
-        // どちらもパターンにしている(faviconは内容ハッシュ付きURLを作るのに * が要る。確認ファイルは名前が変わっても拾うため)。
-        register(registry, "classpath:/static/", "/favicon*.png", "/google*.html");
+        // ルート直下に置くもの。favicon、ホーム画面に追加するためのマニフェスト、Search Consoleの所有権確認ファイル。
+        // どれもパターンにしている(favicon・マニフェストは内容ハッシュ付きURLを作るのに * が要る。確認ファイルは名前が変わっても拾うため)。
+        register(registry, "classpath:/static/", "/favicon*.png", "/manifest*.webmanifest", "/google*.html");
     }
 
     private static void register(ResourceHandlerRegistry registry, String location, String... patterns) {
