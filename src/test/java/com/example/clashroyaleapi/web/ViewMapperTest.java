@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
+import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.SimilarDecks;
@@ -19,6 +20,7 @@ import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.web.view.RankedLeagueView;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
+import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardOptionView;
@@ -627,5 +629,19 @@ class ViewMapperTest {
         assertEquals("Of 950 top players worldwide, 1 uses the same 7 cards (all except ⁨Knight⁩).",
                 mapper.toSimilarDecks(new SimilarDecks(deck.subList(1, 8), 1, 950, true), deck, cards,
                         Locale.ENGLISH).text());
+    }
+
+    @Test
+    void 今週まだ攻撃していないメンバーは表と分けて名前だけ並べる() {
+        ClanWarParticipation war = new ClanWarParticipation(true, List.of(
+                new ClanWarParticipation.Member("#AAA", "A", 0, 0),
+                new ClanWarParticipation.Member("#BBB", "B", 0, 4),
+                new ClanWarParticipation.Member("#CCC", "C", 4, 8)));
+
+        ClanWarView view = viewMapper.toClanWar(war);
+
+        assertEquals(List.of("B", "C"), view.members().stream().map(ClanWarView.MemberView::name).toList());
+        assertEquals(List.of("A"), view.notAttackedThisWeek().stream().map(ClanWarView.MemberView::name).toList());
+        assertEquals(3, view.memberCount());
     }
 }

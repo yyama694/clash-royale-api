@@ -8,7 +8,7 @@ import com.example.clashroyaleapi.client.exception.BattleNotFoundException;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
-import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.BattleInLog;
 import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
@@ -183,11 +183,8 @@ public class PlayerService {
      * 画面を開き直した際に黙って別の対戦が表示されてしまう。battleTimeをキーにして特定する。
      * 片側が欠けた対戦は対戦履歴の一覧にも出さないため、URLで直接指定されても見つからない扱いにする。
      */
-    public BattleLogEntry findBattle(String tag, String battleTime) {
-        Optional<BattleLogEntry> battle = findBattleLog(tag).stream()
-                .filter(entry -> battleTime.equals(entry.battleTime()))
-                .filter(BattleResult::hasBothSides)
-                .findFirst();
-        return battle.orElseThrow(() -> new BattleNotFoundException("battle " + battleTime + " of " + tag));
+    public BattleInLog findBattle(String tag, String battleTime) {
+        return BattleInLog.find(findBattleLog(tag), battleTime)
+                .orElseThrow(() -> new BattleNotFoundException("battle " + battleTime + " of " + tag));
     }
 }

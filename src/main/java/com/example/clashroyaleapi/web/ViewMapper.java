@@ -117,6 +117,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * APIのDTOを、表示用に解決済みのViewModelへ変換する。
@@ -686,7 +687,16 @@ public class ViewMapper {
                 type.map(t -> t.openSlots(clan.members())).orElse(0));
     }
 
+    /**
+     * 今週1回も攻撃していない人は表に入れず、名前だけを別に並べる。ほぼ全員が0回の週に「0 / 4」の行が
+     * 50人分並び、画面が約5,600pxになっていたため。
+     */
     public ClanWarView toClanWar(ClanWarParticipation war) {
+        Map<Boolean, List<ClanWarView.MemberView>> byAttackedThisWeek = war.members().stream()
+                .map(m -> new ClanWarView.MemberView(Tags.toPathSegment(m.tag()),
+                        GameText.stripFormatting(m.name()), m.decksUsedToday(), m.decksUsedThisWeek(),
+                        m.decksUsedToday() == 0))
+                .collect(Collectors.partitioningBy(m -> m.decksUsedThisWeek() > 0));
         return new ClanWarView(
                 war.battleDay(),
                 war.membersBattledToday(),
@@ -694,11 +704,8 @@ public class ViewMapper {
                 war.decksUsedToday(),
                 war.maxDecksToday(),
                 ClanWarParticipation.DECKS_PER_DAY,
-                war.members().stream()
-                        .map(m -> new ClanWarView.MemberView(Tags.toPathSegment(m.tag()),
-                                GameText.stripFormatting(m.name()), m.decksUsedToday(), m.decksUsedThisWeek(),
-                                m.decksUsedToday() == 0))
-                        .toList());
+                byAttackedThisWeek.get(true),
+                byAttackedThisWeek.get(false));
     }
 
     public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans,

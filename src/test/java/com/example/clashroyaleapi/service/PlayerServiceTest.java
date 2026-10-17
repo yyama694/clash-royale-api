@@ -194,7 +194,7 @@ class PlayerServiceTest {
                 battle("20260102T000000.000Z"),
                 battle("20260101T000000.000Z")));
 
-        BattleLogEntry battle = playerService.findBattle("#TAG", "20260101T000000.000Z");
+        BattleLogEntry battle = playerService.findBattle("#TAG", "20260101T000000.000Z").battle();
 
         assertEquals("20260101T000000.000Z", battle.battleTime());
     }

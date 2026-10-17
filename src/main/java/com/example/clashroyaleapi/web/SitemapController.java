@@ -90,6 +90,25 @@ public class SitemapController {
         return xml.toString();
     }
 
+    /**
+     * 世界のクランランキングの上位1000クランのクラン情報画面。検索から来た人の着地にはクランもあるため(2026-10)。
+     * 公式APIはランキングの1回だけ(ランキング画面と同じキャッシュ)。取れなければ空のsitemapを返す。
+     * プレイヤーと同じく言語の無いURLだけを載せる。ランキングに更新時刻が無いのでlastmodは付けない。
+     */
+    @GetMapping(value = "/sitemap-clans.xml", produces = MediaType.APPLICATION_XML_VALUE)
+    public String clanSitemap(HttpServletRequest request) {
+        String base = modelAttributes.siteBaseUrl(request);
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+        rankingService.topClans(RankingService.GLOBAL_LOCATION_ID).forEach(clan -> xml.append("  <url>\n")
+                .append("    <loc>").append(xmlEscape(base + "/clan/" + Tags.toPathSegment(clan.tag())))
+                .append("</loc>\n")
+                .append("  </url>\n"));
+        xml.append("</urlset>\n");
+        return xml.toString();
+    }
+
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
     public String robots(HttpServletRequest request) {
         String base = modelAttributes.siteBaseUrl(request);
@@ -100,7 +119,8 @@ public class SitemapController {
 
                 Sitemap: %s/sitemap.xml
                 Sitemap: %s/sitemap-players.xml
-                """.formatted(base, base);
+                Sitemap: %s/sitemap-clans.xml
+                """.formatted(base, base, base);
     }
 
     /**

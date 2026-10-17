@@ -18,6 +18,8 @@
             <!--/* 参加条件(タイプ・必要トロフィー数・所在地)は、入れるクランを探している人が最初に知りたいので、基本情報と並べる */-->
             <ul class="stat-grid">
                 <li><span class="label"><span aria-hidden="true">🏆</span> <span th:text="#{clan.score}"></span></span><span class="value" th:text="${#numbers.formatInteger(clan.clanScore(), 1, 'DEFAULT')}"></span></li>
+                <!--/* クラン対戦の強さ。入るクランを探している人がクランスコアと並べて見られるように(クランランキングと同じ値) */-->
+                <li><span class="label"><span aria-hidden="true">⚔️</span> <span th:text="#{ranking.col.warTrophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(clan.clanWarTrophies(), 1, 'DEFAULT')}"></span></li>
                 <li><span class="label"><span aria-hidden="true">👥</span> <span th:text="#{clan.memberCount}"></span></span><span class="value" th:text="${clan.members()}"></span></li>
                 <li th:if="${join.typeLabel()}"><span class="label"><span aria-hidden="true">🚪</span> <span th:text="#{clan.type}"></span></span><span class="value" th:text="${join.typeLabel()}"></span></li>
                 <li><span class="label"><span aria-hidden="true">🔑</span> <span th:text="#{clan.requiredTrophies}"></span></span><span class="value" th:text="${#numbers.formatInteger(join.requiredTrophies(), 1, 'DEFAULT')}"></span></li>
@@ -79,7 +81,7 @@
                     <li><span class="label" th:text="#{clanWar.today.decks}"></span><span class="value" th:text="#{clanWar.ratio(${war.decksUsedToday()}, ${war.maxDecksToday()})}"></span></li>
                 </ul>
                 <p th:replace="~{fragments/layout :: notice(#{clanWar.notice})}"></p>
-                <div class="table-scroll">
+                <div class="table-scroll" th:unless="${#lists.isEmpty(war.members())}">
                     <!--/* 列が少ないので、スマホでもカード型にせず表のまま出す(1人1行で50人を見渡せるように) */-->
                     <table class="table-compact">
                         <thead>
@@ -99,6 +101,13 @@
                         </tbody>
                     </table>
                 </div>
+                <!--/* 今週1回も攻撃していない人は、表に1人1行ずつ並べず名前だけを詰めて出す(どちらも今日は0 / 4) */-->
+                <th:block th:unless="${#lists.isEmpty(war.notAttackedThisWeek())}">
+                    <h3 th:text="#{clanWar.notAttacked(${#lists.size(war.notAttackedThisWeek())})}"></h3>
+                    <p class="name-list war-not-attacked">
+                        <a th:each="m : ${war.notAttackedThisWeek()}" th:href="@{/player/{tag}(tag=${m.pathTag()})}"><bdi th:text="${m.name()}"></bdi></a>
+                    </p>
+                </th:block>
             </th:block>
         </div>
     </main>

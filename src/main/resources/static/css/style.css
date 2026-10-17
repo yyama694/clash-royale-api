@@ -1101,6 +1101,11 @@ td.cell-action {
     background: var(--color-draw-bg);
 }
 
+/* クラン対戦の、今週まだ攻撃していないメンバーの名前。区切りの「/」で詰めて折り返す。 */
+.war-not-attacked a {
+    font-weight: 600;
+}
+
 .inactive-badge {
     display: inline-block;
     padding: 0 0.5rem;
@@ -1947,6 +1952,17 @@ td.cell-action {
 
 /* 指標の数が変わってもボタンの位置が揺れないよう、行の右端に寄せる。 */
 .deck-meta .deck-copy {
+    margin-left: auto;
+}
+
+/* 対戦詳細の「前の対戦」「次の対戦」。片方しか無いときも、新しい方は右端に置く。 */
+.battle-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.battle-nav-newer {
     margin-left: auto;
 }
 

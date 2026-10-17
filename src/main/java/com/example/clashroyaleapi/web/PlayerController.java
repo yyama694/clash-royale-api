@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.domain.BattleInLog;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.GameText;
@@ -163,9 +164,11 @@ public class PlayerController {
     @GetMapping("/{tag}/battles/{battleTime}")
     public String battleDetail(@PathVariable String tag, @PathVariable String battleTime, Model model,
             Locale locale) {
-        BattleLogEntry battle = playerService.findBattle(tag, battleTime);
+        BattleInLog found = playerService.findBattle(tag, battleTime);
         model.addAttribute("playerPathTag", Tags.toPathSegment(tag));
-        BattleDetailView view = viewMapper.toBattleDetail(battle, tag, locale);
+        model.addAttribute("olderBattleTime", found.olderBattleTime());
+        model.addAttribute("newerBattleTime", found.newerBattleTime());
+        BattleDetailView view = viewMapper.toBattleDetail(found.battle(), tag, locale);
         model.addAttribute("battle", view);
         model.addAttribute("pageTitle", pageSummaries.battleTitle(view, locale));
         // 公式APIは直近の対戦しか返さないので、日がたつと404になる。検索結果に出しても行き止まりになるだけなので載せない。

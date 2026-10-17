@@ -22,6 +22,16 @@
                 </div>
                 <div th:replace="~{fragments/layout :: matchupSide(${battle.opponents()})}"></div>
             </div>
+            <!--/*
+              対戦履歴の一覧で隣の対戦へ。対戦詳細を続けて何件も見る人が、そのたびにプレイヤー情報画面へ戻らずに済むように。
+              左が古い対戦、右が新しい対戦(一覧の上下ではなく時間の前後で呼ぶ)。同じ画面の中の移動なので今の表示言語を引き継ぐ(デッキ画面のページ送りと同じ)。
+            */-->
+            <nav class="battle-nav" th:if="${olderBattleTime != null or newerBattleTime != null}" th:aria-label="#{battlelog.heading}">
+                <a th:if="${olderBattleTime}" class="btn btn-secondary btn-small battle-nav-older"
+                   th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${olderBattleTime},lang=${#locale.language})}">&lsaquo; <span th:text="#{battle.nav.older}"></span></a>
+                <a th:if="${newerBattleTime}" class="btn btn-secondary btn-small battle-nav-newer"
+                   th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${newerBattleTime},lang=${#locale.language})}"><span th:text="#{battle.nav.newer}"></span> &rsaquo;</a>
+            </nav>
         </div>
 
         <!--/*
