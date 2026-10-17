@@ -47,6 +47,12 @@ class RankingRecorder {
             }
             // シーズンの区別に使うので、取れなければ記録しない(どのシーズンか分からない記録は比べられない)。
             finishedSeason = apiClient.getLatestFinishedSeasonId();
+            if (finishedSeason == null) {
+                // 終わったシーズンが無いことは実際には無い。空の一覧で記録すると別のシーズン扱いになり、
+                // ランキングの動き画面が前の記録と比べられなくなる(2026-10-17)。
+                log.warn("ranking recorder: skipped because the finished season list is empty");
+                return;
+            }
         } catch (ClashRoyaleApiException e) {
             log.warn("ranking recorder: skipped: {}", e.toString());
             return;

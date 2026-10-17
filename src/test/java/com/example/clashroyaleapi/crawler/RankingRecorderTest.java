@@ -70,4 +70,15 @@ class RankingRecorderTest {
 
         verify(historyService, never()).record(any());
     }
+
+    @Test
+    void 終わったシーズンの一覧が空なら記録しない() throws IOException {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(
+                new PlayerRankingResponse.RankedPlayer("#ABC", "Miku", 3001, 1, null)));
+        when(apiClient.getLatestFinishedSeasonId()).thenReturn(null);
+
+        recorder.record();
+
+        verify(historyService, never()).record(any());
+    }
 }

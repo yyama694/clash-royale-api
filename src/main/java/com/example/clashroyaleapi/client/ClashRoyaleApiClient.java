@@ -149,8 +149,11 @@ public class ClashRoyaleApiClient {
         return response == null || response.items() == null ? List.of() : response.items();
     }
 
-    /** 終わったシーズンのうち最新のもののID("2026-09"など)。一覧が空なら null。 */
-    @Cacheable("finishedSeasons")
+    /**
+     * 終わったシーズンのうち最新のもののID("2026-09"など)。一覧が空なら null。
+     * null はキャッシュしない(2026-10-17に再起動直後の1回だけ空が返り、1時間そのまま使われた)。
+     */
+    @Cacheable(value = "finishedSeasons", unless = "#result == null")
     public String getLatestFinishedSeasonId() {
         SeasonsResponse response = call(() -> restClient.get()
                 .uri("/locations/global/seasons")
