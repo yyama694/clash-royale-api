@@ -30,6 +30,9 @@ server:
   # ApacheがX-Forwarded-Protoを付けて中継している(本番はHTTPS→内部はTomcatにHTTPで中継)。
   # これが無いと、hreflangやOGP・sitemapで組み立てる絶対URLが常にhttpになってしまう。
   forward-headers-strategy: framework
+  # ホーム画面に追加するためのマニフェスト。Tomcatの既定の対応表に無く、application/octet-streamで返っていた。
+  mime-mappings:
+    webmanifest: application/manifest+json
 
 # 名前検索のために、公式APIの応答で見かけたプレイヤーのタグと名前を蓄積する場所(「設計_プレイヤー名検索.md」参照)。
 # 本番は環境変数 PLAYER_INDEX_DIR で /var/lib/clash-royale-api/player-index を指定する。
