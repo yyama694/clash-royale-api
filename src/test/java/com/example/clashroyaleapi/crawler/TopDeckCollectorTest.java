@@ -7,8 +7,10 @@ import com.example.clashroyaleapi.client.exception.ApiRateLimitException;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
 import com.example.clashroyaleapi.domain.CardForm;
+import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.DeckWinRateService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ class TopDeckCollectorTest {
 
     private ClashRoyaleApiClient apiClient;
     private CardUsageService usageService;
+    private DeckWinRateService winRateService;
     private MutableClock clock;
     private TopDeckCollector collector;
 
@@ -48,9 +51,12 @@ class TopDeckCollectorTest {
         apiClient = mock(ClashRoyaleApiClient.class);
         usageService = mock(CardUsageService.class);
         when(usageService.topDecks()).thenReturn(Optional.empty());
+        winRateService = mock(DeckWinRateService.class);
+        when(winRateService.current()).thenReturn(Optional.of(
+                new DeckWinRates(Instant.parse("2026-10-05T12:00:00Z"), null, 0, List.of())));
         // 10月シーズン(2026-10-05 09:00 UTC 開始)が始まって3日以内。
         clock = new MutableClock(Instant.parse("2026-10-06T00:00:00Z"));
-        collector = new TopDeckCollector(apiClient, usageService,
+        collector = new TopDeckCollector(apiClient, usageService, winRateService,
                 new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1000), clock);
     }
 
@@ -207,7 +213,7 @@ class TopDeckCollectorTest {
 
     @Test
     void 今シーズンのランキングが埋まっていれば前のシーズンは見ない() {
-        TopDeckCollector smallTarget = new TopDeckCollector(apiClient, usageService,
+        TopDeckCollector smallTarget = new TopDeckCollector(apiClient, usageService, winRateService,
                 new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1), clock);
         when(apiClient.getPathOfLegendRankings("global", 1)).thenReturn(List.of(ranked("#A")));
         when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(ranked(deck(0, 8), null)));
@@ -337,6 +343,40 @@ class TopDeckCollectorTest {
         collector.collectNext();
 
         verify(apiClient).getPathOfLegendRankings("global", 1000);
+    }
+
+    @Test
+    void デッキの勝率をまだ数えていなければ時間が経っていなくても集め直す() {
+        TopDecks recent = new TopDecks(clock.instant().minus(Duration.ofHours(2)), sampledDecks(980));
+        when(usageService.topDecks()).thenReturn(Optional.of(recent));
+        when(winRateService.current()).thenReturn(Optional.empty());
+
+        collector.collectNext();
+
+        verify(apiClient).getPathOfLegendRankings("global", 1000);
+    }
+
+    @Test
+    void 同じ対戦履歴から上位どうしの対戦のデッキの勝率も数えて渡す() {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(
+                new PlayerRankingResponse.RankedPlayer("#A", "Miku", 2887, 1, null),
+                new PlayerRankingResponse.RankedPlayer("#B", "Rin", 2800, 2, null)));
+        BattleLogEntry.Participant a = new BattleLogEntry.Participant("#A", "Miku", 3, deck(0, 8), List.of(), null);
+        BattleLogEntry.Participant b = new BattleLogEntry.Participant("#B", "Rin", 1, deck(10, 8), List.of(), null);
+        // 10月シーズン(10/5 09:00 UTC 開始)の対戦。同じ対戦が2人の対戦履歴に出る。
+        when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(new BattleLogEntry("pathOfLegend",
+                "20261005T120000.000Z", null, List.of(a), List.of(b), null)));
+        when(apiClient.getBattleLogUncached("#B")).thenReturn(List.of(new BattleLogEntry("pathOfLegend",
+                "20261005T120000.000Z", null, List.of(b), List.of(a), null)));
+        clock.set(Instant.parse("2026-10-08T09:00:00Z"));
+
+        IntStream.range(0, 3).forEach(i -> collector.collectNext());
+
+        ArgumentCaptor<DeckWinRates> captor = ArgumentCaptor.forClass(DeckWinRates.class);
+        verify(winRateService).publish(captor.capture());
+        assertEquals(1, captor.getValue().battles());
+        assertEquals(2, captor.getValue().decks().size());
+        assertNull(captor.getValue().finishedSeason());
     }
 
     @Test

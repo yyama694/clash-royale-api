@@ -1,7 +1,9 @@
 package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.CardsResponse;
+import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.service.CardService;
+import com.example.clashroyaleapi.service.DeckWinRateService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 
 import org.springframework.stereotype.Controller;
@@ -20,14 +22,16 @@ import java.util.Optional;
 public class TopPlayerDeckController {
 
     private final TopPlayerDeckService topPlayerDeckService;
+    private final DeckWinRateService deckWinRateService;
     private final CardService cardService;
     private final ViewMapper viewMapper;
     private final TimeFormatter timeFormatter;
     private final PageSummaries pageSummaries;
 
-    public TopPlayerDeckController(TopPlayerDeckService topPlayerDeckService, CardService cardService,
-            ViewMapper viewMapper, TimeFormatter timeFormatter, PageSummaries pageSummaries) {
+    public TopPlayerDeckController(TopPlayerDeckService topPlayerDeckService, DeckWinRateService deckWinRateService,
+            CardService cardService, ViewMapper viewMapper, TimeFormatter timeFormatter, PageSummaries pageSummaries) {
         this.topPlayerDeckService = topPlayerDeckService;
+        this.deckWinRateService = deckWinRateService;
         this.cardService = cardService;
         this.viewMapper = viewMapper;
         this.timeFormatter = timeFormatter;
@@ -93,6 +97,26 @@ public class TopPlayerDeckController {
             model.addAttribute("nextPage", result.hasNext() ? result.page() + 1 : null);
         });
         return "popular-decks";
+    }
+
+    /** 上位どうしのランク戦で勝率の高いデッキ(2026-10-18に追加)。条件を満たすのは30種類ほどなので、ページ送りと絞り込みは付けない。 */
+    @GetMapping("/decks/win-rates")
+    public String winRateDecks(Model model, Locale locale) {
+        Map<Integer, CardsResponse.Card> cardsById = cardService.allById();
+        Optional<DeckWinRateService.Page> found = deckWinRateService.page();
+        model.addAttribute("pageTitle", pageSummaries.winRateDecksTitle(locale));
+        model.addAttribute("pageDescription", pageSummaries.winRateDecksSummary(found.orElse(null), locale));
+        model.addAttribute("minBattles", DeckWinRates.MIN_BATTLES);
+        model.addAttribute("minPlayers", DeckWinRates.MIN_PLAYERS);
+        model.addAttribute("maxPlayerShare", DeckWinRates.MAX_PLAYER_SHARE_PERCENT);
+        found.ifPresent(result -> {
+            model.addAttribute("winRateDecks", result.decks().stream()
+                    .map(deck -> viewMapper.toWinRateDeck(deck, cardsById, locale))
+                    .toList());
+            model.addAttribute("battles", result.battles());
+            addCollected(result.collectedAt(), result.finishedSeason(), model, locale);
+        });
+        return "win-rate-decks";
     }
 
     /** 2つの画面で共通の「カードで絞り込む」欄。絞り込みに使うカードを返す。 */

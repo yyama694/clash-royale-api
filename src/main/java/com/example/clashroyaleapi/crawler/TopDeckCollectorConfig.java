@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.crawler;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.config.CardUsageProperties;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.DeckWinRateService;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
@@ -20,9 +21,10 @@ class TopDeckCollectorConfig implements SchedulingConfigurer {
     private final CardUsageProperties properties;
 
     TopDeckCollectorConfig(ClashRoyaleApiClient apiClient, CardUsageService usageService,
-                           CardUsageProperties properties) {
+                           DeckWinRateService winRateService, CardUsageProperties properties) {
         this.properties = properties;
-        this.collector = new TopDeckCollector(apiClient, usageService, properties, Clock.systemUTC());
+        this.collector = new TopDeckCollector(apiClient, usageService, winRateService, properties,
+                Clock.systemUTC());
     }
 
     @Override

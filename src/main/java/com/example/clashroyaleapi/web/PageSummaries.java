@@ -14,6 +14,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.RankingMovements;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
+import com.example.clashroyaleapi.service.DeckWinRateService;
 import com.example.clashroyaleapi.service.PlayerRanking;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
@@ -307,6 +308,21 @@ public class PageSummaries {
             return null;
         }
         return labels.message("decks.popular.summary.all", locale, page.sampleSize(), page.total());
+    }
+
+    public String winRateDecksTitle(Locale locale) {
+        return labels.message("decks.winRate.seo.title", locale);
+    }
+
+    /**
+     * @param page まだ集計していなければ null
+     * @return 載せる中身が無いときは null(サイト共通の説明文になる)
+     */
+    public String winRateDecksSummary(DeckWinRateService.Page page, Locale locale) {
+        if (page == null || page.decks().isEmpty()) {
+            return null;
+        }
+        return labels.message("decks.winRate.summary", locale, page.battles(), page.decks().size());
     }
 
     /** 複数枚はその言語の「AとB」の形でつなぐ(すべて入ったデッキなので、「または」の形にはしない)。 */

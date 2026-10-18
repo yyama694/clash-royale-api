@@ -23,6 +23,8 @@
                 <a th:href="${#lists.isEmpty(selectedCards)} ? @{/decks/popular(lang=${#locale.language})}
                            : @{/decks/popular(card=${selectedCards},lang=${#locale.language})}"
                    th:text="#{decks.popular.open}"></a></p>
+            <p class="popular-decks-link">
+                <a th:href="@{/decks/win-rates(lang=${#locale.language})}" th:text="#{decks.winRate.open}"></a></p>
             <p th:if="${decks == null}" class="empty-state" th:text="#{decks.notCollected}"></p>
             <p th:if="${decks != null and #lists.isEmpty(decks)}" class="empty-state"
                th:text="${#lists.size(selectedCards) > 1} ? #{decks.filter.empty.all} : #{decks.filter.empty}"></p>

@@ -9,10 +9,13 @@ import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.config.CardUsageProperties;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
+import com.example.clashroyaleapi.domain.DeckWinRateTally;
+import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.SeasonCalendar;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.DeckWinRateService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +42,8 @@ import java.util.Optional;
  * シーズン開始直後は今シーズンのランキングに数人しかおらず、そのまま集めると数人分の集計になる(2026-10-06に1人分になった)。
  * シーズン開始から3日以内で今シーズンのランキングが目標の人数に満たなければ、前のシーズンの最終順位の上位で集める
  * (2026-10-07にユーザーが決定。期間は {@link SeasonCalendar#NEW_SEASON_PERIOD})。
+ *
+ * 同じ対戦履歴から、デッキごとの勝率({@link DeckWinRateTally})も数える。公式APIの呼び出しは増えない。
  */
 class TopDeckCollector {
 
@@ -53,6 +58,7 @@ class TopDeckCollector {
 
     private final ClashRoyaleApiClient apiClient;
     private final CardUsageService usageService;
+    private final DeckWinRateService winRateService;
     private final CardUsageProperties properties;
     private final Clock clock;
 
@@ -61,11 +67,13 @@ class TopDeckCollector {
     private YearMonth finishedSeason;
     private int next;
     private List<TopDecks.SampledDeck> decks;
+    private DeckWinRateTally winRates;
 
-    TopDeckCollector(ClashRoyaleApiClient apiClient, CardUsageService usageService, CardUsageProperties properties,
-            Clock clock) {
+    TopDeckCollector(ClashRoyaleApiClient apiClient, CardUsageService usageService, DeckWinRateService winRateService,
+            CardUsageProperties properties, Clock clock) {
         this.apiClient = apiClient;
         this.usageService = usageService;
+        this.winRateService = winRateService;
         this.properties = properties;
         this.clock = clock;
     }
@@ -97,8 +105,14 @@ class TopDeckCollector {
         }
     }
 
-    /** 誰のデッキかを持たない古い形式の集計(2026-09-27より前)は、待たずに集め直す(トッププレイヤーのデッキ画面に要るため)。 */
+    /**
+     * 誰のデッキかを持たない古い形式の集計(2026-09-27より前)は、待たずに集め直す(トッププレイヤーのデッキ画面に要るため)。
+     * デッキの勝率をまだ一度も数えていないとき(2026-10-18に足した直後)も、待たずに集め直す。
+     */
     private boolean upToDate(Instant now) {
+        if (winRateService.current().isEmpty()) {
+            return false;
+        }
         return usageService.topDecks()
                 .filter(topDecks -> topDecks.decks().stream().allMatch(deck -> deck.player() != null))
                 .filter(topDecks -> !outlivedNewSeasonPeriod(topDecks, now))
@@ -141,8 +155,23 @@ class TopDeckCollector {
         finishedSeason = season;
         next = 0;
         decks = new ArrayList<>();
+        winRates = newWinRateTally(ranked, season, now);
         log.info("top deck collector: started collecting the decks of {} players{}", players.size(),
                 season == null ? "" : " from the final ranking of " + season);
+    }
+
+    // 前のシーズンの最終順位で集めるときは、前のシーズンの対戦だけを数える(その順位を決めた対戦なので)。
+    private static DeckWinRateTally newWinRateTally(List<PlayerRankingResponse.RankedPlayer> ranked,
+            YearMonth finishedSeason, Instant now) {
+        List<DeckWinRates.TopPlayer> topPlayers = ranked.stream()
+                .map(player -> new DeckWinRates.TopPlayer(player.tag(), GameText.stripFormatting(player.name()),
+                        player.rank()))
+                .toList();
+        Instant seasonStart = SeasonCalendar.currentSeasonStart(now);
+        return finishedSeason == null
+                ? new DeckWinRateTally(topPlayers, seasonStart, null)
+                : new DeckWinRateTally(topPlayers, SeasonCalendar.currentSeasonStart(seasonStart.minusSeconds(1)),
+                        seasonStart);
     }
 
     private record FinishedSeasonRanking(YearMonth season, List<PlayerRankingResponse.RankedPlayer> players) {
@@ -173,6 +202,7 @@ class TopDeckCollector {
             // ランキング取得後にアカウントが消えた場合など。数に入れずに次へ進む。
             return;
         }
+        winRates.add(battles);
         // 対戦履歴は新しい順(公式APIが返すのは通常30戦)。その中にランク戦が無い人は数に入れない(上位勢ではまず起きない)。
         battles.stream()
                 .filter(TopDeckCollector::isRankedDeck)
@@ -204,9 +234,14 @@ class TopDeckCollector {
     private void finish(Instant now) {
         usageService.publish(new TopDecks(now, List.copyOf(decks), finishedSeason));
         log.info("top deck collector: collected {} decks from {} players", decks.size(), players.size());
+        DeckWinRates result = winRates.result(now, finishedSeason);
+        winRateService.publish(result);
+        log.info("top deck collector: counted {} battles between top players ({} decks listed)", result.battles(),
+                result.ranked().size());
         players = null;
         finishedSeason = null;
         decks = null;
+        winRates = null;
     }
 
     private void pause(Duration duration, String reason) {
