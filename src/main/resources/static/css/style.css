@@ -2083,6 +2083,35 @@ td.cell-action {
     font-size: 1.05rem;
 }
 
+.duel-round + .duel-round {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.duel-round-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    margin: 0 0 0.5rem;
+}
+
+.duel-round-score {
+    font-weight: 700;
+}
+
+.duel-round-heading .side-leak {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+}
+
+.duel-round-heading .side-leak strong {
+    color: var(--color-text);
+}
+
 /* 幅に余裕があるのでカード画像を大きめにする。 */
 .deck-panel .card-thumb {
     width: 72px;

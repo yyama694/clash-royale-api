@@ -208,8 +208,8 @@
                     <div class="battle-result">
                         <span th:replace="~{fragments/layout :: resultBadge(${b.result()})}"></span>
                         <span class="battle-crowns">
-                            <span class="visually-hidden" th:text="#{battlelog.col.crowns}"></span>
-                            <span th:text="${b.selfCrowns()} + ' - ' + ${b.opponentCrowns()}"></span>
+                            <span class="visually-hidden" th:text="${b.roundScore()} ? #{battlelog.col.rounds} : #{battlelog.col.crowns}"></span>
+                            <span th:text="${b.selfScore()} + ' - ' + ${b.opponentScore()}"></span>
                         </span>
                     </div>
                     <div class="battle-body">
