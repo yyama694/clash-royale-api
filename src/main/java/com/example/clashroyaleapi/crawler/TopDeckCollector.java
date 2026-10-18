@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.crawler;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
+import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.client.dto.BattleLogEntry;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ApiAccessDeniedException;
@@ -11,8 +12,10 @@ import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.SeasonCalendar;
+import com.example.clashroyaleapi.domain.TopBattle;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.TopBattleService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +26,12 @@ import java.time.Instant;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * ランク戦の世界ランキング上位のプレイヤーの対戦履歴を1人ずつ取得し、直近のランク戦で使ったデッキを集める。
@@ -39,6 +46,10 @@ import java.util.Optional;
  * シーズン開始直後は今シーズンのランキングに数人しかおらず、そのまま集めると数人分の集計になる(2026-10-06に1人分になった)。
  * シーズン開始から3日以内で今シーズンのランキングが目標の人数に満たなければ、前のシーズンの最終順位の上位で集める
  * (2026-10-07にユーザーが決定。期間は {@link SeasonCalendar#NEW_SEASON_PERIOD})。
+ *
+ * 同じ対戦履歴から、相手も集める対象の人だった1対1のランク戦を {@link TopBattleService} に渡す(カードの相性・消費漏れ)。
+ * 相手が対象外の対戦まで数えると、勝ち越している上位の人がよく使うカードほど勝率が高く出る
+ * (上位100人の対戦で確かめたところ、本人たちの勝率は67%だった。2026-10-18)。
  */
 class TopDeckCollector {
 
@@ -53,19 +64,23 @@ class TopDeckCollector {
 
     private final ClashRoyaleApiClient apiClient;
     private final CardUsageService usageService;
+    private final TopBattleService battleService;
     private final CardUsageProperties properties;
     private final Clock clock;
 
     private Instant pausedUntil = Instant.MIN;
     private List<PlayerRankingResponse.RankedPlayer> players;
+    private Set<String> playerTags;
     private YearMonth finishedSeason;
     private int next;
     private List<TopDecks.SampledDeck> decks;
+    private Map<String, TopBattle> battles;
 
-    TopDeckCollector(ClashRoyaleApiClient apiClient, CardUsageService usageService, CardUsageProperties properties,
-            Clock clock) {
+    TopDeckCollector(ClashRoyaleApiClient apiClient, CardUsageService usageService, TopBattleService battleService,
+            CardUsageProperties properties, Clock clock) {
         this.apiClient = apiClient;
         this.usageService = usageService;
+        this.battleService = battleService;
         this.properties = properties;
         this.clock = clock;
     }
@@ -97,8 +112,14 @@ class TopDeckCollector {
         }
     }
 
-    /** 誰のデッキかを持たない古い形式の集計(2026-09-27より前)は、待たずに集め直す(トッププレイヤーのデッキ画面に要るため)。 */
+    /**
+     * 誰のデッキかを持たない古い形式の集計(2026-09-27より前)は、待たずに集め直す(トッププレイヤーのデッキ画面に要るため)。
+     * 対戦を集め始める前の集計しか無いとき({@link TopBattleService#awaitingFirstCollection()})も待たない。
+     */
     private boolean upToDate(Instant now) {
+        if (battleService.awaitingFirstCollection()) {
+            return false;
+        }
         return usageService.topDecks()
                 .filter(topDecks -> topDecks.decks().stream().allMatch(deck -> deck.player() != null))
                 .filter(topDecks -> !outlivedNewSeasonPeriod(topDecks, now))
@@ -138,9 +159,11 @@ class TopDeckCollector {
             return;
         }
         players = ranked;
+        playerTags = ranked.stream().map(player -> Tags.normalize(player.tag())).collect(Collectors.toSet());
         finishedSeason = season;
         next = 0;
         decks = new ArrayList<>();
+        battles = new LinkedHashMap<>();
         log.info("top deck collector: started collecting the decks of {} players{}", players.size(),
                 season == null ? "" : " from the final ranking of " + season);
     }
@@ -166,19 +189,29 @@ class TopDeckCollector {
     }
 
     private void collect(PlayerRankingResponse.RankedPlayer ranked) {
-        List<BattleLogEntry> battles;
+        List<BattleLogEntry> battleLog;
         try {
-            battles = apiClient.getBattleLogUncached(ranked.tag());
+            battleLog = apiClient.getBattleLogUncached(ranked.tag());
         } catch (ResourceNotFoundException e) {
             // ランキング取得後にアカウントが消えた場合など。数に入れずに次へ進む。
             return;
         }
         // 対戦履歴は新しい順(公式APIが返すのは通常30戦)。その中にランク戦が無い人は数に入れない(上位勢ではまず起きない)。
-        battles.stream()
+        battleLog.stream()
                 .filter(TopDeckCollector::isRankedDeck)
                 .findFirst()
                 .map(battle -> battle.team().get(0))
                 .ifPresent(me -> decks.add(sample(ranked, me)));
+        // 同じ対戦は相手の対戦履歴にも出るので、まとめて1つにする。
+        battleLog.stream()
+                .filter(this::againstCollectedPlayer)
+                .flatMap(battle -> TopBattle.of(battle).stream())
+                .forEach(battle -> battles.put(battle.key(), battle));
+    }
+
+    private boolean againstCollectedPlayer(BattleLogEntry battle) {
+        return battle.opponent() != null && battle.opponent().size() == 1 && battle.opponent().get(0).tag() != null
+                && playerTags.contains(Tags.normalize(battle.opponent().get(0).tag()));
     }
 
     private static TopDecks.SampledDeck sample(PlayerRankingResponse.RankedPlayer ranked,
@@ -203,10 +236,14 @@ class TopDeckCollector {
 
     private void finish(Instant now) {
         usageService.publish(new TopDecks(now, List.copyOf(decks), finishedSeason));
-        log.info("top deck collector: collected {} decks from {} players", decks.size(), players.size());
+        battleService.publish(List.copyOf(battles.values()));
+        log.info("top deck collector: collected {} decks and {} battles between them from {} players", decks.size(),
+                battles.size(), players.size());
         players = null;
+        playerTags = null;
         finishedSeason = null;
         decks = null;
+        battles = null;
     }
 
     private void pause(Duration duration, String reason) {

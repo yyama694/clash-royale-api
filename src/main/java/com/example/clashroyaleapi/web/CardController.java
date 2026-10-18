@@ -6,6 +6,7 @@ import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.service.BalanceService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
+import com.example.clashroyaleapi.service.TopBattleService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.BalanceUpdateView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
@@ -38,10 +39,11 @@ public class CardController {
     private final PageSummaries pageSummaries;
     private final TimeFormatter timeFormatter;
     private final BalanceService balanceService;
+    private final TopBattleService topBattleService;
 
     public CardController(CardService cardService, CardUsageService cardUsageService,
             TopPlayerDeckService topPlayerDeckService, ViewMapper viewMapper, PageSummaries pageSummaries,
-            TimeFormatter timeFormatter, BalanceService balanceService) {
+            TimeFormatter timeFormatter, BalanceService balanceService, TopBattleService topBattleService) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.topPlayerDeckService = topPlayerDeckService;
@@ -49,6 +51,7 @@ public class CardController {
         this.pageSummaries = pageSummaries;
         this.timeFormatter = timeFormatter;
         this.balanceService = balanceService;
+        this.topBattleService = topBattleService;
     }
 
     @GetMapping("/cards")
@@ -91,6 +94,10 @@ public class CardController {
             model.addAttribute("usage", usageView);
             model.addAttribute("pageDescription", pageSummaries.cardSummary(card.name(), usageView, locale));
         });
+        topBattleService.matchups()
+                .flatMap(matchups -> viewMapper.toCardCounters(matchups, id, topBattleService.players(), cardsById,
+                        locale))
+                .ifPresent(counters -> model.addAttribute("counters", counters));
         model.addAttribute("balanceHistory", balanceHistory(card.englishName(), id, locale));
         // 全員分はデッキ画面(カードで絞り込み)にあるので、ここでは順位の高い数人だけを出してそこへつなぐ。
         topPlayerDeckService.page(List.of(id), 1, TOP_DECKS_ON_CARD_PAGE).ifPresent(page -> {
