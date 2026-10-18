@@ -68,6 +68,21 @@ class CardMatchupsTest {
     }
 
     @Test
+    void 整数の勝率で全体と同じになるカードは出さない() {
+        List<TopBattle> battles = new ArrayList<>();
+        // 全体は (530 + 70 + 64) / (1000 + 129 + 100) = 664/1229 = 54.03%。
+        add(battles, 1000, List.of(90), List.of(1), 530);
+        // 70/129 = 54.26% はわずかに全体を上回るが、画面では同じ54%になる。
+        add(battles, 129, List.of(40), List.of(1), 70);
+        // 64/100 = 64%
+        add(battles, 100, List.of(50), List.of(1), 64);
+
+        CardMatchups.Against against = CardMatchups.of(battles).against(1).orElseThrow();
+
+        assertEquals(List.of(50), against.counters().stream().map(CardMatchups.Counter::cardId).toList());
+    }
+
+    @Test
     void 対戦数も加味して並べ_5枚までにする() {
         List<TopBattle> battles = new ArrayList<>();
         // 全体の勝率を下げるための対戦。

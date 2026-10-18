@@ -46,15 +46,19 @@ public final class CardMatchups {
     public record Against(int battles, int wins, List<Counter> counters) {
 
         public int winRatePercent() {
-            return Math.round(100f * wins / battles);
+            return percent(wins, battles);
         }
     }
 
     public record Counter(int cardId, int battles, int wins) {
 
         public int winRatePercent() {
-            return Math.round(100f * wins / battles);
+            return percent(wins, battles);
         }
+    }
+
+    private static int percent(int wins, int battles) {
+        return Math.round(100f * wins / battles);
     }
 
     public static CardMatchups of(Collection<TopBattle> topBattles) {
@@ -111,11 +115,13 @@ public final class CardMatchups {
     }
 
     private static List<Counter> countersOf(int[] total, Map<Integer, int[]> byCounter) {
+        int baseline = percent(total[1], total[0]);
         return byCounter.entrySet().stream()
                 .filter(entry -> entry.getValue()[0] >= MIN_BATTLES)
-                // 全体の勝率より高いものだけ(プレイヤー情報画面の得意カードと同じ考え方)。
-                .filter(entry -> (long) entry.getValue()[1] * total[0] > (long) total[1] * entry.getValue()[0])
                 .map(entry -> new Counter(entry.getKey(), entry.getValue()[0], entry.getValue()[1]))
+                // 全体の勝率より高いものだけ(プレイヤー情報画面の得意カードと同じ考え方)。画面に出す整数の勝率で比べる
+                // (わずかに上回るだけだと、全体と同じ勝率が「勝っているカード」に並んでしまうため。2026-10-18にユーザーが決定)。
+                .filter(counter -> counter.winRatePercent() > baseline)
                 .sorted(Comparator.comparingDouble((Counter c) -> WilsonScore.lowerBound(c.wins(), c.battles()))
                         .reversed()
                         .thenComparing(Comparator.comparingInt(Counter::battles).reversed())
