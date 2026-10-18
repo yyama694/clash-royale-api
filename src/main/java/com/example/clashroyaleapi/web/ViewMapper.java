@@ -17,6 +17,7 @@ import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanType;
+import com.example.clashroyaleapi.domain.ClanWarHistory;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.CurrentDeck;
@@ -58,6 +59,7 @@ import com.example.clashroyaleapi.web.view.ClanJoinView;
 import com.example.clashroyaleapi.web.view.ClanMemberView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
 import com.example.clashroyaleapi.web.view.ClanSummaryView;
+import com.example.clashroyaleapi.web.view.ClanWarHistoryView;
 import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.CountryOptionView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
@@ -740,6 +742,18 @@ public class ViewMapper {
                 ClanWarParticipation.DECKS_PER_DAY,
                 byAttackedThisWeek.get(true),
                 byAttackedThisWeek.get(false));
+    }
+
+    public ClanWarHistoryView toClanWarHistory(ClanWarHistory history, Locale locale) {
+        NumberFormat numbers = NumberFormat.getIntegerInstance(locale);
+        List<ClanWarHistoryView.WeekView> weeks = history.weeks().stream()
+                .map(week -> new ClanWarHistoryView.WeekView(
+                        labels.message("clanWarLog.endedOn", locale, utcNoon(week.endedOn())),
+                        week.rank(), week.medals(), signed(week.trophyChange(), numbers),
+                        week.trophyChange() > 0 ? "up" : week.trophyChange() < 0 ? "down" : "same",
+                        week.isFirstPlace()))
+                .toList();
+        return new ClanWarHistoryView(weeks, history.firstPlaces(), history.firstPlaceStreak());
     }
 
     public List<ClanRankingRowView> toClanRankingRows(List<ClanRankingResponse.RankedClan> clans,

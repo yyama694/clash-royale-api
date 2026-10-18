@@ -138,13 +138,13 @@ class CrawlerTest {
 
     private static RiverRaceLogResponse raceLog(RiverRaceLogResponse.Clan... clans) {
         List<RiverRaceLogResponse.Standing> standings = List.of(clans).stream()
-                .map(RiverRaceLogResponse.Standing::new)
+                .map(clan -> new RiverRaceLogResponse.Standing(1, 0, clan))
                 .toList();
-        return new RiverRaceLogResponse(List.of(new RiverRaceLogResponse.RiverRace(standings)));
+        return new RiverRaceLogResponse(List.of(new RiverRaceLogResponse.RiverRace("20261012T094017.000Z", standings)));
     }
 
     private static RiverRaceLogResponse.Clan clan(String tag, String... participantTags) {
-        return new RiverRaceLogResponse.Clan(tag, "clan", List.of(participantTags).stream()
+        return new RiverRaceLogResponse.Clan(tag, "clan", 0, List.of(participantTags).stream()
                 .map(p -> new RiverRaceLogResponse.Participant(p, "name"))
                 .toList());
     }

@@ -70,6 +70,41 @@
             </div>
         </div>
 
+        <!--/* 加入を考える人が「対戦で勝てているクランか」を見られるように、過去の対戦の順位を週ごとに出す */-->
+        <div class="card" id="war-history">
+            <h2 th:text="#{clanWarLog.heading}"></h2>
+            <p th:if="${warHistoryErrorKey}" class="error-box" th:text="#{${warHistoryErrorKey}}"></p>
+            <p th:if="${warHistory != null and #lists.isEmpty(warHistory.weeks())}" class="empty-state" th:text="#{clanWarLog.none}"></p>
+            <th:block th:if="${warHistory != null and not #lists.isEmpty(warHistory.weeks())}">
+                <!--/* 1位が無いクランに「0 / 10週」と出すと加入を考える人に悪く見えるだけなので、表だけにする */-->
+                <ul class="stat-grid" th:if="${warHistory.firstPlaces() > 0}">
+                    <li><span class="label" th:text="#{clanWarLog.firstPlaces}"></span><span class="value" th:text="#{clanWarLog.firstPlaces.value(${warHistory.firstPlaces()}, ${#lists.size(warHistory.weeks())})}"></span></li>
+                    <li th:if="${warHistory.firstPlaceStreak() >= 2}"><span class="label" th:text="#{clanWarLog.streak}"></span><span class="value" th:text="#{clanWarLog.streak.value(${warHistory.firstPlaceStreak()})}"></span></li>
+                </ul>
+                <p th:replace="~{fragments/layout :: notice(#{clanWarLog.notice})}"></p>
+                <div class="table-scroll">
+                    <table class="table-compact">
+                        <thead>
+                            <tr>
+                                <th th:text="#{clanWarLog.col.ended}"></th>
+                                <th class="num" th:text="#{ranking.col.rank}"></th>
+                                <th class="num" th:text="#{clanWarLog.col.medals}"></th>
+                                <th class="num" th:text="#{ranking.col.warTrophies}"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="w : ${warHistory.weeks()}">
+                                <td th:text="${w.endedOn()}"></td>
+                                <td class="num"><strong th:if="${w.firstPlace()}" th:text="${w.rank()}"></strong><span th:unless="${w.firstPlace()}" th:text="${w.rank() != null ? w.rank() : '—'}"></span></td>
+                                <td class="num" th:text="${#numbers.formatInteger(w.medals(), 1, 'DEFAULT')}"></td>
+                                <td class="num"><span class="movement" th:classappend="${w.trophyChangeClass()}" th:text="${w.trophyChange()}"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </th:block>
+        </div>
+
         <div class="card" id="war">
             <h2 th:text="#{clanWar.heading}"></h2>
             <p th:if="${warErrorKey}" class="error-box" th:text="#{${warErrorKey}}"></p>

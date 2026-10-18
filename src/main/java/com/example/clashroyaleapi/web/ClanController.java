@@ -108,6 +108,11 @@ public class ClanController {
         } catch (ClashRoyaleApiException e) {
             model.addAttribute("warErrorKey", e.messageKey());
         }
+        try {
+            model.addAttribute("warHistory", viewMapper.toClanWarHistory(clanService.findWarHistory(clan), locale));
+        } catch (ClashRoyaleApiException e) {
+            model.addAttribute("warHistoryErrorKey", e.messageKey());
+        }
 
         model.addAttribute("pageTitle", pageSummaries.clanTitle(clan, clanName, locale));
         model.addAttribute("pageDescription", pageSummaries.clanSummary(clan, clanName, join, war, locale));
