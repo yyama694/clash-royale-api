@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.config.IcuMessageSource;
+import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardUsage;
@@ -172,6 +173,72 @@ class ViewMapperTest {
 
         // ゲーム内表記ではコモン14・レア14・エピック14・レジェンダリー13。生値の平均(11.75)にならないこと。
         assertEquals(13.875, summary.opponents().get(0).averageLevel());
+    }
+
+    @Test
+    void クラン対戦のデュエルは取ったラウンドの数をスコアにし_平均レベルは全ラウンドのデッキで求める() {
+        List<BattleLogEntry.Card> level16 = List.of(card(16, 16), card(16, 16), card(16, 16), card(16, 16),
+                card(16, 16), card(16, 16), card(16, 16), card(16, 16));
+        List<BattleLogEntry.Card> level14 = List.of(card(12, 14), card(12, 14), card(12, 14), card(12, 14),
+                card(12, 14), card(12, 14), card(12, 14), card(12, 14));
+        BattleLogEntry battle = clanWarDuel(
+                duelist("#VIEWER", List.of(new BattleLogEntry.Round(3, level16, 1.5),
+                        new BattleLogEntry.Round(1, level16, 2.5), new BattleLogEntry.Round(1, level16, 3.5))),
+                duelist("#OPP1", List.of(new BattleLogEntry.Round(0, level16, 4.0),
+                        new BattleLogEntry.Round(2, level14, 5.0), new BattleLogEntry.Round(2, level14, 6.0))));
+
+        BattleSummaryView summary = viewMapper.toBattleSummaries(List.of(battle), "#VIEWER", Locale.JAPANESE).get(0);
+
+        // クラウンの合計は5-4だが、ラウンドは1勝2敗で負け。
+        assertEquals(BattleResult.LOSE, summary.result());
+        assertEquals(1, summary.selfScore());
+        assertEquals(2, summary.opponentScore());
+        assertTrue(summary.roundScore());
+        // 24枚をまとめると8枚そろったデッキにならないが、ラウンドごとのデッキで求める。(16+14+14)/3
+        assertEquals(44.0 / 3, summary.opponents().get(0).averageLevel(), 1e-9);
+    }
+
+    @Test
+    void クラン対戦のデュエルの対戦詳細はラウンドごとにそれぞれの側から見たスコアと消費漏れを出す() {
+        List<BattleLogEntry.Card> deck = List.of(card(16, 16), card(16, 16), card(16, 16), card(16, 16),
+                card(16, 16), card(16, 16), card(16, 16), card(16, 16));
+        BattleLogEntry battle = clanWarDuel(
+                duelist("#VIEWER", List.of(new BattleLogEntry.Round(1, deck, 1.5), new BattleLogEntry.Round(0, deck, 2.5))),
+                duelist("#OPP1", List.of(new BattleLogEntry.Round(3, deck, 4.0), new BattleLogEntry.Round(1, deck, 5.0))));
+
+        BattleDetailView detail = viewMapper.toBattleDetail(battle, "#VIEWER", Locale.JAPANESE);
+
+        ParticipantView viewer = detail.team().get(0);
+        assertEquals(0, viewer.score());
+        assertTrue(viewer.roundScore());
+        // 公式APIの elixirLeaked は最後のラウンドの値なので、対戦全体としては出さない。
+        assertNull(viewer.elixirLeaked());
+        assertEquals(2, viewer.rounds().size());
+        assertEquals(1, viewer.rounds().get(0).number());
+        assertEquals(1, viewer.rounds().get(0).crowns());
+        assertEquals(3, viewer.rounds().get(0).opponentCrowns());
+        assertEquals(BattleResult.LOSE, viewer.rounds().get(0).result());
+        assertEquals(1.5, viewer.rounds().get(0).elixirLeaked());
+        assertEquals(16.0, viewer.rounds().get(0).meta().averageLevel());
+        ParticipantView opponent = detail.opponents().get(0);
+        assertEquals(2, opponent.score());
+        assertEquals(BattleResult.WIN, opponent.rounds().get(1).result());
+        assertEquals(1, opponent.rounds().get(1).crowns());
+        assertEquals(0, opponent.rounds().get(1).opponentCrowns());
+    }
+
+    @Test
+    void ラウンドの無い対戦の対戦詳細はクラウン数をスコアにする() {
+        BattleLogEntry battle = new BattleLogEntry("PvP", "20260101T000000.000Z",
+                new BattleLogEntry.GameMode("Ladder"), List.of(participant("#VIEWER", "Viewer")),
+                List.of(new BattleLogEntry.Participant("#OPP1", "Opp1", 2, List.of(), List.of(), null, 3.0)), null);
+
+        BattleDetailView detail = viewMapper.toBattleDetail(battle, "#VIEWER", Locale.JAPANESE);
+
+        assertEquals(1, detail.team().get(0).score());
+        assertFalse(detail.team().get(0).roundScore());
+        assertTrue(detail.team().get(0).rounds().isEmpty());
+        assertEquals(3.0, detail.opponents().get(0).elixirLeaked());
     }
 
     @Test
@@ -599,6 +666,18 @@ class ViewMapperTest {
     private static BattleLogEntry duel(List<BattleLogEntry.Participant> team) {
         return new BattleLogEntry("PvP", "20260101T000000.000Z", new BattleLogEntry.GameMode("TeamVsTeam"),
                 team, List.of(participant("#OPP1", "Opp1"), participant("#OPP2", "Opp2")), null);
+    }
+
+    private static BattleLogEntry clanWarDuel(BattleLogEntry.Participant viewer, BattleLogEntry.Participant opponent) {
+        return new BattleLogEntry("riverRaceDuel", "20260101T000000.000Z", new BattleLogEntry.GameMode("CW_Duel_1v1"),
+                List.of(viewer), List.of(opponent), null);
+    }
+
+    /** 公式APIと同じく、crowns は全ラウンドの合計、cards は全ラウンドのデッキをつなげたもの、elixirLeaked は最後のラウンドの値。 */
+    private static BattleLogEntry.Participant duelist(String tag, List<BattleLogEntry.Round> rounds) {
+        return new BattleLogEntry.Participant(tag, tag, rounds.stream().mapToInt(BattleLogEntry.Round::crowns).sum(),
+                rounds.stream().flatMap(round -> round.cards().stream()).toList(), List.of(), null,
+                rounds.get(rounds.size() - 1).elixirLeaked(), rounds);
     }
 
     private static BattleLogEntry boatBattle(String side) {

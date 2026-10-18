@@ -18,7 +18,7 @@
             <div class="matchup">
                 <div th:replace="~{fragments/layout :: matchupSide(${battle.team()})}"></div>
                 <div class="score" aria-hidden="true">
-                    <span th:text="${battle.team()[0].crowns()}"></span><span class="score-sep">-</span><span th:text="${battle.opponents()[0].crowns()}"></span>
+                    <span th:text="${battle.team()[0].score()}"></span><span class="score-sep">-</span><span th:text="${battle.opponents()[0].score()}"></span>
                 </div>
                 <div th:replace="~{fragments/layout :: matchupSide(${battle.opponents()})}"></div>
             </div>
@@ -32,7 +32,7 @@
                 <a th:if="${newerBattleTime}" class="btn btn-secondary btn-small battle-nav-newer"
                    th:href="@{/player/{tag}/battles/{time}(tag=${playerPathTag},time=${newerBattleTime},lang=${#locale.language})}"><span th:text="#{battle.nav.newer}"></span> &rsaquo;</a>
             </nav>
-            <th:block th:if="${battle.team()[0].elixirLeaked() != null}">
+            <th:block th:if="${battle.team()[0].elixirLeaked() != null or not #lists.isEmpty(battle.team()[0].rounds())}">
                 <p th:replace="~{fragments/layout :: notice(#{battle.leak.notice})}"></p>
             </th:block>
         </div>
@@ -47,20 +47,12 @@
             <div class="card deck-panel deck-panel-team" th:each="p, iter : ${battle.team()}"
                  th:style="'--row: ' + ${iter.count}">
                 <h2 th:text="${p.viewer()} ? #{battle.deck.team(${p.name()})} : #{battle.deck.teammate(${p.name()})}"></h2>
-                <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
-                <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
-                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
-                </th:block>
-                <div th:replace="~{fragments/layout :: deckMeta(${p.meta()})}"></div>
+                <th:block th:replace="~{fragments/layout :: participantDecks(${p})}"></th:block>
             </div>
             <div class="card deck-panel deck-panel-opponent" th:each="p, iter : ${battle.opponents()}"
                  th:style="'--row: ' + ${iter.count}">
                 <h2 th:text="#{battle.deck.opponent(${p.name()})}"></h2>
-                <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
-                <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
-                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
-                </th:block>
-                <div th:replace="~{fragments/layout :: deckMeta(${p.meta()})}"></div>
+                <th:block th:replace="~{fragments/layout :: participantDecks(${p})}"></th:block>
             </div>
         </div>
     </main>

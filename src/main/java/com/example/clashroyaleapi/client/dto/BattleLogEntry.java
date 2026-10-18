@@ -28,15 +28,27 @@ public record BattleLogEntry(
      * trophyChange は入らない対戦がある(フレンドバトル・クラン対戦、ランク戦の一部など)ので null になりうる。
      * elixirLeaked はエリクサーが満タンのまま使えずに無駄になった量(ゲーム内の観戦・リプレイ画面の「消費漏れ」
      * TID_SPECTATE_ELIXIR_LEAKED)。2026-10-18に確かめた約3,000戦では全員に入っていたが、念のため null を許す。
+     * rounds はクラン対戦のデュエル(2本先取)でだけ入る。そのとき crowns は全ラウンドの合計、cards は全ラウンドのデッキを
+     * つなげたもの(16枚か24枚)、elixirLeaked は最後のラウンドの値になる。ほかの対戦では null。
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Participant(String tag, String name, int crowns, List<Card> cards, List<Card> supportCards,
-            Integer trophyChange, Double elixirLeaked) {
+            Integer trophyChange, Double elixirLeaked, List<Round> rounds) {
+
+        public Participant(String tag, String name, int crowns, List<Card> cards, List<Card> supportCards,
+                Integer trophyChange, Double elixirLeaked) {
+            this(tag, name, crowns, cards, supportCards, trophyChange, elixirLeaked, null);
+        }
 
         public Participant(String tag, String name, int crowns, List<Card> cards, List<Card> supportCards,
                 Integer trophyChange) {
-            this(tag, name, crowns, cards, supportCards, trophyChange, null);
+            this(tag, name, crowns, cards, supportCards, trophyChange, null, null);
         }
+    }
+
+    /** デュエルの1ラウンド。cards はそのラウンドのデッキ(8枚)。 */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Round(int crowns, List<Card> cards, Double elixirLeaked) {
     }
 
     /**

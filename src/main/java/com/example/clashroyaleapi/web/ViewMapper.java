@@ -86,6 +86,7 @@ import com.example.clashroyaleapi.web.view.PlayerRankingView;
 import com.example.clashroyaleapi.web.view.PopularDeckView;
 import com.example.clashroyaleapi.web.view.RankChangeView;
 import com.example.clashroyaleapi.web.view.RankedLeagueView;
+import com.example.clashroyaleapi.web.view.RoundView;
 import com.example.clashroyaleapi.web.view.RankHistoryView;
 import com.example.clashroyaleapi.web.view.RankingReportView;
 import com.example.clashroyaleapi.web.view.SeasonLinkView;
@@ -162,12 +163,18 @@ public class ViewMapper {
     /** battle は両側がそろったもの(PlayerService#findBattle が片側の欠けた対戦を返さない)。 */
     public BattleDetailView toBattleDetail(BattleLogEntry battle, String viewerTag, Locale locale) {
         BattleResult teamResult = BattleResult.of(battle);
+        BattleResult.Score score = BattleResult.scoreOf(battle);
+        // デュエルは1対1なので、ラウンドの相手はそれぞれ反対側の1人。
+        List<BattleLogEntry.Round> teamRounds = score.rounds() ? battle.team().get(0).rounds() : null;
+        List<BattleLogEntry.Round> opponentRounds = score.rounds() ? battle.opponent().get(0).rounds() : null;
         return new BattleDetailView(
                 battle.battleTime(),
                 timeFormatter.apiTimestamp(battle.battleTime(), locale),
                 gameModeOf(battle, locale),
-                toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, battle, viewerTag, locale),
-                toParticipants(battle.opponent(), teamResult.opposite(), battle, viewerTag, locale));
+                toParticipants(viewerFirst(battle.team(), viewerTag), teamResult, score.team(), score.rounds(),
+                        opponentRounds, battle, viewerTag, locale),
+                toParticipants(battle.opponent(), teamResult.opposite(), score.opponent(), score.rounds(),
+                        teamRounds, battle, viewerTag, locale));
     }
 
     /** デッキが空(公式APIが返さなかった)の場合は、画面に案内文を出すため空を返す。 */
@@ -1035,13 +1042,15 @@ public class ViewMapper {
     }
 
     private BattleSummaryView toBattleSummary(BattleLogEntry battle, String viewerTag, Locale locale) {
+        BattleResult.Score score = BattleResult.scoreOf(battle);
         return new BattleSummaryView(
                 battle.battleTime(),
                 timeFormatter.apiTimestamp(battle.battleTime(), locale),
                 gameModeOf(battle, locale),
                 BattleResult.of(battle),
-                BattleResult.crownsOf(battle.team()),
-                BattleResult.crownsOf(battle.opponent()),
+                score.team(),
+                score.opponent(),
+                score.rounds(),
                 toOpponents(battle.opponent(), locale),
                 toLinks(battle.team().stream().filter(p -> !isViewer(p, viewerTag)).toList()),
                 battle.team().stream().filter(p -> isViewer(p, viewerTag)).findFirst()
@@ -1071,9 +1080,23 @@ public class ViewMapper {
         boolean teamBattle = participants.size() > 1;
         return participants.stream()
                 .map(p -> new OpponentView(GameText.stripFormatting(p.name()), Tags.toPathSegment(p.tag()),
-                        teamBattle ? null : toNullable(Deck.averageLevel(inGameLevels(p.cards()))),
+                        teamBattle ? null : averageLevelOf(p),
                         toCards(p.cards(), false, locale)))
                 .toList();
+    }
+
+    /** デュエルは全ラウンドのデッキ(8枚ずつ)を合わせた平均。どれかのラウンドのデッキがそろっていなければ null。 */
+    private static Double averageLevelOf(BattleLogEntry.Participant participant) {
+        if (participant.rounds() == null || participant.rounds().isEmpty()) {
+            return toNullable(Deck.averageLevel(inGameLevels(participant.cards())));
+        }
+        List<OptionalDouble> byRound = participant.rounds().stream()
+                .map(round -> Deck.averageLevel(inGameLevels(round.cards())))
+                .toList();
+        if (byRound.stream().anyMatch(OptionalDouble::isEmpty)) {
+            return null;
+        }
+        return byRound.stream().mapToDouble(OptionalDouble::getAsDouble).average().orElseThrow();
     }
 
     /** 公式APIのteamは、見ているプレイヤーが先頭とは限らない(2v2で味方が先に来ることがある)。 */
@@ -1088,22 +1111,45 @@ public class ViewMapper {
                 && Tags.normalize(participant.tag()).equals(Tags.normalize(viewerTag));
     }
 
+    /**
+     * @param score          この側のスコア(クラウン数。デュエルでは取ったラウンドの数)
+     * @param opponentRounds デュエルなら反対側の1人のラウンド、ほかの対戦では null
+     */
     private List<ParticipantView> toParticipants(List<BattleLogEntry.Participant> side, BattleResult result,
-            BattleLogEntry battle, String viewerTag, Locale locale) {
+            int score, boolean roundScore, List<BattleLogEntry.Round> opponentRounds, BattleLogEntry battle,
+            String viewerTag, Locale locale) {
         return side.stream()
                 .map(participant -> new ParticipantView(
                         participant.tag(),
                         Tags.toPathSegment(participant.tag()),
                         GameText.stripFormatting(participant.name()),
-                        participant.crowns(),
+                        score,
+                        roundScore,
                         result,
                         toCards(participant.cards(), false, locale),
                         toCards(participant.supportCards(), true, locale),
                         toDeckMeta(participant.cards(), participant.supportCards()),
                         isViewer(participant, viewerTag),
                         toTrophyChange(battle, participant, locale),
-                        BOAT_BATTLE_TYPE.equals(battle.type()) ? null : participant.elixirLeaked()))
+                        // デュエルの elixirLeaked は最後のラウンドの値なので、ラウンドごとに出す。
+                        BOAT_BATTLE_TYPE.equals(battle.type()) || opponentRounds != null ? null
+                                : participant.elixirLeaked(),
+                        opponentRounds == null ? List.of() : toRounds(participant, opponentRounds, locale)))
                 .toList();
+    }
+
+    private List<RoundView> toRounds(BattleLogEntry.Participant participant,
+            List<BattleLogEntry.Round> opponentRounds, Locale locale) {
+        List<BattleLogEntry.Round> rounds = participant.rounds();
+        List<RoundView> views = new ArrayList<>();
+        for (int i = 0; i < rounds.size(); i++) {
+            BattleLogEntry.Round round = rounds.get(i);
+            int opponentCrowns = i < opponentRounds.size() ? opponentRounds.get(i).crowns() : 0;
+            views.add(new RoundView(i + 1, round.crowns(), opponentCrowns,
+                    BattleResult.of(round.crowns(), opponentCrowns), toCards(round.cards(), false, locale),
+                    toDeckMeta(round.cards(), participant.supportCards()), round.elixirLeaked()));
+        }
+        return views;
     }
 
     static DeckMetaView toDeckMeta(List<BattleLogEntry.Card> deck, List<BattleLogEntry.Card> supportCards) {

@@ -1173,8 +1173,31 @@
         <span class="side-leak" th:if="${p.elixirLeaked() != null}"><span th:text="#{leak.heading}"></span> <strong th:text="${#numbers.formatDecimal(p.elixirLeaked(), 1, 1)}"></strong></span>
     </div>
     <span th:replace="~{fragments/layout :: resultBadge(${side[0].result()})}"></span>
-    <div class="visually-hidden" th:text="#{battle.crowns(${side[0].crowns()})}"></div>
+    <div class="visually-hidden" th:text="${side[0].roundScore()} ? #{battle.roundsWon(${side[0].score()})} : #{battle.crowns(${side[0].score()})}"></div>
 </div>
+
+<!--/*
+  対戦詳細の1人分のデッキ。デュエルはラウンドごとにデッキが違うので、ラウンドごとに見出し・スコア・勝敗・消費漏れを付けて並べる。
+*/-->
+<th:block th:fragment="participantDecks(p)">
+    <th:block th:if="${#lists.isEmpty(p.rounds())}">
+        <div th:replace="~{fragments/layout :: deckGrid(${p.cards()})}"></div>
+        <th:block th:if="${not #lists.isEmpty(p.supportCards())}">
+            <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.supportCards()})}"></div>
+        </th:block>
+        <div th:replace="~{fragments/layout :: deckMeta(${p.meta()})}"></div>
+    </th:block>
+    <section class="duel-round" th:each="r : ${p.rounds()}">
+        <h3 class="duel-round-heading">
+            <span th:text="#{battle.round(${r.number()})}"></span>
+            <span class="duel-round-score" th:text="${r.crowns()} + ' - ' + ${r.opponentCrowns()}"></span>
+            <span th:replace="~{fragments/layout :: resultBadge(${r.result()})}"></span>
+            <span class="side-leak" th:if="${r.elixirLeaked() != null}"><span th:text="#{leak.heading}"></span> <strong th:text="${#numbers.formatDecimal(r.elixirLeaked(), 1, 1)}"></strong></span>
+        </h3>
+        <div th:replace="~{fragments/layout :: deckGrid(${r.cards()})}"></div>
+        <div th:replace="~{fragments/layout :: deckMeta(${r.meta()})}"></div>
+    </section>
+</th:block>
 
 <!--/* 1戦でのトロフィー(ランク戦ではレーティング)の増減。対戦履歴の行と対戦詳細で共用する。 */-->
 <span th:fragment="trophyChange(change)" class="trophy-change" th:classappend="${change.gained()} ? 'up' : 'down'"><span th:text="${change.label()}"></span> <strong th:text="${change.amount()}"></strong></span>
