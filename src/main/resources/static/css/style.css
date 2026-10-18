@@ -1214,6 +1214,12 @@ td.cell-action {
     font-size: 0.9rem;
 }
 
+.win-rate-deck-best {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
 .similar-decks {
     max-width: 560px;
     margin: 0.75rem 0 0;

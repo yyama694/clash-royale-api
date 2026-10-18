@@ -23,6 +23,7 @@ import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.CurrentDeck;
 import com.example.clashroyaleapi.domain.Deck;
+import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.domain.ElixirLeak;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.GameText;
@@ -91,6 +92,7 @@ import com.example.clashroyaleapi.web.view.SeasonLinkView;
 import com.example.clashroyaleapi.web.view.SimilarDecksView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
+import com.example.clashroyaleapi.web.view.WinRateDeckView;
 
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.DateFormat;
@@ -338,6 +340,27 @@ public class ViewMapper {
         return new PopularDeckView(popular.players(), player.rank(), player.name(), Tags.toPathSegment(player.tag()),
                 sampledCards(deck, cardsById, false, locale), sampledSupportCards(deck, cardsById, false, locale),
                 sampledDeckMeta(deck, cardsById, null), deck.cardIds());
+    }
+
+    public WinRateDeckView toWinRateDeck(DeckWinRates.DeckRecord deck, Map<Integer, CardsResponse.Card> cardsById,
+            Locale locale) {
+        List<CardView> cards = new ArrayList<>();
+        for (int i = 0; i < deck.cardIds().size(); i++) {
+            int id = deck.cardIds().get(i);
+            cards.add(toCardView(id, cardsById.get(id), 0, deck.formAt(i), false, locale));
+        }
+        List<CardView> supportCards = deck.towerTroopId() == null ? List.of()
+                : List.of(toCardView(deck.towerTroopId(), cardsById.get(deck.towerTroopId()), 0, CardForm.NORMAL,
+                        true, locale));
+        List<Integer> elixirCosts = deck.cardIds().stream()
+                .map(id -> cardsById.get(id) == null ? null : cardsById.get(id).elixirCost())
+                .toList();
+        OptionalInt cycle = Deck.fourCardCycle(elixirCosts);
+        DeckMetaView meta = new DeckMetaView(toNullable(Deck.averageElixir(elixirCosts)),
+                cycle.isPresent() ? cycle.getAsInt() : null, null,
+                Deck.copyUrl(deck.cardIds(), deck.towerTroopId()).orElse(null));
+        return new WinRateDeckView(deck.winRatePercent(), deck.battles(), deck.wins(), deck.players(),
+                deck.top().rank(), deck.top().name(), Tags.toPathSegment(deck.top().tag()), cards, supportCards, meta);
     }
 
     private List<CardView> sampledCards(TopDecks.SampledDeck deck, Map<Integer, CardsResponse.Card> cardsById,

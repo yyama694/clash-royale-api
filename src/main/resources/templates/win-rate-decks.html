@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/decks(lang=${#locale.language})}">&laquo; <span th:text="#{decks.pageTitle}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{decks.winRate.heading}"></h1>
+            <p th:text="#{decks.winRate.lead(${minBattles}, ${minPlayers}, ${maxPlayerShare})}"></p>
+            <th:block th:if="${winRateDecks != null}">
+                <th:block th:if="${seasonNotice != null}">
+                    <p th:replace="~{fragments/layout :: notice(${seasonNotice})}"></p>
+                </th:block>
+                <p th:replace="~{fragments/layout :: notice(#{decks.winRate.caution})}"></p>
+                <p class="notice"><span th:text="#{cardUsage.collectedAt}"></span>
+                    <time th:replace="~{fragments/layout :: localTime(${collectedAt})}"></time></p>
+                <p class="notice" th:text="#{decks.winRate.counted(${battles})}"></p>
+            </th:block>
+            <p class="popular-decks-link">
+                <a th:href="@{/decks/popular(lang=${#locale.language})}" th:text="#{decks.popular.open}"></a></p>
+            <p th:if="${winRateDecks == null}" class="empty-state" th:text="#{decks.notCollected}"></p>
+            <p th:if="${winRateDecks != null and #lists.isEmpty(winRateDecks)}" class="empty-state"
+               th:text="#{decks.winRate.empty}"></p>
+        </div>
+
+        <th:block th:if="${winRateDecks != null and not #lists.isEmpty(winRateDecks)}">
+            <div class="card top-deck popular-deck" th:each="d : ${winRateDecks}">
+                <div class="top-deck-head">
+                    <span class="top-deck-rank" th:text="#{stats.winRate(${d.winRatePercent()})}"></span>
+                    <span class="top-deck-rating"><span th:text="#{decks.winRate.battles(${d.battles()}, ${d.wins()})}"></span>
+                        · <span th:text="#{decks.popular.players(${d.players()})}"></span></span>
+                </div>
+                <div th:replace="~{fragments/layout :: deckGrid(${d.cards()})}"></div>
+                <th:block th:if="${not #lists.isEmpty(d.supportCards())}">
+                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${d.supportCards()})}"></div>
+                </th:block>
+                <div th:replace="~{fragments/layout :: deckMeta(${d.meta()})}"></div>
+                <p class="win-rate-deck-best"><span th:text="#{decks.popular.best(${d.topRank()})}"></span>
+                    <a th:href="@{/player/{tag}(tag=${d.topPathTag()},lang=${#locale.language})}"><bdi th:text="${d.topName()}"></bdi></a></p>
+            </div>
+        </th:block>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
