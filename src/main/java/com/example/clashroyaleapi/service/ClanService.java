@@ -6,6 +6,7 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
+import com.example.clashroyaleapi.domain.ClanWarHistory;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.PlayerSighting;
@@ -44,6 +45,15 @@ public class ClanService {
             return Optional.of(ClanWarParticipation.of(clan.memberList(), apiClient.getCurrentRiverRace(clan.tag())));
         } catch (ResourceNotFoundException e) {
             return Optional.empty();
+        }
+    }
+
+    /** クラン対戦に参加したことのないクランは週が空になる。それ以外の取得失敗は例外のまま投げる。 */
+    public ClanWarHistory findWarHistory(ClanResponse clan) {
+        try {
+            return ClanWarHistory.of(clan.tag(), apiClient.getRiverRaceHistory(clan.tag()));
+        } catch (ResourceNotFoundException e) {
+            return new ClanWarHistory(List.of());
         }
     }
 

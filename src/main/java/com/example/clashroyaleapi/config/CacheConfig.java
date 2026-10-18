@@ -41,6 +41,9 @@ public class CacheConfig {
             Map.entry("clans", "maximumSize=200," + TTL),
             // 1件=クラン1つの今週のクラン対戦(参加者は元メンバーを含め最大で数十人)。
             Map.entry("riverRaces", "maximumSize=200," + TTL),
+            // 1件=クラン1つの直近10週。5クラン×参加者で数千人分と重いので件数を絞る。
+            // 結果は週に1回しか増えないので、2分より長く持っても古さは目立たない。
+            Map.entry("riverRaceLogs", "maximumSize=50,expireAfterWrite=1h"),
             // 1件=直近25試合分の参加者とデッキ。1件で数百枚のカードになる、最も重いキャッシュ。
             Map.entry("battleLogs", "maximumSize=80," + TTL),
             Map.entry("clanSearches", "maximumSize=200," + TTL),

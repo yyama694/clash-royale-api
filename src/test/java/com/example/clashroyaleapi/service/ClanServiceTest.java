@@ -4,8 +4,10 @@ import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.CurrentRiverRaceResponse;
+import com.example.clashroyaleapi.client.dto.RiverRaceLogResponse;
 import com.example.clashroyaleapi.client.exception.ResourceNotFoundException;
 import com.example.clashroyaleapi.domain.ClanSearchResult;
+import com.example.clashroyaleapi.domain.ClanWarHistory;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.MemberSortKey;
 import com.example.clashroyaleapi.domain.SortDirection;
@@ -254,6 +256,25 @@ class ClanServiceTest {
         when(apiClient.getCurrentRiverRace(anyString())).thenThrow(new ResourceNotFoundException("not found", null));
 
         assertTrue(clanService.findWarParticipation(clan("#2XYZ456", "Royals")).isEmpty());
+    }
+
+    @Test
+    void クラン対戦成績は公式APIの履歴から自分のクランの週を取り出す() {
+        when(apiClient.getRiverRaceHistory("#2XYZ456")).thenReturn(new RiverRaceLogResponse(List.of(
+                new RiverRaceLogResponse.RiverRace("20261012T094017.000Z", List.of(
+                        new RiverRaceLogResponse.Standing(1, 20,
+                                new RiverRaceLogResponse.Clan("#2XYZ456", "Royals", 10000, List.of())))))));
+
+        ClanWarHistory history = clanService.findWarHistory(clan("#2XYZ456", "Royals"));
+
+        assertEquals(1, history.firstPlaceStreak());
+    }
+
+    @Test
+    void クラン対戦の履歴が見つからないクランは週が空() {
+        when(apiClient.getRiverRaceHistory(anyString())).thenThrow(new ResourceNotFoundException("not found", null));
+
+        assertTrue(clanService.findWarHistory(clan("#2XYZ456", "Royals")).weeks().isEmpty());
     }
 
     private static ClanResponse clan(String tag, String name) {

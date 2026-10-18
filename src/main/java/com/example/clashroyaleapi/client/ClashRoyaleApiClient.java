@@ -33,6 +33,9 @@ import java.util.function.Supplier;
 @Component
 public class ClashRoyaleApiClient {
 
+    // 公式APIはこれより古い週を返さない(limit=12で頼んでも10週だった。2026-10-18に確認)。
+    private static final int RIVER_RACE_HISTORY_WEEKS = 10;
+
     private final RestClient restClient;
 
     /**
@@ -215,6 +218,16 @@ public class ClashRoyaleApiClient {
      * 巡回の結果をキャッシュに載せると、2度は使わないデータでメモリが埋まり、利用者の分が追い出されるため。
      */
     public RiverRaceLogResponse getRiverRaceLog(String clanTag, int limit) {
+        return fetchRiverRaceLog(clanTag, limit);
+    }
+
+    /** クラン情報画面の「クラン対戦成績」用。巡回の分とは別のキャッシュに載せ、利用者の分だけを持つ。 */
+    @Cacheable(cacheNames = "riverRaceLogs", key = "T(com.example.clashroyaleapi.client.Tags).normalize(#clanTag)")
+    public RiverRaceLogResponse getRiverRaceHistory(String clanTag) {
+        return fetchRiverRaceLog(clanTag, RIVER_RACE_HISTORY_WEEKS);
+    }
+
+    private RiverRaceLogResponse fetchRiverRaceLog(String clanTag, int limit) {
         RiverRaceLogResponse response = call(() -> restClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/clans/{tag}/riverracelog")
                         .queryParam("limit", limit)
