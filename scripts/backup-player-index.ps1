@@ -35,6 +35,7 @@ $Targets        = 'by-tag crawler ranking-history card-usage'
 # certbotで作り直せるので、秘密情報をPCに置く場所を増やさない。
 $VmConfigPaths  = 'etc/systemd/system/clash-royale-api.service ' +
                   'etc/httpd/conf.d/princess-tower-proxy.conf etc/httpd/conf.d/princess-tower-proxy-le-ssl.conf ' +
+                  'etc/httpd/conf.d/block-scrapers.conf ' +
                   'etc/logrotate.d/httpd etc/firewalld/zones ' +
                   'etc/cron.d/clash-royale-access-stats etc/cron.d/clash-royale-daily-backup ' +
                   'usr/local/bin/clash-royale-access-stats.sh usr/local/bin/clash-royale-daily-backup.sh ' +
