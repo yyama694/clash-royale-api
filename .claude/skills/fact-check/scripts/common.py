@@ -74,8 +74,23 @@ def crowns(side):
     return max(p.get("crowns", 0) for p in side)
 
 
+def is_duel(battle):
+    """BattleResult#isDuel と同じ。ラウンドに分かれた1対1(クラン対戦のデュエル)。"""
+    team, opp = battle["team"], battle["opponent"]
+    return len(team) == 1 and len(opp) == 1 and bool(team[0].get("rounds")) and bool(opp[0].get("rounds"))
+
+
+def score(battle):
+    """BattleResult#scoreOf と同じ。デュエルの crowns は全ラウンドの合計なので、取ったラウンドの数で比べる(1.180)。"""
+    if not is_duel(battle):
+        return crowns(battle["team"]), crowns(battle["opponent"])
+    mine, theirs = battle["team"][0]["rounds"], battle["opponent"][0]["rounds"]
+    pairs = [(a.get("crowns", 0), b.get("crowns", 0)) for a, b in zip(mine, theirs)]
+    return sum(a > b for a, b in pairs), sum(a < b for a, b in pairs)
+
+
 def result(battle):
-    t, o = crowns(battle["team"]), crowns(battle["opponent"])
+    t, o = score(battle)
     return "W" if t > o else "L" if t < o else "D"
 
 

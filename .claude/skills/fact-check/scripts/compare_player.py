@@ -7,7 +7,7 @@ import re
 import sys
 import time
 
-from common import (api, both_sides, card_performance, counted, crowns, enc, in_game_level, result, site, streak,
+from common import (api, both_sides, card_performance, counted, enc, in_game_level, result, site, streak,
                     text, win_rate)
 
 
@@ -84,8 +84,8 @@ def check(tag):
 
     battles = [b for b in log if both_sides(b)]
     stats_battles = counted(log)
-    wins = sum(crowns(b["team"]) > crowns(b["opponent"]) for b in stats_battles)
-    losses = sum(crowns(b["team"]) < crowns(b["opponent"]) for b in stats_battles)
+    wins = sum(result(b) == "W" for b in stats_battles)
+    losses = sum(result(b) == "L" for b in stats_battles)
     summary = re.search(r'<p class="stats-summary">\s*<span>(.*?)</span>', page, re.S)
     if summary:
         # 英語の文は「{勝}W {敗}L in the last {戦数} battles」の順
