@@ -245,7 +245,6 @@ ICU4Jでjarが24.8MB→40.0MBに増えた(大半は全言語分のロケール�
 
 - 対応不要と判断したもの: **現在トロフィー・ベストトロフィーが14,000で止まる**(10/1にユーザー判断。「ゲーム画面もそうだから」)。それ以上の値は`progress`の`seasonal-trophy-road-YYYYMM`にある。クラン情報画面のメンバー一覧も同じ
 - **ゲームデータに無いモード名が「その他」になる**(1.123): `Chaos_1v1_Draft`・`Chaos_1v1_TripleDraft`・`Chaos_1v1_MegaDraft_All`・`Crazy_Arena_EpicOnly`・`Crazy_Arena_InfiniteElixir`・`Crazy_Arena_SuddenDeath`(多くは`type=unknown`)。2025年10月版の`texts.csv`・`game_modes.csv`に無い。新しいゲームデータか公式ブログの各言語版で名前を裏付けられたら足す
-
 - **14,000トロフィー到達後のトロフィー戦で、対戦履歴のトロフィー増減が出ない**(10/19に#VRQUQ0QLで気づいた。未対応)。到達後の対戦は`type`が`PvP`ではなく`trail`になり(`ハマりどころ.md`)、`trophyChange`には±29〜30などが入っている。`TrophyChange.of`は`PvP`と`pathOfLegend`しか見ていないので表示しない。`trail`にはイベント戦も入るため、`ElixirLeak`と同じくモード名`Ladder`で見分ける。14,000で止まっている現在トロフィー(上の「対応不要」)と増減の表示が食い違って見えないかも、直す前にユーザーに確認する
 
 ## 機能面の改善候補
