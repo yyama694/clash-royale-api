@@ -103,7 +103,7 @@ def check(tag):
     expect("favorite cards", shown_performance(page, "perf-good"), as_shown(favorite))
     expect("weak cards", shown_performance(page, "perf-bad"), as_shown(weak))
 
-    deck = p.get("currentDeck") or []
+    deck = shown_deck(p, log)
     section = re.search(r'<div class="card current-deck">(.*?)(?=<div[^>]*class="card[ "])', page, re.S)
     if section and len(deck) == 8:
         s = section.group(1)
@@ -121,6 +121,22 @@ def check(tag):
     for i in issues:
         print("   ", i)
     return not issues
+
+
+def shown_deck(p, log):
+    """画面の使用中のデッキ: 直近のトロフィー戦・ランク戦の本人の8枚(レベルは所持カードの今の値)。無ければ currentDeck。"""
+    owned = {c["id"]: c for c in p.get("cards") or []}
+    me = p["tag"].lstrip("#").upper()
+    for b in log:
+        standard = b.get("type") == "pathOfLegend" or (b.get("gameMode") or {}).get("name") == "Ladder"
+        if not standard or len(b.get("team") or []) != 1 or len(b.get("opponent") or []) != 1:
+            continue
+        t = b["team"][0]
+        if (t.get("tag") or "").lstrip("#").upper() != me or len(t.get("cards") or []) != 8:
+            continue
+        return [dict(c, **{k: owned[c["id"]][k] for k in ("level", "maxLevel")}) if c["id"] in owned else c
+                for c in t["cards"]]
+    return p.get("currentDeck") or []
 
 
 if __name__ == "__main__":
