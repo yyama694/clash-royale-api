@@ -147,6 +147,54 @@ class CurrentDeckTest {
         assertEquals(Arrays.asList(1, null, 1, null, null, null, null, null), evolutionLevels(deck));
     }
 
+    private static BattleLogEntry standardBattle(String type, String mode, List<BattleLogEntry.Card> deck,
+            List<BattleLogEntry.Card> support) {
+        return new BattleLogEntry(type, "20261019T000000.000Z", new BattleLogEntry.GameMode(mode),
+                List.of(new BattleLogEntry.Participant("#ABC", "name", 1, deck, support, null)),
+                List.of(new BattleLogEntry.Participant("#OPP", "opp", 0, cards(11, 12, 13, 14, 15, 16, 17, 18),
+                        List.of(), null)), null);
+    }
+
+    @Test
+    void 直近のトロフィー戦やランク戦があればそのデッキを使う() {
+        // 公式APIの currentDeck が、対戦で使っていないデッキを返すことがある(2026-10-19)。
+        PlayerResponse player = player(cards(21, 22, 23, 24, 25, 26, 27, 28));
+        List<BattleLogEntry> log = List.of(
+                standardBattle("trail", "Ladder", withLevels(cards(1, 2, 3, 4, 5, 6, 7, 8), 1, 2), cards(159000001)),
+                standardBattle("pathOfLegend", "Ranked1v1", cards(31, 32, 33, 34, 35, 36, 37, 38), List.of()));
+
+        CurrentDeck deck = CurrentDeck.of(player, log).orElseThrow();
+
+        assertEquals(List.of(1, 2, 3, 4, 5, 6, 7, 8), ids(deck));
+        assertEquals(Arrays.asList(1, 2, null, null, null, null, null, null), evolutionLevels(deck));
+        assertEquals(159000001, deck.supportCards().get(0).id());
+        assertFalse(deck.completedFromBattle());
+    }
+
+    @Test
+    void 対戦のデッキのレベルは所持カードの今の値にする() {
+        PlayerResponse player = new PlayerResponse("#ABC", "name", 15, 9000, 9000, 0, 0, 0, null,
+                cards(1, 2, 3, 4, 5, 6, 7, 8), cards(159000000), null, null,
+                List.of(new PlayerResponse.OwnedCard(1, "card", 15, 16, 0, "common")));
+        List<BattleLogEntry> log = List.of(standardBattle("PvP", "Ladder", cards(1, 2, 3, 4, 5, 6, 7, 8),
+                cards(159000000)));
+
+        CurrentDeck deck = CurrentDeck.of(player, log).orElseThrow();
+
+        assertEquals(15, deck.cards().get(0).level());
+        assertEquals(16, deck.cards().get(0).maxLevel());
+        assertEquals(14, deck.cards().get(1).level());
+    }
+
+    @Test
+    void イベント戦のデッキは使わない() {
+        PlayerResponse player = player(cards(21, 22, 23, 24, 25, 26, 27, 28));
+        List<BattleLogEntry> log = List.of(standardBattle("trail", "TripleElixir_Ladder",
+                cards(1, 2, 3, 4, 5, 6, 7, 8), List.of()));
+
+        assertEquals(List.of(21, 22, 23, 24, 25, 26, 27, 28), ids(CurrentDeck.of(player, log).orElseThrow()));
+    }
+
     @Test
     void デッキが返らなければ空() {
         assertTrue(CurrentDeck.of(player(List.of()), List.of()).isEmpty());
