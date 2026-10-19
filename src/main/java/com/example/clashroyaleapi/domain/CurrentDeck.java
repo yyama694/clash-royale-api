@@ -6,17 +6,20 @@ import com.example.clashroyaleapi.client.dto.PlayerResponse;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 使用中のデッキ(公式APIの currentDeck)。
- * currentDeck は条件によってチャンピオンを返さず7枚になる(ランク戦上位60人中19人。進捗ログ.mdのフェーズ1.80)。
+ * 使用中のデッキ。直近のトロフィー戦・ランク戦で使ったデッキで、無ければ公式APIの currentDeck。
+ * currentDeck は対戦で使っているデッキと限らない(ランク戦上位60人中47人が別のデッキで、
+ * 2026-10-19には本人が選んでいない枠のデッキが返った)ので、対戦があればそちらを優先する。
+ * currentDeck は条件によってチャンピオンを返さず7枚にもなる(上位60人中19人。進捗ログ.mdのフェーズ1.80)。
  * そのときは、今のデッキのカードをすべて含む直近の1対1の対戦から、抜けているカードを補う。
  * cards の evolutionLevel は、対戦と同じ「その形で使うか」の意味に置き換えてある(CardForm・withBattleForms 参照)。
  *
- * @param completedFromBattle 対戦履歴から補ったカードがあるか(画面で注記するため)
+ * @param completedFromBattle currentDeck に対戦履歴から補ったカードがあるか(画面で注記するため)
  */
 public record CurrentDeck(List<BattleLogEntry.Card> cards, List<BattleLogEntry.Card> supportCards,
                           boolean completedFromBattle) {
@@ -25,6 +28,14 @@ public record CurrentDeck(List<BattleLogEntry.Card> cards, List<BattleLogEntry.C
 
     /** @param battleLog 新しい順。取得できなかったときは空でよい(補わずにそのまま返す) */
     public static Optional<CurrentDeck> of(PlayerResponse player, List<BattleLogEntry> battleLog) {
+        Optional<CurrentDeck> played = battleLog.stream()
+                .filter(ElixirLeak::isStandardOneOnOne)
+                .map(battle -> ownDeck(battle, player.tag()).map(cards -> fromBattle(battle, cards, player)))
+                .flatMap(Optional::stream)
+                .findFirst();
+        if (played.isPresent()) {
+            return played;
+        }
         List<BattleLogEntry.Card> deck = player.currentDeck();
         if (deck == null || deck.isEmpty()) {
             return Optional.empty();
@@ -43,6 +54,28 @@ public record CurrentDeck(List<BattleLogEntry.Card> cards, List<BattleLogEntry.C
                 .findFirst()
                 .map(battleDeck -> new CurrentDeck(withBattleForms(fill(deck, battleDeck), battleDecks), support, true))
                 .orElseGet(() -> new CurrentDeck(withBattleForms(deck, battleDecks), support, false)));
+    }
+
+    /**
+     * 対戦のカードの形はそのまま使う。レベルは対戦後に上がっていることがあるので、所持カードの今の値にする。
+     * 本人の対戦にタワーユニットが入っていなければ currentDeck のものを使う。
+     */
+    private static CurrentDeck fromBattle(BattleLogEntry battle, List<BattleLogEntry.Card> cards,
+            PlayerResponse player) {
+        Map<Integer, PlayerResponse.OwnedCard> owned = player.cards() == null ? Map.of()
+                : player.cards().stream().collect(Collectors.toMap(
+                        PlayerResponse.OwnedCard::id, card -> card, (a, b) -> a));
+        List<BattleLogEntry.Card> deck = cards.stream()
+                .map(card -> Optional.ofNullable(owned.get(card.id()))
+                        .map(now -> new BattleLogEntry.Card(card.id(), card.name(), now.level(), now.maxLevel(),
+                                card.elixirCost(), card.evolutionLevel(), card.iconUrls()))
+                        .orElse(card))
+                .toList();
+        List<BattleLogEntry.Card> support = battle.team().get(0).supportCards();
+        if (support == null || support.isEmpty()) {
+            support = player.currentDeckSupportCards() == null ? List.of() : player.currentDeckSupportCards();
+        }
+        return new CurrentDeck(deck, support, false);
     }
 
     /**
