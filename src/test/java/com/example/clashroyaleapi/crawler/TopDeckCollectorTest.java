@@ -21,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -61,7 +62,7 @@ class TopDeckCollectorTest {
         // 10月シーズン(2026-10-05 09:00 UTC 開始)が始まって3日以内。
         clock = new MutableClock(Instant.parse("2026-10-06T00:00:00Z"));
         collector = new TopDeckCollector(apiClient, usageService, battleService, winRateService,
-                new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1000), clock);
+                new CardUsageProperties(true, Duration.ofSeconds(3), LocalTime.of(6, 0), 1000), clock);
     }
 
     private static PlayerRankingResponse.RankedPlayer ranked(String tag) {
@@ -186,7 +187,7 @@ class TopDeckCollectorTest {
     }
 
     @Test
-    void 前のシーズンの順位で集めた集計は少人数でも24時間待つ() {
+    void 前のシーズンの順位で集めた集計は少人数でも翌日の決まった時刻まで待つ() {
         TopDecks finished = new TopDecks(clock.instant().minus(Duration.ofHours(2)), sampledDecks(1),
                 YearMonth.of(2026, 9));
         when(usageService.topDecks()).thenReturn(Optional.of(finished));
@@ -218,7 +219,7 @@ class TopDeckCollectorTest {
     @Test
     void 今シーズンのランキングが埋まっていれば前のシーズンは見ない() {
         TopDeckCollector smallTarget = new TopDeckCollector(apiClient, usageService, battleService, winRateService,
-                new CardUsageProperties(true, Duration.ofSeconds(3), Duration.ofHours(24), 1), clock);
+                new CardUsageProperties(true, Duration.ofSeconds(3), LocalTime.of(6, 0), 1), clock);
         when(apiClient.getPathOfLegendRankings("global", 1)).thenReturn(List.of(ranked("#A")));
         when(apiClient.getBattleLogUncached("#A")).thenReturn(List.of(ranked(deck(0, 8), null)));
 
@@ -302,7 +303,7 @@ class TopDeckCollectorTest {
     }
 
     @Test
-    void 前のシーズンの順位で集めた集計はシーズン開始から3日を過ぎたら24時間待たずに集め直す() {
+    void 前のシーズンの順位で集めた集計はシーズン開始から3日を過ぎたら翌日の決まった時刻を待たずに集め直す() {
         TopDecks finished = new TopDecks(Instant.parse("2026-10-08T06:00:00Z"), sampledDecks(980),
                 YearMonth.of(2026, 9));
         when(usageService.topDecks()).thenReturn(Optional.of(finished));
@@ -317,7 +318,7 @@ class TopDeckCollectorTest {
     }
 
     @Test
-    void シーズン開始から3日を過ぎたら今シーズンの少人数の集計も24時間待つ() {
+    void シーズン開始から3日を過ぎたら今シーズンの少人数の集計も翌日の決まった時刻まで待つ() {
         clock.set(Instant.parse("2026-10-08T09:00:00Z"));
         TopDecks small = new TopDecks(clock.instant().minus(Duration.ofMinutes(61)), sampledDecks(1));
         when(usageService.topDecks()).thenReturn(Optional.of(small));
@@ -328,11 +329,37 @@ class TopDeckCollectorTest {
     }
 
     @Test
-    void 前回の集計から時間が経っていれば集め直す() {
-        TopDecks old = new TopDecks(clock.instant().minus(Duration.ofHours(25)),
-                List.of(new TopDecks.SampledDeck(List.of(1), null, playerInfo())));
-        when(usageService.topDecks()).thenReturn(Optional.of(old));
+    void 決まった時刻を過ぎたら前回の集計から24時間経っていなくても集め直す() {
+        TopDecks yesterday = new TopDecks(Instant.parse("2026-10-09T07:00:00Z"), sampledDecks(980));
+        when(usageService.topDecks()).thenReturn(Optional.of(yesterday));
 
+        clock.set(Instant.parse("2026-10-10T05:59:59Z"));
+        collector.collectNext();
+        verify(apiClient, never()).getPathOfLegendRankings(anyString(), anyInt());
+
+        clock.set(Instant.parse("2026-10-10T06:00:00Z"));
+        collector.collectNext();
+        verify(apiClient).getPathOfLegendRankings("global", 1000);
+    }
+
+    @Test
+    void 決まった時刻の後に終わった集計があればその日はもう集めない() {
+        TopDecks today = new TopDecks(Instant.parse("2026-10-10T07:00:00Z"), sampledDecks(980));
+        when(usageService.topDecks()).thenReturn(Optional.of(today));
+
+        clock.set(Instant.parse("2026-10-11T05:59:59Z"));
+        collector.collectNext();
+
+        verify(apiClient, never()).getPathOfLegendRankings(anyString(), anyInt());
+    }
+
+    @Test
+    void 決まった時刻より前に終わった集計しか無ければ時刻を過ぎた後はすぐ集める() {
+        // 再起動で決まった時刻からの集計が途中で消えたとき。
+        TopDecks beforeStart = new TopDecks(Instant.parse("2026-10-10T05:30:00Z"), sampledDecks(980));
+        when(usageService.topDecks()).thenReturn(Optional.of(beforeStart));
+
+        clock.set(Instant.parse("2026-10-10T06:40:00Z"));
         collector.collectNext();
 
         verify(apiClient).getPathOfLegendRankings("global", 1000);

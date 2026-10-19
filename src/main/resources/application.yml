@@ -60,7 +60,8 @@ crawler:
 card-usage:
   enabled: ${CARD_USAGE_ENABLED:true}
   interval: ${CARD_USAGE_INTERVAL:3s}
-  refresh-every: ${CARD_USAGE_REFRESH_EVERY:24h}
+  # UTC。06:00は日本時間15:00(2026-10-19にユーザーが決定)。前回の集計の終わりから24時間後に始めると、集計にかかる約1時間ずつ毎日遅れていたため。
+  start-at: ${CARD_USAGE_START_AT:06:00}
   players: ${CARD_USAGE_PLAYERS:1000}
 
 # ランキングの動き画面のために、ランク戦の世界上位1000人を15分ごとに記録する(RankingRecorder)。公式APIの呼び出しは1回ずつ。

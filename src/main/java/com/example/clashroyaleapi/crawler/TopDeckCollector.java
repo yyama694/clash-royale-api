@@ -27,6 +27,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,7 +39,8 @@ import java.util.stream.Collectors;
 
 /**
  * ランク戦の世界ランキング上位のプレイヤーの対戦履歴を1人ずつ取得し、直近のランク戦で使ったデッキを集める。
- * 全員分が揃ったら {@link CardUsageService} に渡し、次は refreshEvery 後に集め直す。
+ * 全員分が揃ったら {@link CardUsageService} に渡し、次は翌日の決まった時刻(startAt)に集め直す。
+ * 前回の集計がその日の決まった時刻より前に終わっていれば(再起動で途中から消えたときなど)、時刻を過ぎていればすぐ集める。
  *
  * プレイヤー情報の currentDeck(今セットしているデッキ)は使わない。上位60人で確かめたところ、
  * 47人は直前に遊んだ2v2などのデッキがセットされていてランク戦のデッキと違い、19人はチャンピオンが抜けた7枚で返ってきた。
@@ -64,7 +66,7 @@ class TopDeckCollector {
     private static final String RANKED_BATTLE_TYPE = "pathOfLegend";
     private static final Duration FAILURE_PAUSE = Duration.ofMinutes(1);
     private static final Duration ACCESS_DENIED_PAUSE = Duration.ofMinutes(30);
-    // シーズン開始直後に前のシーズンの順位が取れず、少人数の今シーズンのランキングで集めた回は、24時間待たずに取り直す。
+    // シーズン開始直後に前のシーズンの順位が取れず、少人数の今シーズンのランキングで集めた回は、翌日の決まった時刻を待たずに1時間で取り直す。
     private static final Duration SMALL_SAMPLE_REFRESH = Duration.ofHours(1);
 
     private final ClashRoyaleApiClient apiClient;
@@ -132,22 +134,28 @@ class TopDeckCollector {
         return usageService.topDecks()
                 .filter(topDecks -> topDecks.decks().stream().allMatch(deck -> deck.player() != null))
                 .filter(topDecks -> !outlivedNewSeasonPeriod(topDecks, now))
-                .map(topDecks -> now.isBefore(topDecks.collectedAt().plus(refreshAfter(topDecks, now))))
+                .map(topDecks -> smallCurrentSeason(topDecks, now)
+                        ? now.isBefore(topDecks.collectedAt().plus(SMALL_SAMPLE_REFRESH))
+                        : !topDecks.collectedAt().isBefore(latestStart(now)))
                 .orElse(false);
     }
 
-    // 前のシーズンの順位で集めた集計は、シーズン開始直後の期間が終わったら、24時間を待たずに今シーズンで集め直す。
+    private Instant latestStart(Instant now) {
+        Instant today = now.atZone(ZoneOffset.UTC).toLocalDate().atTime(properties.startAt()).toInstant(ZoneOffset.UTC);
+        return now.isBefore(today) ? today.minus(Duration.ofDays(1)) : today;
+    }
+
+    // 前のシーズンの順位で集めた集計は、シーズン開始直後の期間が終わったら、翌日の決まった時刻を待たずに今シーズンで集め直す。
     private static boolean outlivedNewSeasonPeriod(TopDecks topDecks, Instant now) {
         Instant periodEnd = SeasonCalendar.newSeasonPeriodEnd(now);
         return topDecks.finishedSeason() != null && topDecks.collectedAt().isBefore(periodEnd)
                 && !now.isBefore(periodEnd);
     }
 
-    private Duration refreshAfter(TopDecks topDecks, Instant now) {
-        boolean smallCurrentSeason = topDecks.finishedSeason() == null
+    private boolean smallCurrentSeason(TopDecks topDecks, Instant now) {
+        return topDecks.finishedSeason() == null
                 && topDecks.decks().size() < properties.players() / 2
                 && SeasonCalendar.inNewSeasonPeriod(now);
-        return smallCurrentSeason ? SMALL_SAMPLE_REFRESH : properties.refreshEvery();
     }
 
     private void start(Instant now) {
