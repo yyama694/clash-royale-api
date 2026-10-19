@@ -8,7 +8,7 @@ import re
 import sys
 import time
 
-from common import (api, both_sides, card_performance, counted, enc, in_game_level, result, score, site, streak,
+from common import (api, both_sides, card_performance, counted, enc, in_game_level, is_duel, result, score, site, streak,
                     text, win_rate)
 
 
@@ -113,6 +113,9 @@ def check(tag):
                   if (got := row_facts(r)) != (want := expected_row(b, p["tag"]))]
     expect("score / trophy change / league (rows)", wrong_rows[:2], [])
     expect("elixir leaked (this player)", shown_leak(page), expected_leak(log))
+    # 対戦詳細は、最新の対戦と最新のデュエル(あれば)だけ開く
+    for b in [x for x in battles[:1]] + [x for x in battles if is_duel(x)][:1]:
+        expect(f"battle detail {b['battleTime']} {b['type']}", check_battle_detail(tag, b), [])
 
     favorite, weak = card_performance(log)
     as_shown = lambda cards: [(cid, f"{win_rate(w, u)}% ({w}/{u})") for cid, w, u in cards]
@@ -177,7 +180,7 @@ def shown_leak(page):
 
 def expected_leak(log):
     """ElixirLeak#ofPlayer と同じ。ランク戦とトロフィー目標(Ladder)の1対1だけ、引き分けは除き、3戦未満は「-」。
-    Thymeleaf の formatDecimal は HALF_EVEN で丸める。"""
+    Thymeleaf の formatDecimal は2進数の実際の値を HALF_EVEN で丸める(APIの2.55は2.5499…なので2.5)。"""
     by_result = {"W": [], "L": []}
     for b in log:
         if not both_sides(b) or len(b["team"]) != 1 or len(b["opponent"]) != 1:
@@ -193,12 +196,69 @@ def expected_leak(log):
             return "-"
         v, mid = sorted(values), len(values) // 2
         m = v[mid] if len(v) % 2 else (v[mid - 1] + v[mid]) / 2
-        return str(decimal.Decimal(repr(m)).quantize(decimal.Decimal("0.1"), rounding=decimal.ROUND_HALF_EVEN))
+        return str(decimal.Decimal(m).quantize(decimal.Decimal("0.1"), rounding=decimal.ROUND_HALF_EVEN))
 
     battles = len(by_result["W"]) + len(by_result["L"])
     if len(by_result["W"]) < 3 and len(by_result["L"]) < 3:
         return None
     return battles, median(by_result["W"]), median(by_result["L"])
+
+
+def half_even(x):
+    return str(decimal.Decimal(x).quantize(decimal.Decimal("0.1"), rounding=decimal.ROUND_HALF_EVEN))
+
+
+def check_battle_detail(tag, b):
+    """対戦詳細画面の、スコア・各自の増減と消費漏れ・デッキ(デュエルはラウンドごとのクラウン・勝敗・消費漏れ・デッキ)。"""
+    page = site(f"/player/{tag.lstrip('#')}/battles/{b['battleTime']}?lang=en")
+    me = "#" + tag.lstrip("#")
+    team = sorted(b["team"], key=lambda x: x.get("tag") != me)
+    main = page.split('<div class="decks">')[0]
+    got_score = re.search(r'<div class="score"[^>]*>\s*<span>(\d+)</span><span class="score-sep">-</span><span>(\d+)</span>', main)
+    sides = []
+    for block in re.findall(r'<div class="side-name[^"]*">(.*?)</div>', main, re.S):
+        change = re.search(r'<span class="trophy-change[^"]*"><span>([^<]*)</span> <strong>([^<]*)</strong>', block)
+        leak = re.search(r'<span class="side-leak"><span>[^<]*</span> <strong>([^<]*)</strong>', block)
+        sides.append((change and f"{change.group(1)} {change.group(2)}", leak and leak.group(1)))
+    panels = []
+    for panel in re.split(r'<div class="card deck-panel deck-panel-(?:team|opponent)"', page)[1:]:
+        rounds = []
+        for r in panel.split('<section class="duel-round">')[1:]:
+            head = text(r.split("</h3>")[0])
+            rounds.append((head, [int(x) for x in re.findall(r'href="/card/(\d+)"', r.split('<div class="deck-meta"')[0])]))
+        grid = panel.split('<div class="support-row">')[0].split('<div class="deck-meta"')[0]
+        panels.append(rounds or [int(x) for x in re.findall(r'href="/card/(\d+)"', grid)])
+
+    def expected_side(p):
+        amount = p.get("trophyChange")
+        league = b.get("leagueNumber") if b.get("leagueNumber") in LEAGUES else None
+        label = ("Trophies" if b["type"] == "PvP" else "Rating" if b["type"] == "pathOfLegend" and league in (None, 7)
+                 else None)
+        leak = None if b["type"] == "boatBattle" or p.get("rounds") or p.get("elixirLeaked") is None \
+            else half_even(p["elixirLeaked"])
+        return (f"{label} {amount:+,}" if label and amount else None), leak
+
+    def expected_panel(p, other):
+        if not p.get("rounds"):
+            return [c["id"] for c in p.get("cards") or []]
+        names = {"W": "Win", "L": "Loss", "D": "Draw"}
+        out = []
+        for i, (r, o) in enumerate(zip(p["rounds"], other["rounds"]), 1):
+            res = "W" if r["crowns"] > o["crowns"] else "L" if r["crowns"] < o["crowns"] else "D"
+            leak = f" Elixir Leaked {half_even(r['elixirLeaked'])}" if r.get("elixirLeaked") is not None else ""
+            out.append((f"Round {i} {r['crowns']} - {o['crowns']} {names[res]}{leak}", [c["id"] for c in r.get("cards") or []]))
+        return out
+
+    t, o = score(b)
+    want_panels = [expected_panel(p, b["opponent"][0]) for p in team] + [expected_panel(p, b["team"][0]) for p in b["opponent"]]
+    problems = []
+    if not got_score or (int(got_score.group(1)), int(got_score.group(2))) != (t, o):
+        problems.append(f"スコア 画面={got_score and got_score.groups()} API={(t, o)}")
+    if sides != [expected_side(p) for p in team + b["opponent"]]:
+        problems.append(f"増減・消費漏れ 画面={sides} API={[expected_side(p) for p in team + b['opponent']]}")
+    if panels != want_panels:
+        problems.append(f"デッキ 画面={panels} API={want_panels}")
+    return problems
 
 
 def shown_deck(p, log):

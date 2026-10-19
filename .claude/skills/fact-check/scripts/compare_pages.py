@@ -9,8 +9,10 @@
 """
 import collections
 import datetime
+import html
 import re
 import time
+import urllib.parse
 
 from common import api, enc, site, text
 
@@ -139,7 +141,7 @@ def deck_pages():
             grid, _, support = b.partition('<div class="support-row">')
             tower = re.findall(r'href="/card/(\d+)"', support)
             decks.append({
-                "rank": int(re.search(r'top-deck-rank">#(\d+)', b).group(1)),
+                "rank": int(re.search(r'top-deck-rank">#([\d,]+)', b).group(1).replace(",", "")),
                 "tag": re.search(r'href="/player/([^"?]+)"', b).group(1),
                 "cards": [int(x) for x in re.findall(r'href="/card/(\d+)"', grid)],
                 "levels": [int(x) for x in re.findall(r'<div class="card-sub">Lv\.(\d+)</div>', grid)],
@@ -173,8 +175,9 @@ def deck_metrics(decks):
     wrong = []
     for d in decks:
         costs = [cards.get(c, {}).get("elixirCost") for c in d["cards"]]
+        # 鏡(エリクサー無し)入りのデッキは、平均エリクサーと4枚サイクルを出さず平均レベルだけ出す
         want = [] if len(costs) != 8 or None in costs else [f"{sum(costs) / 8:.1f}", str(sum(sorted(costs)[:4]))]
-        if want and len(d["levels"]) == 8:
+        if len(d["levels"]) == 8:
             want.append(f"{sum(d['levels']) / 8:.1f}")
         if d["metrics"] != want:
             wrong.append((d["rank"], d["tag"], d["metrics"], want))
@@ -233,6 +236,87 @@ def card_usage(decks):
             print(f"    {c}: {p}")
         time.sleep(0.3)
     print(f"  {len(targets)}枚中 不一致 {wrong}枚")
+
+
+def popular_deck_pages(path):
+    """人気のデッキ・勝率の高いデッキの各デッキ (見出しの文, 8枚の集合, 最上位の順位, 最上位のタグ)。"""
+    found, page = [], 1
+    while True:
+        s = site(f"{path}?lang=en&page={page}")
+        for b in s.split('<div class="card top-deck popular-deck">')[1:]:
+            grid = b.split('<div class="support-row">')[0]
+            best = re.search(r"Highest-ranked: #([\d,]+)</span>\s*<a href=\"/player/([0-9A-Z]+)", b)
+            found.append((text(re.search(r'<div class="top-deck-head">(.*?)</div>', b, re.S).group(1)),
+                          frozenset(int(x) for x in re.findall(r'href="/card/(\d+)"', grid)),
+                          int(best.group(1).replace(",", "")), best.group(2)))
+        if f"page={page + 1}" not in s:
+            return found
+        page += 1
+
+
+def popular_decks(decks):
+    """人気のデッキ画面(1.165)を、デッキ画面の全デッキから束ね直した結果と比べる。
+    同じ8枚(並び順・進化・ヒーロー・タワーユニットは区別しない)を2人以上。人数の多い順、同じなら最上位の順位の順。"""
+    groups = collections.defaultdict(list)
+    for d in decks:
+        if len(set(d["cards"])) == 8:
+            groups[frozenset(d["cards"])].append(d)
+    want = sorted(((len(g), min(x["rank"] for x in g), min(g, key=lambda x: x["rank"])["tag"], cards)
+                   for cards, g in groups.items() if len(g) >= 2), key=lambda w: (-w[0], w[1]))
+    shown = [(int(re.search(r"(\d+) players", head).group(1)), rank, tag, cards)
+             for head, cards, rank, tag in popular_deck_pages("/decks/popular")]
+    print(f"\n[人気のデッキ] 画面 {len(shown)}件 / デッキ画面から束ね直した {len(want)}件、"
+          f"並び・人数・最上位・8枚の一致: {shown == want}")
+    for g, w in [(g, w) for g, w in zip(shown, want) if g != w][:3]:
+        print("    ", g[:3], w[:3])
+
+
+def win_rate_decks(decks):
+    """勝率の高いデッキ画面(1.178)の中で確かめられること: 50戦以上・10人以上、勝率=勝ち/戦数(四捨五入)、
+    勝率の高い順(同じなら戦数の多い順)、最上位の人の順位がデッキ画面と同じ。1人の対戦が3割以下かと、
+    数えた対戦の数は画面に出ないので、VMの card-usage/deck-win-rates.tsv で確かめる(SKILL.md)。"""
+    ranks = {d["tag"]: d["rank"] for d in decks}
+    found = []
+    for head, cards, rank, tag in popular_deck_pages("/decks/win-rates"):
+        m = re.search(r"Win rate (\d+)%.*?([\d,]+) battles, ([\d,]+) wins.*?(\d+) players", head)
+        found.append((int(m.group(1)), int(m.group(2).replace(",", "")), int(m.group(3).replace(",", "")),
+                      int(m.group(4)), rank, tag))
+    bad_rate = [f for f in found if f[0] != int(100 * f[2] / f[1] + 0.5)]
+    small = [f for f in found if f[1] < 50 or f[3] < 10]
+    # 並びは四捨五入する前の勝率の順(画面の整数が同じでも、戦数の順とは限らない)
+    order = found == sorted(found, key=lambda f: (-f[2] / f[1], -f[1]))
+    wrong_rank = [(f[5], f[4], ranks.get(f[5])) for f in found if ranks.get(f[5]) != f[4]]
+    print(f"\n[勝率の高いデッキ] {len(found)}件。勝率の計算違い {len(bad_rate)}件、50戦・10人に満たない {len(small)}件、"
+          f"並び順 {'○' if order else '★違う'}、最上位の順位がデッキ画面と違う {len(wrong_rank)}件"
+          + (f" 例 {wrong_rank[:3]}" if wrong_rank else ""))
+
+
+def name_search(query):
+    """プレイヤー名検索の候補(1.154): 先頭20人のトロフィー・キングタワーレベル・クラン・世界の順位を公式APIと比べる。
+    サイトは2分キャッシュするので、その間に対戦した人はずれうる。"""
+    page = site(f"/player/search?q={urllib.parse.quote(query)}&lang=en")
+    wrong, checked = [], 0
+    for li in page.split('<div class="result-main">')[1:]:
+        tag = re.search(r'href="/player/([0-9A-Z]+)"', li).group(1)
+        meta = re.search(r'<div class="result-meta result-profile">(.*?)</div>', li, re.S)
+        if not meta:
+            continue
+        checked += 1
+        spans = meta.group(1)
+        got = (re.search(r'<span>([\d,]+)</span></span>', spans).group(1),
+               (re.search(r'King Tower Level</span> <span>(\d+)</span>', spans) or [None, None])[1],
+               (re.search(r'Clan</span> <bdi>(.*?)</bdi>', spans, re.S) or [None, None])[1],
+               (re.search(r'class="result-rank">#([\d,]+) worldwide', spans) or [None, None])[1])
+        p = api("/players/" + enc(tag)) or {}
+        r = p.get("currentPathOfLegendSeasonResult") or {}
+        want = (f"{p.get('trophies', 0):,}", str(p["kingTowerLevel"]) if p.get("kingTowerLevel") else None,
+                (p.get("clan") or {}).get("name"), f"{r['rank']:,}" if r.get("rank") and r.get("trophies") else None)
+        if got[0] != want[0] or got[1] != want[1] or (got[2] and html.unescape(got[2])) != want[2] or got[3] != want[3]:
+            wrong.append((tag, got, want))
+        time.sleep(0.2)
+    print(f"\n[プレイヤー名検索「{query}」] 詳細つきの候補 {checked}人中 不一致 {len(wrong)}人")
+    for w in wrong[:3]:
+        print("    ", w)
 
 
 def clans():
@@ -398,6 +482,8 @@ if __name__ == "__main__":
         top_decks(collected_at, decks)
         deck_metrics(decks)
         card_usage(decks)
+        popular_decks(decks)
+        win_rate_decks(decks)
     else:
         print("\n[トッププレイヤーのデッキ] 集計中でデッキが無いため、デッキ画面とカード使用率の照合は省いた")
     clans()
