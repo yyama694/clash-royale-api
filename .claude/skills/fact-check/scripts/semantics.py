@@ -3,11 +3,29 @@
 使い方: python semantics.py <作業ディレクトリ>   (collect.py の出力を読む)
 """
 import collections
+import datetime
 import json
 import os
 import sys
 
-from common import both_sides, card_performance, counted, result, streak, win_rate
+from common import both_sides, card_performance, counted, crowns, is_duel, result, score, streak, win_rate
+
+
+def api_time(s):
+    return datetime.datetime.strptime(s, "%Y%m%dT%H%M%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+
+
+def current_season_start(now=None):
+    """SeasonCalendar と同じ決まり: 毎月第1月曜の 09:00 UTC。"""
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    year, month = now.year, now.month
+    for _ in range(2):
+        first = datetime.datetime(year, month, 1, 9, tzinfo=datetime.timezone.utc)
+        start = first + datetime.timedelta(days=(7 - first.weekday()) % 7)
+        if start <= now:
+            return start
+        year, month = (year, month - 1) if month > 1 else (year - 1, 12)
+    return start
 
 
 def by_tier(data, predicate):
@@ -151,7 +169,65 @@ def main(work):
     print(f"\n[苦手カード] 苦手が出る {shown_weak}人中、全体の勝率以上のカードが苦手に入っている人 {above_overall}人"
           f"(0人のはず)。参考: 苦手がすべて勝率50%以上の人 {high_weak}人(勝率の高い人では正しくありうる)")
 
-    # 8. 対戦種別の内訳(モード名の表示を確かめる材料)
+    # 8. 対戦ごとの増減(2026-10-04から対戦履歴に出す): trophyChange が本当にその対戦での増減かを、
+    #    次の同じ種類の対戦の startingTrophies(と今のレーティング)と突き合わせる。
+    season_start = current_season_start()
+    pvp, celestial, latest_rating = [0, 0], [0, 0], [0, 0]
+    lower_league, trail_ladder = collections.Counter(), collections.Counter()
+    for d in data.values():
+        me = d["player"]["tag"]
+        mine = [(b, b["team"][0]) for b in d["battlelog"]
+                if both_sides(b) and len(b["team"]) == 1 and b["team"][0].get("tag") == me]
+        for kind, counter in (("PvP", pvp), ("celestial", celestial)):
+            seq = [(b, t) for b, t in mine
+                   if (kind == "PvP" and b["type"] == "PvP")
+                   or (kind == "celestial" and b["type"] == "pathOfLegend" and b.get("leagueNumber") == 7
+                       and api_time(b["battleTime"]) >= season_start)]
+            for (_, newer), (_, older) in zip(seq, seq[1:]):
+                if older.get("startingTrophies") is None or newer.get("startingTrophies") is None:
+                    continue
+                counter[0 if older["startingTrophies"] + (older.get("trophyChange") or 0) == newer["startingTrophies"] else 1] += 1
+            if kind == "celestial" and seq and seq[0][1].get("startingTrophies") is not None:
+                rating = (d["player"].get("currentPathOfLegendSeasonResult") or {}).get("trophies")
+                latest_rating[0 if seq[0][1]["startingTrophies"] + (seq[0][1].get("trophyChange") or 0) == rating else 1] += 1
+        for b, t in mine:
+            if b["type"] == "pathOfLegend" and b.get("leagueNumber") != 7:
+                lower_league[(result(b), t.get("trophyChange"))] += 1
+            if b["type"] == "trail" and (b.get("gameMode") or {}).get("name") == "Ladder":
+                trail_ladder[(t.get("startingTrophies"), "増減あり" if t.get("trophyChange") else "増減なし")] += 1
+    print("\n[対戦ごとの増減] 古い方の startingTrophies + trophyChange が、次の同じ種類の対戦の startingTrophies と一致するか")
+    print(f"  トロフィー戦(PvP): 一致 {pvp[0]} / 不一致 {pvp[1]}組")
+    print(f"  天界のランク戦(今シーズン): 一致 {celestial[0]} / 不一致 {celestial[1]}組。"
+          f"最新の対戦の後の値が今のレーティングと一致 {latest_rating[0]} / 不一致 {latest_rating[1]}人")
+    print(f"  天界より下のランク戦の(勝敗, trophyChange)の上位(画面には出さない。1.158): {lower_league.most_common(4)}")
+    print(f"  14,000到達後のトロフィー戦(trail/Ladder)の(startingTrophies, 増減): {trail_ladder.most_common(4)}"
+          "(画面には出していない。TODOの「サイトの情報のファクトチェック」)")
+
+    # 9. ランク戦のリーグ(2026-10-14から対戦履歴に出す): 世界の順位がある人(天界でしか付かない)の
+    #    今シーズンのランク戦が7(天界)か、プレイヤーの今シーズンのリーグと最新のランク戦のリーグが同じか。
+    ranked_leagues, same_league = collections.Counter(), [0, 0]
+    for d in data.values():
+        cur = d["player"].get("currentPathOfLegendSeasonResult") or {}
+        ranked = [b for b in d["battlelog"] if b["type"] == "pathOfLegend" and api_time(b["battleTime"]) >= season_start]
+        if cur.get("rank") and cur.get("trophies"):
+            ranked_leagues.update(b.get("leagueNumber") for b in ranked)
+        if ranked and cur.get("leagueNumber"):
+            same_league[0 if ranked[0].get("leagueNumber") == cur["leagueNumber"] else 1] += 1
+    print(f"\n[ランク戦のリーグ] 世界の順位がある人の今シーズンのランク戦の leagueNumber: {dict(ranked_leagues)}(7=天界のはず)")
+    print(f"  最新のランク戦のリーグと、プレイヤーの今シーズンのリーグ: 一致 {same_league[0]} / 不一致 {same_league[1]}人")
+
+    # 10. クラン対戦のデュエル(2本先取。1.180から勝敗はラウンドの勝ち数): 勝った側がちょうど2ラウンド取っているか。
+    duels = {}
+    for d in data.values():
+        for b in d["battlelog"]:
+            if both_sides(b) and is_duel(b):
+                duels[(b["battleTime"], b["team"][0].get("tag"))] = b
+    not_two = sum(max(score(b)) != 2 for b in duels.values())
+    by_crowns = sum((crowns(b["team"]) > crowns(b["opponent"])) != (result(b) == "W") for b in duels.values())
+    print(f"\n[デュエル] {len(duels)}戦で、勝った側の取ったラウンドが2でない対戦 {not_two}戦(0のはず)。"
+          f"参考: クラウンの合計で判定すると勝敗が変わる対戦 {by_crowns}戦")
+
+    # 11. 対戦種別の内訳(モード名の表示を確かめる材料)
     modes = collections.Counter((b["type"], b.get("gameMode", {}).get("name")) for d in data.values() for b in d["battlelog"])
     print("\n[対戦種別 type / gameMode.name の上位]")
     for (t, m), c in modes.most_common(15):

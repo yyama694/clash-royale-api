@@ -3,11 +3,12 @@
 使い方: python compare_player.py <タグ> [<タグ> ...]   (#は省略可)
 英語表示(lang=en)を読む。サイトはAPIの応答を2分キャッシュするので、その間に対戦した人は戦績がずれうる。
 """
+import decimal
 import re
 import sys
 import time
 
-from common import (api, both_sides, card_performance, counted, enc, in_game_level, result, site, streak,
+from common import (api, both_sides, card_performance, counted, enc, in_game_level, result, score, site, streak,
                     text, win_rate)
 
 
@@ -41,12 +42,16 @@ def shown_performance(page, css):
 
 
 def opponent_level(battle):
-    """対戦履歴の相手の平均カードレベル。2v2と8枚でないデッキは出さない(ViewMapper#toOpponents)。"""
+    """対戦履歴の相手の平均カードレベル。2v2と8枚でないデッキは出さない(ViewMapper#toOpponents)。
+    デュエルは全ラウンドのデッキの平均で、8枚でないラウンドが1つでもあれば出さない(1.180)。"""
     opponents = battle["opponent"]
-    cards = opponents[0].get("cards") or []
-    if len(opponents) > 1 or len(cards) != 8:
+    if len(opponents) > 1:
         return []
-    return [f"{sum(in_game_level(c['level'], c['maxLevel']) for c in cards) / 8:.1f}"]
+    decks = [r.get("cards") or [] for r in opponents[0].get("rounds") or []] or [opponents[0].get("cards") or []]
+    if any(len(cards) != 8 for cards in decks):
+        return []
+    averages = [sum(in_game_level(c["level"], c["maxLevel"]) for c in cards) / 8 for cards in decks]
+    return [f"{sum(averages) / len(averages):.1f}"]
 
 
 def check(tag):
@@ -79,7 +84,13 @@ def check(tag):
     for key, label in (("currentPathOfLegendSeasonResult", "Rank Battle (this season)"),
                        ("bestPathOfLegendSeasonResult", "Rank Battle (best past season)")):
         r = p.get(key) or {}
-        want = f"Rank {r['rank']:,} / Rating {r['trophies']:,}" if r.get("rank") else None
+        # 10/12から「#15 worldwide」。レーティング0(シーズンの切り替え直後)は順位を出さない(RankedSeasonResult#hasRank)
+        want = f"#{r['rank']:,} worldwide / Rating {r['trophies']:,}" if r.get("rank") and r.get("trophies") else None
+        if want is None and key == "currentPathOfLegendSeasonResult":
+            # 10/14から順位の無い人は今シーズンのリーグ。1(マスターI)は14,000の人だけ(RankedLeague#currentOf)
+            league = r.get("leagueNumber") if r.get("leagueNumber") in LEAGUES else None
+            league = None if league == 1 and p["trophies"] < 14000 else league
+            want = league and LEAGUES[league] + (f" / Rating {r['trophies']:,}" if league == 7 and r.get("trophies") else "")
         expect(label, g.get(label), want)
 
     battles = [b for b in log if both_sides(b)]
@@ -97,6 +108,11 @@ def check(tag):
     wrong_levels = [(b["battleTime"], re.findall(r"Avg\. Lv\.([\d.]+)", r), opponent_level(b))
                     for r, b in zip(rows, battles) if re.findall(r"Avg\. Lv\.([\d.]+)", r) != opponent_level(b)]
     expect("opponent avg level (rows)", wrong_levels[:2], [])
+    # 2026-10-04から各対戦の増減、10-14からランク戦のリーグ、10-18からデュエルはラウンドの勝ち数を出す
+    wrong_rows = [(b["battleTime"], got, want) for r, b in zip(rows, battles)
+                  if (got := row_facts(r)) != (want := expected_row(b, p["tag"]))]
+    expect("score / trophy change / league (rows)", wrong_rows[:2], [])
+    expect("elixir leaked (this player)", shown_leak(page), expected_leak(log))
 
     favorite, weak = card_performance(log)
     as_shown = lambda cards: [(cid, f"{win_rate(w, u)}% ({w}/{u})") for cid, w, u in cards]
@@ -121,6 +137,68 @@ def check(tag):
     for i in issues:
         print("   ", i)
     return not issues
+
+
+LEAGUES = {1: "Master I", 2: "Master II", 3: "Master III", 4: "Champion", 5: "Grand Champion",
+           6: "Royal Champion", 7: "Ultimate Champion"}
+
+
+def row_facts(row):
+    """対戦履歴の1行の (スコア, 増減, リーグ)。"""
+    shown_score = re.search(r'<span class="battle-crowns">.*?</span>\s*<span>([^<]*)</span>', row, re.S)
+    change = re.search(r'<span class="trophy-change[^"]*"><span>([^<]*)</span> <strong>([^<]*)</strong>', row)
+    mode = re.search(r'<div class="battle-sub">\s*<span>([^<]*)</span>', row)
+    league = mode and re.search(r"\((.*)\)$", text(mode.group(1)))
+    return (shown_score and text(shown_score.group(1)), change and f"{change.group(1)} {change.group(2)}",
+            league and league.group(1) if mode and text(mode.group(1)).startswith("Rank Battle") else None)
+
+
+def expected_row(b, me):
+    """TrophyChange#of・ViewMapper#gameModeOf と同じ。増減は PvP(トロフィー)と、天界(7)かリーグ不明のランク戦(レーティング)だけ。"""
+    t, o = score(b)
+    viewer = next((x for x in b["team"] if x.get("tag") == me), None)
+    amount = (viewer or {}).get("trophyChange")
+    league = b.get("leagueNumber") if b["type"] == "pathOfLegend" and b.get("leagueNumber") in LEAGUES else None
+    label = ("Trophies" if b["type"] == "PvP" else "Rating" if b["type"] == "pathOfLegend" and league in (None, 7)
+             else None)
+    change = f"{label} {amount:+,}" if label and amount else None
+    return f"{t} - {o}", change, LEAGUES.get(league)
+
+
+def shown_leak(page):
+    """消費漏れの表の本人の行 (対戦数, 勝ちの中央値, 負けの中央値)。表が無ければ None。"""
+    table = re.search(r'<table class="table-compact leak-table">.*?<tbody>\s*<tr>(.*?)</tr>', page, re.S)
+    if not table:
+        return None
+    count = re.search(r"\((\d+) battles?\)", text(table.group(1)))
+    cells = [text(c) for c in re.findall(r'<td class="num">(.*?)</td>', table.group(1), re.S)]
+    return (int(count.group(1)) if count else None, *cells[:2])
+
+
+def expected_leak(log):
+    """ElixirLeak#ofPlayer と同じ。ランク戦とトロフィー目標(Ladder)の1対1だけ、引き分けは除き、3戦未満は「-」。
+    Thymeleaf の formatDecimal は HALF_EVEN で丸める。"""
+    by_result = {"W": [], "L": []}
+    for b in log:
+        if not both_sides(b) or len(b["team"]) != 1 or len(b["opponent"]) != 1:
+            continue
+        if b["type"] != "pathOfLegend" and (b.get("gameMode") or {}).get("name") != "Ladder":
+            continue
+        leaked, r = b["team"][0].get("elixirLeaked"), result(b)
+        if leaked is not None and r in by_result:
+            by_result[r].append(leaked)
+
+    def median(values):
+        if len(values) < 3:
+            return "-"
+        v, mid = sorted(values), len(values) // 2
+        m = v[mid] if len(v) % 2 else (v[mid - 1] + v[mid]) / 2
+        return str(decimal.Decimal(repr(m)).quantize(decimal.Decimal("0.1"), rounding=decimal.ROUND_HALF_EVEN))
+
+    battles = len(by_result["W"]) + len(by_result["L"])
+    if len(by_result["W"]) < 3 and len(by_result["L"]) < 3:
+        return None
+    return battles, median(by_result["W"]), median(by_result["L"])
 
 
 def shown_deck(p, log):
