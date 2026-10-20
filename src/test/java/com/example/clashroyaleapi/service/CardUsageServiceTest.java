@@ -9,6 +9,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +53,22 @@ class CardUsageServiceTest {
         assertEquals(Instant.parse("2026-10-11T11:25:00Z"),
                 restarted.lastBefore(Instant.parse("2026-10-12T00:00:00Z")).orElseThrow().collectedAt());
         assertEquals(Optional.empty(), restarted.lastBefore(Instant.parse("2026-10-10T11:20:27Z")));
+    }
+
+    @Test
+    void その日の最初の集計を履歴から読み_まだ無い日は後から集計されれば読める() throws IOException {
+        CardUsageService service = new CardUsageService(new TopDecksFile(dir.resolve("top-decks.tsv")),
+                dir.resolve("history"));
+        service.publish(topDecks("2026-10-11T11:25:00Z", null));
+        service.publish(topDecks("2026-10-11T18:00:00Z", null));
+
+        assertEquals(Instant.parse("2026-10-11T11:25:00Z"),
+                service.firstOn(LocalDate.of(2026, 10, 11)).orElseThrow().collectedAt());
+        assertEquals(Optional.empty(), service.firstOn(LocalDate.of(2026, 10, 12)));
+
+        service.publish(topDecks("2026-10-12T12:00:00Z", null));
+        assertEquals(Instant.parse("2026-10-12T12:00:00Z"),
+                service.firstOn(LocalDate.of(2026, 10, 12)).orElseThrow().collectedAt());
     }
 
     @Test

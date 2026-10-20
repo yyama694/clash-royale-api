@@ -1018,7 +1018,7 @@
     <div class="balance-body">
         <p class="balance-title">
             <a th:if="${heading == null}" th:href="@{/card/{id}(id=${c.cardId()})}"><bdi th:text="${c.name()}"></bdi></a>
-            <a th:if="${heading != null}" th:href="@{/balance} + '#' + ${anchor}" th:text="${heading}"></a>
+            <a th:if="${heading != null}" th:href="@{/balance/{d}(d=${anchor})}" th:text="${heading}"></a>
             <span class="badge balance-form" th:if="${c.formLabel() != null}" th:text="${c.formLabel()}"></span>
             <!--/* バランス調整の画面では種類ごとの見出しがあるので、カード詳細画面だけに出す */-->
             <span class="badge balance-kind" th:if="${heading != null}" th:text="${c.kindLabel()}"></span>
@@ -1026,11 +1026,7 @@
         <ul class="balance-lines">
             <li th:each="line : ${c.lines()}" th:text="${line}"></li>
         </ul>
-        <th:block th:if="${c.showUsage() and c.now() != null}">
-            <p class="balance-usage" th:if="${c.before() != null}"
-               th:text="#{balance.usage.change(${c.before()}, ${c.now()}, ${c.delta()})}"></p>
-            <p class="balance-usage" th:if="${c.before() == null}" th:text="#{balance.usage.nowOnly(${c.now()})}"></p>
-        </th:block>
+        <p class="balance-usage" th:if="${c.usage() != null}" th:text="${c.usage()}"></p>
     </div>
 </li>
 

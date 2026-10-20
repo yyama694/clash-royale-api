@@ -8,8 +8,9 @@ import com.example.clashroyaleapi.client.dto.ClanResponse;
 import com.example.clashroyaleapi.client.dto.ClanSearchResponse;
 import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
-import com.example.clashroyaleapi.domain.BalanceBaseline;
+import com.example.clashroyaleapi.domain.BalanceSnapshot;
 import com.example.clashroyaleapi.domain.BalanceUpdate;
+import com.example.clashroyaleapi.domain.BalanceUsage;
 import com.example.clashroyaleapi.domain.BattleExclusion;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
@@ -195,32 +196,42 @@ public class ViewMapper {
     /**
      * バランス調整1回分。カードの名前・画像はカード一覧から引き、一覧に無いカード(名前の変わったカードなど)は英語名のまま出す。
      *
-     * @param baseline 調整前の使用率。無ければ null
-     * @param current  今の使用率。まだ集計が無ければ null
+     * @param usage 対象カードの使用率の推移
      */
-    public BalanceUpdateView toBalanceUpdate(BalanceUpdate update, BalanceBaseline baseline, CardUsage current,
+    public BalanceUpdateView toBalanceUpdate(BalanceUpdate update, BalanceUsage usage,
             Map<String, CardsResponse.Card> cardsByName, Locale locale) {
         Map<BalanceUpdate.Kind, List<BalanceUpdateView.CardChangeView>> byKind = new LinkedHashMap<>();
         for (BalanceUpdate.CardChanges changes : update.byCard()) {
             byKind.computeIfAbsent(changes.kind(), kind -> new ArrayList<>())
-                    .add(toCardChange(changes, baseline, current, cardsByName, locale));
+                    .add(toCardChange(changes, usage.of(changes.card(), changes.form()), cardsByName, locale));
         }
         List<BalanceUpdateView.KindGroup> groups = byKind.entrySet().stream()
                 .map(entry -> new BalanceUpdateView.KindGroup(entry.getKey().code(),
                         labels.message("balance.kind." + entry.getKey().code(), locale), List.copyOf(entry.getValue())))
                 .toList();
+        List<String> digests = byKind.keySet().stream()
+                .flatMap(kind -> usage.digest(update, kind).map(digest -> balanceDigest(kind, digest, locale)).stream())
+                .toList();
+        List<BalanceUsage.Point> points = update.byCard().stream()
+                .flatMap(changes -> usage.of(changes.card(), changes.form()).after().stream())
+                .toList();
+        BalanceSnapshot before = usage.before();
         Optional<String> localizedSource = update.localizedSourceUrl(locale);
         return new BalanceUpdateView(update.date().toString(),
                 labels.message("balance.update.heading", locale, utcNoon(update.date())),
                 localizedSource.orElse(update.sourceUrl()),
                 labels.message(localizedSource.isPresent() ? "balance.sourceLocalized" : "balance.source", locale),
-                groups,
-                baseline == null ? null : labels.message("balance.date", locale, utcNoon(baseline.collectedOn())),
-                baseline == null ? null : baseline.sampleSize(), current == null ? null : current.sampleSize());
+                groups, digests,
+                before == null ? null : labels.message("balance.date", locale, utcNoon(before.collectedOn())),
+                before == null ? null : before.sampleSize(),
+                usage.latest() == null ? null : usage.latest().sampleSize(),
+                points.stream().anyMatch(point -> point.kind() == BalanceUsage.PointKind.DAYS_AFTER),
+                points.stream().anyMatch(point -> point.kind() == BalanceUsage.PointKind.BEFORE_NEXT),
+                update.changes().stream().anyMatch(change -> change.form() != CardForm.NORMAL));
     }
 
-    private BalanceUpdateView.CardChangeView toCardChange(BalanceUpdate.CardChanges changes, BalanceBaseline baseline,
-            CardUsage current, Map<String, CardsResponse.Card> cardsByName, Locale locale) {
+    private BalanceUpdateView.CardChangeView toCardChange(BalanceUpdate.CardChanges changes,
+            BalanceUsage.Series series, Map<String, CardsResponse.Card> cardsByName, Locale locale) {
         CardsResponse.Card card = cardsByName.get(changes.card());
         CardsResponse.Card.IconUrls icons = card == null ? null : card.iconUrls();
         String iconUrl = icons == null ? null : switch (changes.form()) {
@@ -228,19 +239,46 @@ public class ViewMapper {
             case EVOLUTION -> Objects.requireNonNullElse(cardImages.usable(icons.evolutionMedium()), icons.medium());
             case HERO -> Objects.requireNonNullElse(cardImages.usable(icons.heroMedium()), icons.medium());
         };
-        String formLabel = switch (changes.form()) {
-            case NORMAL -> null;
-            case EVOLUTION -> labels.message("card.evolution", locale);
-            case HERO -> labels.message("card.hero", locale);
-        };
-        boolean showUsage = changes.form() == CardForm.NORMAL && card != null;
-        Double before = showUsage && baseline != null
-                ? baseline.percent().apply(changes.card()).map(ViewMapper::oneDecimal).orElse(null) : null;
-        Double now = showUsage && current != null ? oneDecimal(current.usageOf(card.id()).percent()) : null;
         return new BalanceUpdateView.CardChangeView(card == null ? 0 : card.id(),
-                labels.cardName(changes.card(), locale), iconUrl, formLabel, changes.kind().code(),
-                labels.message("balance.kind." + changes.kind().code(), locale),
-                changes.changes().stream().map(change -> balanceLine(change, locale)).toList(), showUsage, before, now);
+                labels.cardName(changes.card(), locale), iconUrl, formLabel(changes.form(), locale),
+                changes.kind().code(), labels.message("balance.kind." + changes.kind().code(), locale),
+                changes.changes().stream().map(change -> balanceLine(change, locale)).toList(),
+                balanceUsage(series, locale));
+    }
+
+    /** 「世界トップ層の使用率: 調整前 38.9% → 1日後 36.0% → 今 34.3%(-4.6ポイント)」。調整後の集計が無ければ null。 */
+    private String balanceUsage(BalanceUsage.Series series, Locale locale) {
+        if (series.after().isEmpty()) {
+            return null;
+        }
+        List<String> points = new ArrayList<>();
+        if (series.before() != null) {
+            points.add(labels.message("balance.usage.point.before", locale, oneDecimal(series.before())));
+        }
+        for (BalanceUsage.Point point : series.after()) {
+            double percent = oneDecimal(point.percent());
+            points.add(switch (point.kind()) {
+                case DAYS_AFTER -> labels.message("balance.usage.point.days", locale, point.days(), percent);
+                case NOW -> labels.message("balance.usage.point.now", locale, percent);
+                case BEFORE_NEXT -> labels.message("balance.usage.point.beforeNext", locale, percent);
+            });
+        }
+        String joined = String.join(" → ", points);
+        return series.before() == null
+                ? labels.message("balance.usage.seriesNoBefore", locale, joined)
+                : labels.message("balance.usage.series", locale, joined, series.delta());
+    }
+
+    /** 「弱体化(4枚): 世界トップ層の使用率は平均-2.5ポイント。いちばん大きく変わったのはガーゴイルジャイアント(-5.0ポイント)」 */
+    private String balanceDigest(BalanceUpdate.Kind kind, BalanceUsage.Digest digest, Locale locale) {
+        String kindLabel = labels.message("balance.kind." + kind.code(), locale);
+        String name = labels.cardName(digest.largest().card(), locale);
+        String formLabel = formLabel(digest.largest().form(), locale);
+        String card = formLabel == null ? name : labels.message("balance.digest.cardForm", locale, name, formLabel);
+        return digest.cards() == 1
+                ? labels.message("balance.digest.single", locale, kindLabel, card, digest.largestDelta())
+                : labels.message("balance.digest", locale, kindLabel, digest.cards(), digest.averageDelta(), card,
+                        digest.largestDelta());
     }
 
     /** 「ダメージ: 232 → 215(-8%)」。数値の無い変更は項目の文言だけ。 */
