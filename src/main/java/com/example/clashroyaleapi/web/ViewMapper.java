@@ -137,6 +137,7 @@ public class ViewMapper {
 
     // 船のバトルは守備側を本人が操作せず、消費漏れも7割が0だった(2026-10-18に279戦で確認)ので、消費漏れを出さない。
     private static final String BOAT_BATTLE_TYPE = "boatBattle";
+    private static final String TILES = "tiles";
 
     private final LabelResolver labels;
     private final CountryNames countryNames;
@@ -244,14 +245,20 @@ public class ViewMapper {
         if (!change.hasValues()) {
             return stat;
         }
-        String values = balanceValue(change.before(), locale) + " → " + balanceValue(change.after(), locale);
+        String values = balanceValue(change.before(), labels, locale) + " → "
+                + balanceValue(change.after(), labels, locale);
         return change.percent() == null
                 ? labels.message("balance.line", locale, stat, values)
                 : labels.message("balance.line.percent", locale, stat, values, change.percent());
     }
 
-    /** 末尾の s は秒。60秒以上は「1分33秒」のように分と秒に分ける(公式の記事も "1m 33s")。 */
-    static String balanceValue(String raw, Locale locale) {
+    /** 末尾の s は秒、tiles はマス。60秒以上は「1分33秒」のように分と秒に分ける(公式の記事も "1m 33s")。 */
+    static String balanceValue(String raw, LabelResolver labels, Locale locale) {
+        // "0.5tiles" も s で終わるので、秒より先に見る。
+        if (raw.endsWith(TILES)) {
+            return labels.message("balance.unit.tiles", locale,
+                    new BigDecimal(raw.substring(0, raw.length() - TILES.length())));
+        }
         ULocale uLocale = ULocale.forLocale(locale);
         if (!raw.endsWith("s")) {
             return com.ibm.icu.text.NumberFormat.getInstance(uLocale).format(new BigDecimal(raw));

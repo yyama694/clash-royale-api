@@ -25,7 +25,7 @@ public record BalanceUpdate(LocalDate date, String sourceUrl, List<Change> chang
     /**
      * @param card    公式APIの英語のカード名
      * @param stat    項目(messages の balance.stat.&lt;項目&gt;)
-     * @param before  変更前の値。数値の無い変更(「出現時の広がりを狭める」など)は null。末尾の s は秒
+     * @param before  変更前の値。数値の無い変更(「出現時の広がりを狭める」など)は null。末尾の s は秒、tiles はマス
      * @param percent 公式の記事の変化率。記事に無ければ null
      */
     public record Change(String card, CardForm form, Kind kind, String stat, String before, String after,
