@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Collection;
 
 /**
  * ランク戦のシーズンの区切り。シーズンは毎月第1月曜の 09:00 UTC(日本時間18:00)に切り替わる。
@@ -39,6 +40,19 @@ public final class SeasonCalendar {
 
     public static boolean inNewSeasonPeriod(Instant now) {
         return now.isBefore(newSeasonPeriodEnd(now));
+    }
+
+    /** 直前に終わったシーズン。公式APIのシーズンのID("2026-09")と同じ月で表す。 */
+    public static YearMonth lastFinishedSeason(Instant now) {
+        return YearMonth.from(currentSeasonStart(now).atOffset(ZoneOffset.UTC)).minusMonths(1);
+    }
+
+    /**
+     * シーズン開始直後で、公式APIの終わったシーズンの一覧に直前のシーズンがまだ載っていないか。
+     * 載る前の一覧をキャッシュすると、その間ずっと前のシーズンを最新として扱ってしまう。
+     */
+    public static boolean awaitingLastFinishedSeason(Collection<String> finishedSeasonIds, Instant now) {
+        return inNewSeasonPeriod(now) && !finishedSeasonIds.contains(lastFinishedSeason(now).toString());
     }
 
     private static Instant startIn(YearMonth month) {

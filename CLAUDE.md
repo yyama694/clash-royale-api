@@ -70,6 +70,7 @@
 
 - `git worktree list`で作業中の他のworktreeを見て、他のセッションと同時にVMを再起動しない。
 - 本番のログで、トッププレイヤーのデッキの集計(`TopDeckCollector`)が動いていないことを確かめる(途中で再起動すると、約50分の集計が最初からやり直しになる)。
+- **シーズン最終日(毎月第1月曜)の日本時間15:00〜19:00はデプロイしない**(2026-10-20に決定)。デッキ集計と、終盤のランキングの記録(15分ごと。取り逃すと後から埋められない)を落とさないため。
 
 1. ローカルで`mvn clean package`(`target/clash-royale-api-0.0.1-SNAPSHOT.jar`)
 2. `scp`でVMの`/tmp/clash-royale-api.jar`へ転送(SSHは`opc`、鍵は`C:\Users\Norio Fukuchi\.ssh\oci_clash_royale_api`)

@@ -36,6 +36,9 @@ public class ClashRoyaleApiClient {
     // 公式APIはこれより古い週を返さない(limit=12で頼んでも10週だった。2026-10-18に確認)。
     private static final int RIVER_RACE_HISTORY_WEEKS = 10;
 
+    private static final String FINISHED_SEASONS_KEY =
+            "T(com.example.clashroyaleapi.domain.SeasonCalendar).currentSeasonStart(T(java.time.Instant).now())";
+
     private final RestClient restClient;
 
     /**
@@ -155,8 +158,13 @@ public class ClashRoyaleApiClient {
     /**
      * 終わったシーズンのうち最新のもののID("2026-09"など)。一覧が空なら null。
      * null はキャッシュしない(2026-10-17に再起動直後の1回だけ空が返り、1時間そのまま使われた)。
+     * キーをシーズンの開始時刻にして、シーズンが切り替わったら前のシーズン中に取った値を使わない。
+     * 切り替わった直後で、終わったばかりのシーズンがまだ一覧に無い値もキャッシュしない
+     * (公式APIに載るまでの間を1時間引きずり、トップページに2つ前のシーズンの最終順位が出るため)。
      */
-    @Cacheable(value = "finishedSeasons", unless = "#result == null")
+    @Cacheable(value = "finishedSeasons", key = FINISHED_SEASONS_KEY,
+            unless = "#result == null || T(com.example.clashroyaleapi.domain.SeasonCalendar)"
+                    + ".awaitingLastFinishedSeason(T(java.util.List).of(#result), T(java.time.Instant).now())")
     public String getLatestFinishedSeasonId() {
         SeasonsResponse response = call(() -> restClient.get()
                 .uri("/locations/global/seasons")
@@ -168,8 +176,13 @@ public class ClashRoyaleApiClient {
         return response.items().getLast().id();
     }
 
-    /** 終わったシーズンのID(古い順・重複なし)。シーズンごとの最終順位の画面の一覧に使う。 */
-    @Cacheable("finishedSeasonIds")
+    /**
+     * 終わったシーズンのID(古い順・重複なし)。シーズンごとの最終順位の画面の一覧に使う。
+     * キャッシュの扱いは {@link #getLatestFinishedSeasonId()} と同じ(載る前の一覧を持つと、終わったばかりのシーズンの画面が404になる)。
+     */
+    @Cacheable(value = "finishedSeasonIds", key = FINISHED_SEASONS_KEY,
+            unless = "T(com.example.clashroyaleapi.domain.SeasonCalendar)"
+                    + ".awaitingLastFinishedSeason(#result, T(java.time.Instant).now())")
     public List<String> getFinishedSeasonIds() {
         SeasonsResponse response = call(() -> restClient.get()
                 .uri("/locations/global/seasons")
@@ -181,8 +194,11 @@ public class ClashRoyaleApiClient {
         return response.items().stream().map(SeasonsResponse.Season::id).distinct().toList();
     }
 
-    /** 終わったシーズンのランク戦の最終順位(グローバルだけ。国別は404になる)。 */
-    @Cacheable("finishedSeasonPlayerRankings")
+    /**
+     * 終わったシーズンのランク戦の最終順位(グローバルだけ。国別は404になる)。
+     * 空はキャッシュしない(終わった直後に空が返ると、最終順位の画面が1時間404になるため)。
+     */
+    @Cacheable(value = "finishedSeasonPlayerRankings", unless = "#result.isEmpty()")
     public List<PlayerRankingResponse.RankedPlayer> getFinishedSeasonPathOfLegendRankings(String seasonId, int limit) {
         PlayerRankingResponse response = call(() -> restClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/locations/global/pathoflegend/{seasonId}/rankings/players")
