@@ -426,11 +426,22 @@ class ViewMapperTest {
 
     @Test
     void バランス調整の値は言語ごとの書き方にし_60秒以上は分と秒に分ける() {
-        assertEquals("1,210", ViewMapper.balanceValue("1210", Locale.ENGLISH));
-        assertEquals("5,5", ViewMapper.balanceValue("5.5", Locale.GERMAN));
-        assertEquals("1.5秒", ViewMapper.balanceValue("1.5s", Locale.JAPANESE));
-        assertEquals("1分33秒", ViewMapper.balanceValue("93s", Locale.JAPANESE));
-        assertEquals("0.93s", ViewMapper.balanceValue("0.93s", Locale.ENGLISH));
+        assertEquals("1,210", ViewMapper.balanceValue("1210", labels, Locale.ENGLISH));
+        assertEquals("5,5", ViewMapper.balanceValue("5.5", labels, Locale.GERMAN));
+        assertEquals("1.5秒", ViewMapper.balanceValue("1.5s", labels, Locale.JAPANESE));
+        assertEquals("1分33秒", ViewMapper.balanceValue("93s", labels, Locale.JAPANESE));
+        assertEquals("0.93s", ViewMapper.balanceValue("0.93s", labels, Locale.ENGLISH));
+    }
+
+    @Test
+    void バランス調整のマスは秒と取り違えず言語ごとの単位で出す() {
+        // 単位の語と複数形は messages にあるので、本番と同じ ICU のメッセージソースで組み立てる。
+        LabelResolver icu = new LabelResolver(IcuMessageSource.forBasename("messages"));
+        assertEquals("0.5マス", ViewMapper.balanceValue("0.5tiles", icu, Locale.JAPANESE));
+        assertEquals("0.4 tiles", ViewMapper.balanceValue("0.4tiles", icu, Locale.ENGLISH));
+        assertEquals("1 tile", ViewMapper.balanceValue("1tiles", icu, Locale.ENGLISH));
+        assertEquals("0,5 Felder", ViewMapper.balanceValue("0.5tiles", icu, Locale.GERMAN));
+        assertEquals("0,5 клетки", ViewMapper.balanceValue("0.5tiles", icu, Locale.forLanguageTag("ru")));
     }
 
     @Test
