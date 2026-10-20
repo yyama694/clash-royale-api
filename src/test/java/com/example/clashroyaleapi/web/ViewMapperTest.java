@@ -12,6 +12,7 @@ import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
+import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.SimilarDecks;
@@ -42,6 +43,7 @@ import com.example.clashroyaleapi.web.view.PlayerRankingView;
 import com.example.clashroyaleapi.web.view.RankChangeView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
+import com.example.clashroyaleapi.web.view.WinRateDeckView;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -787,5 +789,21 @@ class ViewMapperTest {
                 .map(ids -> new TopDecks.SampledDeck(ids, null, new TopDecks.Player("#ABC", "Miku", 1, 2887,
                         ids.stream().map(id -> 16).toList(), 16)))
                 .toList(), null);
+    }
+
+    @Test
+    void 勝率のデッキは表示する勝率が50パーセント未満の最初の1件の前にだけ区切りを出す() {
+        List<DeckWinRates.DeckRecord> decks = List.of(winRateDeck(60, 100), winRateDeck(199, 400),
+                winRateDeck(49, 100), winRateDeck(40, 100));
+
+        List<WinRateDeckView> views = viewMapper.toWinRateDecks(decks, Map.of(), Locale.JAPANESE);
+
+        assertEquals(List.of(60, 50, 49, 40), views.stream().map(WinRateDeckView::winRatePercent).toList());
+        assertEquals(List.of(false, false, true, false), views.stream().map(WinRateDeckView::firstBelowHalf).toList());
+    }
+
+    private static DeckWinRates.DeckRecord winRateDeck(int wins, int battles) {
+        return new DeckWinRates.DeckRecord(List.of(26000000), List.of(), null,
+                new DeckWinRates.TopPlayer("#ABC", "Miku", 1), battles, wins, 10, 10);
     }
 }

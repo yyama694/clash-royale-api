@@ -185,7 +185,7 @@ public class SitemapController {
                   8 cards to show only decks with all of them, e.g. /decks?card=26000021&card=28000014): %s/decks
                 - Popular decks (decks with exactly the same 8 cards used by two or more of the global top players,
                   most-used first; filterable by card like the page above): %s/decks/popular
-                - Decks with the highest win rates (win rates in this season's Rank Battles between the global top
+                - Deck win rates (win rates in this season's Rank Battles between the global top
                   players, counted from both sides of each battle; only decks with enough battles and players,
                   updated daily): %s/decks/win-rates
                 - Rank Battle world ranking report (who is #1 and since when, #1 changes, top 10 and biggest

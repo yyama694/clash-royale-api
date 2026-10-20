@@ -27,7 +27,9 @@
         </div>
 
         <th:block th:if="${winRateDecks != null and not #lists.isEmpty(winRateDecks)}">
-            <div class="card top-deck popular-deck" th:each="d : ${winRateDecks}">
+            <th:block th:each="d : ${winRateDecks}">
+            <p th:if="${d.firstBelowHalf()}" class="win-rate-divider" th:text="#{decks.winRate.belowHalf}"></p>
+            <div class="card top-deck popular-deck">
                 <div class="top-deck-head">
                     <span class="top-deck-rank" th:text="#{stats.winRate(${d.winRatePercent()})}"></span>
                     <span class="top-deck-rating"><span th:text="#{decks.winRate.battles(${d.battles()}, ${d.wins()})}"></span>
@@ -41,6 +43,7 @@
                 <p class="win-rate-deck-best"><span th:text="#{decks.popular.best(${d.topRank()})}"></span>
                     <a th:href="@{/player/{tag}(tag=${d.topPathTag()},lang=${#locale.language})}"><bdi th:text="${d.topName()}"></bdi></a></p>
             </div>
+            </th:block>
         </th:block>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>

@@ -360,8 +360,24 @@ public class ViewMapper {
                 sampledDeckMeta(deck, cardsById, null), deck.cardIds());
     }
 
-    public WinRateDeckView toWinRateDeck(DeckWinRates.DeckRecord deck, Map<Integer, CardsResponse.Card> cardsById,
-            Locale locale) {
+    /**
+     * 区切りは表示する(四捨五入した)勝率で決める。49.6%のデッキが「50%」と出ているのに区切りの下に来ないように。
+     * decks は勝率の高い順なので、表示する勝率も下がっていく。
+     */
+    public List<WinRateDeckView> toWinRateDecks(List<DeckWinRates.DeckRecord> decks,
+            Map<Integer, CardsResponse.Card> cardsById, Locale locale) {
+        List<WinRateDeckView> views = new ArrayList<>();
+        boolean dividerShown = false;
+        for (DeckWinRates.DeckRecord deck : decks) {
+            boolean firstBelowHalf = !dividerShown && deck.winRatePercent() < 50;
+            dividerShown |= firstBelowHalf;
+            views.add(toWinRateDeck(deck, cardsById, firstBelowHalf, locale));
+        }
+        return views;
+    }
+
+    private WinRateDeckView toWinRateDeck(DeckWinRates.DeckRecord deck, Map<Integer, CardsResponse.Card> cardsById,
+            boolean firstBelowHalf, Locale locale) {
         List<CardView> cards = new ArrayList<>();
         for (int i = 0; i < deck.cardIds().size(); i++) {
             int id = deck.cardIds().get(i);
@@ -378,7 +394,8 @@ public class ViewMapper {
                 cycle.isPresent() ? cycle.getAsInt() : null, null,
                 Deck.copyUrl(deck.cardIds(), deck.towerTroopId()).orElse(null));
         return new WinRateDeckView(deck.winRatePercent(), deck.battles(), deck.wins(), deck.players(),
-                deck.top().rank(), deck.top().name(), Tags.toPathSegment(deck.top().tag()), cards, supportCards, meta);
+                deck.top().rank(), deck.top().name(), Tags.toPathSegment(deck.top().tag()), cards, supportCards, meta,
+                firstBelowHalf);
     }
 
     private List<CardView> sampledCards(TopDecks.SampledDeck deck, Map<Integer, CardsResponse.Card> cardsById,

@@ -110,9 +110,7 @@ public class TopPlayerDeckController {
         model.addAttribute("minPlayers", DeckWinRates.MIN_PLAYERS);
         model.addAttribute("maxPlayerShare", DeckWinRates.MAX_PLAYER_SHARE_PERCENT);
         found.ifPresent(result -> {
-            model.addAttribute("winRateDecks", result.decks().stream()
-                    .map(deck -> viewMapper.toWinRateDeck(deck, cardsById, locale))
-                    .toList());
+            model.addAttribute("winRateDecks", viewMapper.toWinRateDecks(result.decks(), cardsById, locale));
             model.addAttribute("battles", result.battles());
             addCollected(result.collectedAt(), result.finishedSeason(), model, locale);
         });

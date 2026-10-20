@@ -239,7 +239,7 @@ def card_usage(decks):
 
 
 def popular_deck_pages(path):
-    """人気のデッキ・勝率の高いデッキの各デッキ (見出しの文, 8枚の集合, 最上位の順位, 最上位のタグ)。"""
+    """人気のデッキ・デッキの勝率の各デッキ (見出しの文, 8枚の集合, 最上位の順位, 最上位のタグ)。"""
     found, page = [], 1
     while True:
         s = site(f"{path}?lang=en&page={page}")
@@ -272,7 +272,7 @@ def popular_decks(decks):
 
 
 def win_rate_decks(decks):
-    """勝率の高いデッキ画面(1.178)の中で確かめられること: 50戦以上・10人以上、勝率=勝ち/戦数(四捨五入)、
+    """デッキの勝率画面(1.178)の中で確かめられること: 50戦以上・10人以上、勝率=勝ち/戦数(四捨五入)、
     勝率の高い順(同じなら戦数の多い順)、最上位の人の順位がデッキ画面と同じ。1人の対戦が3割以下かと、
     数えた対戦の数は画面に出ないので、VMの card-usage/deck-win-rates.tsv で確かめる(SKILL.md)。"""
     ranks = {d["tag"]: d["rank"] for d in decks}
@@ -286,7 +286,7 @@ def win_rate_decks(decks):
     # 並びは四捨五入する前の勝率の順(画面の整数が同じでも、戦数の順とは限らない)
     order = found == sorted(found, key=lambda f: (-f[2] / f[1], -f[1]))
     wrong_rank = [(f[5], f[4], ranks.get(f[5])) for f in found if ranks.get(f[5]) != f[4]]
-    print(f"\n[勝率の高いデッキ] {len(found)}件。勝率の計算違い {len(bad_rate)}件、50戦・10人に満たない {len(small)}件、"
+    print(f"\n[デッキの勝率] {len(found)}件。勝率の計算違い {len(bad_rate)}件、50戦・10人に満たない {len(small)}件、"
           f"並び順 {'○' if order else '★違う'}、最上位の順位がデッキ画面と違う {len(wrong_rank)}件"
           + (f" 例 {wrong_rank[:3]}" if wrong_rank else ""))
 
