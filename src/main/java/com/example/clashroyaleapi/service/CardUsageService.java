@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -42,6 +43,7 @@ public class CardUsageService {
     private volatile TopDecks topDecks;
     private volatile CardUsage current;
     private final Map<Instant, Optional<CardUsage>> before = new ConcurrentHashMap<>();
+    private final Map<LocalDate, CardUsage> firstOfDay = new ConcurrentHashMap<>();
 
     @Autowired
     public CardUsageService(PlayerIndexProperties properties) {
@@ -115,6 +117,38 @@ public class CardUsageService {
             return new TopDecksFile(last.get()).read().map(CardUsage::of);
         } catch (IOException e) {
             log.warn("could not read the card usage history before {}: {}", time, e.toString());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * その日(UTC)の最初の集計(バランス調整から何日後かの使用率に使う)。無ければ空。
+     * その日の集計は後から書かれうるので、見つかったときだけ覚えておく。
+     */
+    public Optional<CardUsage> firstOn(LocalDate day) {
+        CardUsage cached = firstOfDay.get(day);
+        if (cached != null) {
+            return Optional.of(cached);
+        }
+        Optional<CardUsage> read = readFirstOn(day);
+        read.ifPresent(usage -> firstOfDay.put(day, usage));
+        return read;
+    }
+
+    private Optional<CardUsage> readFirstOn(LocalDate day) {
+        Path dir = historyDir.resolve(day.toString());
+        if (!Files.isDirectory(dir)) {
+            return Optional.empty();
+        }
+        try (Stream<Path> files = Files.list(dir)) {
+            Optional<Path> first = files.filter(Files::isRegularFile)
+                    .min(Comparator.comparing(file -> file.getFileName().toString()));
+            if (first.isEmpty()) {
+                return Optional.empty();
+            }
+            return new TopDecksFile(first.get()).read().map(CardUsage::of);
+        } catch (IOException e) {
+            log.warn("could not read the card usage history of {}: {}", day, e.toString());
             return Optional.empty();
         }
     }

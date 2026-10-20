@@ -91,7 +91,7 @@ class BalanceUpdateTest {
                 if (resource.endsWith("changes.tsv")) {
                     assertFalse(BalanceUpdate.parse(lines).isEmpty());
                 } else {
-                    assertFalse(BalanceBaseline.parse(lines).isEmpty());
+                    assertFalse(BalanceSnapshot.parse(lines).isEmpty());
                 }
             }
         }

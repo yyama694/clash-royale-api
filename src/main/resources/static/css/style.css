@@ -2730,3 +2730,11 @@ td.cell-action {
     color: var(--color-text-muted);
     font-size: 0.9rem;
 }
+
+/* 種類ごとの使用率の変化のまとめ。カードの一覧より先に結論が読めるよう、見出しの下に置く。 */
+.balance-digest {
+    margin: 0 0 0.75rem;
+    padding: 0.6rem 0.8rem 0.6rem 1.8rem;
+    background: var(--color-bg);
+    border-radius: 8px;
+}

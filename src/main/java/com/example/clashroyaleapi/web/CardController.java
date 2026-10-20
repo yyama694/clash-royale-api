@@ -116,10 +116,8 @@ public class CardController {
             return List.of();
         }
         Map<String, CardsResponse.Card> cardsByName = cardService.cardsByName();
-        CardUsage current = cardUsageService.current().orElse(null);
         return updates.stream()
-                .map(update -> viewMapper.toBalanceUpdate(update, balanceService.baseline(update).orElse(null),
-                        current, cardsByName, locale))
+                .map(update -> viewMapper.toBalanceUpdate(update, balanceService.usage(update), cardsByName, locale))
                 .flatMap(view -> view.groups().stream()
                         .flatMap(group -> group.cards().stream())
                         .filter(change -> change.cardId() == id)

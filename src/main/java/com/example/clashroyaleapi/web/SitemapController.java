@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.config.IndexNowProperties;
 import com.example.clashroyaleapi.domain.Country;
+import com.example.clashroyaleapi.service.BalanceService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardUsageService;
 import com.example.clashroyaleapi.service.LocationService;
@@ -44,6 +45,7 @@ public class SitemapController {
             "PT", "NL", "PL", "RU", "UA", "TR", "KR", "BR", "MX", "AR", "CO", "CL", "PE", "ID", "PH");
 
     private final CardService cardService;
+    private final BalanceService balanceService;
     private final CardUsageService cardUsageService;
     private final RankingHistoryService rankingHistoryService;
     private final RankingService rankingService;
@@ -52,11 +54,12 @@ public class SitemapController {
     private final LabelResolver labels;
     private final String indexNowKey;
 
-    public SitemapController(CardService cardService, CardUsageService cardUsageService,
+    public SitemapController(CardService cardService, BalanceService balanceService, CardUsageService cardUsageService,
             RankingHistoryService rankingHistoryService, RankingService rankingService,
             LocationService locationService, GlobalModelAttributes modelAttributes, LabelResolver labels,
             IndexNowProperties indexNowProperties) {
         this.cardService = cardService;
+        this.balanceService = balanceService;
         this.cardUsageService = cardUsageService;
         this.rankingHistoryService = rankingHistoryService;
         this.rankingService = rankingService;
@@ -76,7 +79,7 @@ public class SitemapController {
         xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" "
                 + "xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">\n");
         Stream.of(STATIC_PATHS.stream(), cardUsageRankingPaths(), cardPaths(), cardDeckPaths(), countryRankingPaths(),
-                        movementDayPaths(), seasonPaths())
+                        movementDayPaths(), seasonPaths(), balancePaths())
                 .flatMap(paths -> paths)
                 .forEach(path -> appendUrl(xml, base, path, languageCodes));
         xml.append("</urlset>\n");
@@ -196,7 +199,7 @@ public class SitemapController {
                 - Card list: %s/cards
                 - Card usage rankings (share of the global top players using each card, updated daily): %s/cards?sort=usage
                 - Balance changes (official buffs and nerfs, with each card's usage among the global top players
-                  before the change and now): %s/balance
+                  before the change, 1, 3 and 7 days after, and now; with a page for each change): %s/balance
 
                 ## Notes
 
@@ -237,6 +240,11 @@ public class SitemapController {
     }
 
     /** 日ごとのランキングの動き。内容が固定されたページなので、記録のある終わった日をすべて載せる。 */
+    /** バランス調整ごとの画面。 */
+    private Stream<String> balancePaths() {
+        return balanceService.updates().stream().map(update -> "/balance/" + update.date());
+    }
+
     private Stream<String> movementDayPaths() {
         return rankingHistoryService.archiveDays().stream().map(day -> "/ranking/players/movements/" + day);
     }

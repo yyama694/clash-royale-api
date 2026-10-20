@@ -204,6 +204,11 @@ public class PageSummaries {
         return labels.message("balance.seo.title", locale);
     }
 
+    /** 調整ごとの画面。「クラロワ バランス調整 10月」のような日付つきの検索に合うよう、日付を入れる。 */
+    public String balanceUpdateTitle(BalanceUpdate update, Locale locale) {
+        return labels.message("balance.update.seo.title", locale, dateOf(update.date()));
+    }
+
     /** 最新の調整の日付と、強化・弱体化されたカードの名前を入れる(検索結果で中身が分かるように)。 */
     public String balanceSummary(List<BalanceUpdate> updates, Locale locale) {
         if (updates.isEmpty()) {

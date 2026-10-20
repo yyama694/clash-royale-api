@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.domain;
 
 import java.time.Instant;
 import java.time.YearMonth;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,12 +23,15 @@ public final class CardUsage {
     private final YearMonth finishedSeason;
     private final int sampleSize;
     private final Map<Integer, Usage> byCard;
+    private final Map<Integer, Map<CardForm, Integer>> formUsers;
 
-    private CardUsage(Instant collectedAt, YearMonth finishedSeason, int sampleSize, Map<Integer, Usage> byCard) {
+    private CardUsage(Instant collectedAt, YearMonth finishedSeason, int sampleSize, Map<Integer, Usage> byCard,
+            Map<Integer, Map<CardForm, Integer>> formUsers) {
         this.collectedAt = collectedAt;
         this.finishedSeason = finishedSeason;
         this.sampleSize = sampleSize;
         this.byCard = byCard;
+        this.formUsers = formUsers;
     }
 
     /**
@@ -48,7 +52,17 @@ public final class CardUsage {
         Map<Integer, Integer> cardUsers = new HashMap<>();
         Map<Integer, Integer> towerUsers = new HashMap<>();
         Map<Integer, Map<Integer, Integer>> pairs = new HashMap<>();
+        Map<Integer, Map<CardForm, Integer>> formUsers = new HashMap<>();
         for (TopDecks.SampledDeck deck : topDecks.decks()) {
+            if (deck.player() != null) {
+                for (int i = 0; i < deck.cardIds().size(); i++) {
+                    CardForm form = deck.player().formAt(i);
+                    if (form != CardForm.NORMAL) {
+                        formUsers.computeIfAbsent(deck.cardIds().get(i), k -> new EnumMap<>(CardForm.class))
+                                .merge(form, 1, Integer::sum);
+                    }
+                }
+            }
             // 同じカードが2回入ることは無いはずだが、APIの値をそのまま数えて100%を超えないよう重複を除く。
             List<Integer> cards = deck.cardIds().stream().distinct().toList();
             for (int card : cards) {
@@ -68,7 +82,7 @@ public final class CardUsage {
         Map<Integer, Usage> byCard = new HashMap<>();
         addRanked(byCard, cardUsers, sampleSize, pairs);
         addRanked(byCard, towerUsers, sampleSize, Map.of());
-        return new CardUsage(topDecks.collectedAt(), topDecks.finishedSeason(), sampleSize, byCard);
+        return new CardUsage(topDecks.collectedAt(), topDecks.finishedSeason(), sampleSize, byCard, formUsers);
     }
 
     private static void addRanked(Map<Integer, Usage> byCard, Map<Integer, Integer> users, int sampleSize,
@@ -103,6 +117,18 @@ public final class CardUsage {
 
     public int sampleSize() {
         return sampleSize;
+    }
+
+    /**
+     * その形での使用率(%)。通常の形はカードがデッキに入っていた割合(進化・ヒーローで使った人も含む)、
+     * 進化・ヒーローはその形で使っていた人の割合。形は2026-10-03より前の形式の集計ファイルには無い。
+     */
+    public double percentOf(int cardId, CardForm form) {
+        if (form == CardForm.NORMAL) {
+            return usageOf(cardId).percent();
+        }
+        int users = formUsers.getOrDefault(cardId, Map.of()).getOrDefault(form, 0);
+        return sampleSize == 0 ? 0 : users * 100.0 / sampleSize;
     }
 
     /** 標本の誰も使っていなかったカードは、使用者0人・順位なし(rank 0)として返す。 */

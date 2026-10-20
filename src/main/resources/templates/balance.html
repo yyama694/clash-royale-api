@@ -5,16 +5,20 @@
     <header th:replace="~{fragments/layout :: header}"></header>
 
     <main class="container">
-        <a class="back-link" th:href="@{/cards}">&laquo; <span th:text="#{action.backToCards}"></span></a>
+        <a class="back-link" th:unless="${single}" th:href="@{/cards}">&laquo; <span th:text="#{action.backToCards}"></span></a>
+        <a class="back-link" th:if="${single}" th:href="@{/balance}">&laquo; <span th:text="#{balance.all}"></span></a>
 
         <div class="card">
-            <h1 th:text="#{balance.heading}"></h1>
+            <h1 th:text="${single} ? ${updates[0].heading()} : #{balance.heading}"></h1>
             <p th:text="#{balance.lead}"></p>
         </div>
 
         <section class="card" th:each="u : ${updates}" th:id="${u.anchor()}">
-            <h2 th:text="${u.heading()}"></h2>
+            <h2 th:unless="${single}"><a th:href="@{/balance/{d}(d=${u.anchor()})}" th:text="${u.heading()}"></a></h2>
             <p><a th:href="${u.sourceUrl()}" rel="noopener" th:text="${u.sourceLabel()}"></a></p>
+            <ul class="balance-digest" th:unless="${#lists.isEmpty(u.digests())}">
+                <li th:each="d : ${u.digests()}" th:text="${d}"></li>
+            </ul>
             <th:block th:each="g : ${u.groups()}">
                 <h3 th:text="${g.label()}"></h3>
                 <ul class="balance-list">
@@ -29,7 +33,15 @@
             <th:block th:if="${u.nowSampleSize() != null and u.baselineDate() == null}">
                 <p th:replace="~{fragments/layout :: notice(#{balance.usage.noticeNow(${u.nowSampleSize()})})}"></p>
             </th:block>
-            <p th:replace="~{fragments/layout :: notice(#{balance.usage.formNotice})}"></p>
+            <th:block th:if="${u.showDaysNotice()}">
+                <p th:replace="~{fragments/layout :: notice(#{balance.usage.noticeDays})}"></p>
+            </th:block>
+            <th:block th:if="${u.showNextNotice()}">
+                <p th:replace="~{fragments/layout :: notice(#{balance.usage.noticeNext})}"></p>
+            </th:block>
+            <th:block th:if="${u.showFormNotice()}">
+                <p th:replace="~{fragments/layout :: notice(#{balance.usage.formNotice})}"></p>
+            </th:block>
         </section>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
