@@ -4,9 +4,11 @@ import java.util.List;
 
 /**
  * バランス調整1回分。anchor は画面内のリンク先(実施日の "2026-10-06")。
+ * sourceUrl・sourceLabel は表示言語の公式の記事があればそれ、無ければ英語版(「公式の発表(英語)」)。
  * baselineDate・baselineSampleSize は調整前の集計が無ければ null。nowSampleSize は今の集計が無ければ null。
  */
-public record BalanceUpdateView(String anchor, String heading, String sourceUrl, List<KindGroup> groups,
+public record BalanceUpdateView(String anchor, String heading, String sourceUrl, String sourceLabel,
+        List<KindGroup> groups,
         String baselineDate, Integer baselineSampleSize, Integer nowSampleSize) {
 
     /** カード詳細画面の「バランス調整」の1行。anchor・heading は調整1回分のもの。 */

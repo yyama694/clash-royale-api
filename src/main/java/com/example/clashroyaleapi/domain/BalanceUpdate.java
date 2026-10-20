@@ -3,15 +3,26 @@ package com.example.clashroyaleapi.domain;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * 1回分のバランス調整(公式のリリースノートの内容)。中身は {@code balance/changes.tsv} に手で写す。
  *
- * @param changes 公式の記事の順(弱体化→強化→調整→不具合の修正)
+ * @param sourceUrl          公式の記事(英語版)
+ * @param localizedSourceUrls 公式の記事の各言語版(言語コード → URL)。公式XのArticleには日本語版があることがある
+ * @param changes            公式の記事の順(弱体化→強化→調整→不具合の修正)
  */
-public record BalanceUpdate(LocalDate date, String sourceUrl, List<Change> changes) {
+public record BalanceUpdate(LocalDate date, String sourceUrl, Map<String, String> localizedSourceUrls,
+        List<Change> changes) {
+
+    /** その言語の公式の記事。無ければ空(英語版へのリンクを出す)。 */
+    public Optional<String> localizedSourceUrl(Locale locale) {
+        return Optional.ofNullable(localizedSourceUrls.get(locale.getLanguage()));
+    }
 
     /** 並び順は公式の記事の見出しの順。 */
     public enum Kind {
@@ -72,6 +83,7 @@ public record BalanceUpdate(LocalDate date, String sourceUrl, List<Change> chang
         List<BalanceUpdate> updates = new ArrayList<>();
         LocalDate date = null;
         String url = null;
+        Map<String, String> localizedUrls = new LinkedHashMap<>();
         List<Change> changes = new ArrayList<>();
         for (String line : lines) {
             if (line.isBlank() || line.startsWith("#")) {
@@ -81,11 +93,17 @@ public record BalanceUpdate(LocalDate date, String sourceUrl, List<Change> chang
             switch (f[0]) {
                 case "update" -> {
                     if (date != null) {
-                        updates.add(new BalanceUpdate(date, url, List.copyOf(changes)));
+                        updates.add(new BalanceUpdate(date, url, Map.copyOf(localizedUrls), List.copyOf(changes)));
                     }
-                    require(f.length == 3, line);
+                    require(f.length >= 3, line);
                     date = LocalDate.parse(f[1]);
                     url = f[2];
+                    localizedUrls = new LinkedHashMap<>();
+                    for (int i = 3; i < f.length; i++) {
+                        String[] langUrl = f[i].split("=", 2);
+                        require(langUrl.length == 2 && langUrl[0].matches("[a-z]{2}"), line);
+                        localizedUrls.put(langUrl[0], langUrl[1]);
+                    }
                     changes = new ArrayList<>();
                 }
                 case "change" -> {
@@ -100,7 +118,7 @@ public record BalanceUpdate(LocalDate date, String sourceUrl, List<Change> chang
             }
         }
         if (date != null) {
-            updates.add(new BalanceUpdate(date, url, List.copyOf(changes)));
+            updates.add(new BalanceUpdate(date, url, Map.copyOf(localizedUrls), List.copyOf(changes)));
         }
         updates.sort(Comparator.comparing(BalanceUpdate::date).reversed());
         return List.copyOf(updates);

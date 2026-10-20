@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,6 +45,19 @@ class BalanceUpdateTest {
         assertThrows(IllegalArgumentException.class, () -> BalanceUpdate.parse(List.of(
                 "update\t2026-10-06\thttps://example.com",
                 "change\tKnight\tnormal\tbuff\thitpoints\t100")));
+    }
+
+    @Test
+    void 公式の各言語版があればその言語でだけ使う() {
+        List<BalanceUpdate> updates = BalanceUpdate.parse(List.of(
+                "update\t2026-10-06\thttps://example.com/en",
+                "update\t2026-10-19\thttps://example.com/en2\tja=https://example.com/ja"));
+
+        assertEquals("https://example.com/ja", updates.get(0).localizedSourceUrl(Locale.JAPANESE).orElseThrow());
+        assertTrue(updates.get(0).localizedSourceUrl(Locale.GERMAN).isEmpty());
+        assertTrue(updates.get(1).localizedSourceUrl(Locale.JAPANESE).isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> BalanceUpdate.parse(List.of(
+                "update\t2026-10-19\thttps://example.com/en\thttps://example.com/ja")));
     }
 
     @Test

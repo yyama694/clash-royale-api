@@ -209,8 +209,12 @@ public class ViewMapper {
                 .map(entry -> new BalanceUpdateView.KindGroup(entry.getKey().code(),
                         labels.message("balance.kind." + entry.getKey().code(), locale), List.copyOf(entry.getValue())))
                 .toList();
+        Optional<String> localizedSource = update.localizedSourceUrl(locale);
         return new BalanceUpdateView(update.date().toString(),
-                labels.message("balance.update.heading", locale, utcNoon(update.date())), update.sourceUrl(), groups,
+                labels.message("balance.update.heading", locale, utcNoon(update.date())),
+                localizedSource.orElse(update.sourceUrl()),
+                labels.message(localizedSource.isPresent() ? "balance.sourceLocalized" : "balance.source", locale),
+                groups,
                 baseline == null ? null : labels.message("balance.date", locale, utcNoon(baseline.collectedOn())),
                 baseline == null ? null : baseline.sampleSize(), current == null ? null : current.sampleSize());
     }

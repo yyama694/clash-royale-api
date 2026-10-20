@@ -1,5 +1,6 @@
 # バランス調整の内容。公式のリリースノートから写す(数値も変化率も公式の表記のまま。変化率は計算し直さない)。
-# update<TAB>実施日(UTC)<TAB>公式の記事のURL(シーズン途中の調整は公式ブログに載らず、公式XのArticleだけのことがある)
+# update<TAB>実施日(UTC)<TAB>公式の記事(英語版)のURL(シーズン途中の調整は公式ブログに載らず、公式XのArticleだけのことがある)[<TAB>言語コード=その言語版のURL ...]
+# 公式の各言語版(@ClashRoyaleJPの日本語版など)があれば足す。その言語の画面ではそちらへリンクする
 # change<TAB>カード(公式APIの英語名)<TAB>形(normal/evolution/hero)<TAB>種類(buff/nerf/rework/fix)<TAB>項目<TAB>前<TAB>後<TAB>変化率(%)
 # 項目は messages の balance.stat.<項目>。前・後の末尾の s は秒、tiles はマス。前・後が無い行は数値の無い変更(文言だけ出す)。
 update	2026-10-06	https://supercell.com/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/
@@ -25,7 +26,7 @@ change	Golden Knight	normal	rework	damage	161	168	5
 change	Golden Knight	normal	rework	dashRange	5.5	5	-9
 change	Elite Barbarians	evolution	fix	spearSightRange	4.5	6	33
 change	Royal Ghost	normal	fix	damage	261	263	1
-update	2026-10-19	https://x.com/ClashRoyale/status/2112122416725893630
+update	2026-10-19	https://x.com/ClashRoyale/status/2112122416725893630	ja=https://x.com/ClashRoyaleJP/status/2112127815047057805
 change	Cannon Cart	normal	nerf	damage	212	202	-5
 change	Cannon Cart	normal	nerf	mass	3	6	100
 change	Dart Goblin	normal	nerf	damage	151	143	-5
