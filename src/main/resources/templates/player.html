@@ -145,35 +145,6 @@
                 </div>
                 <p th:unless="${battleStats.cardRanking()}" class="empty-state" th:text="#{stats.insufficient}"></p>
 
-                <!--/* 消費漏れ。本人の数字だけでは多いのか少ないのか分からないので、世界上位どうしの対戦の値を並べる */-->
-                <th:block th:if="${elixirLeak}">
-                    <h3 th:text="#{leak.heading}"></h3>
-                    <p th:text="#{leak.lead}"></p>
-                    <div class="table-scroll" th:if="${elixirLeak.enough()}">
-                        <table class="table-compact leak-table">
-                            <thead>
-                                <tr>
-                                    <th scope="col"><span class="visually-hidden" th:text="#{leak.col.who}"></span></th>
-                                    <th scope="col" class="num" th:text="#{leak.col.win}"></th>
-                                    <th scope="col" class="num" th:text="#{leak.col.lose}"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <th scope="row" th:text="#{leak.row.player(${elixirLeak.battles()})}"></th>
-                                    <td class="num" th:text="${elixirLeak.winMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.winMedian(), 1, 1)} : '-'"></td>
-                                    <td class="num" th:text="${elixirLeak.loseMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.loseMedian(), 1, 1)} : '-'"></td>
-                                </tr>
-                                <tr th:if="${elixirLeak.topBattles() != null}" class="leak-top">
-                                    <th scope="row" th:text="#{leak.row.top(${elixirLeak.topPlayers()}, ${elixirLeak.topBattles()})}"></th>
-                                    <td class="num" th:text="${elixirLeak.topWinMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.topWinMedian(), 1, 1)} : '-'"></td>
-                                    <td class="num" th:text="${elixirLeak.topLoseMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.topLoseMedian(), 1, 1)} : '-'"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <p th:unless="${elixirLeak.enough()}" class="empty-state" th:text="#{leak.insufficient}"></p>
-                </th:block>
             </th:block>
             <p th:if="${battleStats.total() == 0}" class="empty-state" th:text="#{stats.nothingCounted}"></p>
             <!--/* 集計の前提の説明は、結果を読んでから確かめられるよう末尾にまとめる */-->
@@ -187,9 +158,6 @@
                 </th:block>
                 <th:block th:if="${battleStats.total() > 0 and battleStats.cardRanking()}">
                     <p th:replace="~{fragments/layout :: notice(#{stats.method})}"></p>
-                </th:block>
-                <th:block th:if="${battleStats.total() > 0 and elixirLeak != null}">
-                    <p th:replace="~{fragments/layout :: notice(#{leak.notice})}"></p>
                 </th:block>
             </div>
         </div>
@@ -272,6 +240,41 @@
                     <div class="progress" aria-hidden="true"><span th:style="'--percent: ' + ${r.maxedPercent()} + '%'"></span></div>
                 </li>
             </ul>
+        </div>
+        <!--/*
+          消費漏れ。本人の数字だけでは多いのか少ないのか分からないので、世界上位どうしの対戦の値を並べる。
+          負けを諦めた対戦で大きく増えるなど、上達の目安としては当てにならないので、画面の最後に置く(2026-10-21にユーザーが決定)。
+        */-->
+        <div th:if="${battleStats != null and battleStats.total() > 0 and elixirLeak != null}" class="card">
+            <h2 th:text="#{leak.heading}"></h2>
+            <p th:text="#{leak.lead}"></p>
+            <div class="table-scroll" th:if="${elixirLeak.enough()}">
+                <table class="table-compact leak-table">
+                    <thead>
+                        <tr>
+                            <th scope="col"><span class="visually-hidden" th:text="#{leak.col.who}"></span></th>
+                            <th scope="col" class="num" th:text="#{leak.col.win}"></th>
+                            <th scope="col" class="num" th:text="#{leak.col.lose}"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row" th:text="#{leak.row.player(${elixirLeak.battles()})}"></th>
+                            <td class="num" th:text="${elixirLeak.winMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.winMedian(), 1, 1)} : '-'"></td>
+                            <td class="num" th:text="${elixirLeak.loseMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.loseMedian(), 1, 1)} : '-'"></td>
+                        </tr>
+                        <tr th:if="${elixirLeak.topBattles() != null}" class="leak-top">
+                            <th scope="row" th:text="#{leak.row.top(${elixirLeak.topPlayers()}, ${elixirLeak.topBattles()})}"></th>
+                            <td class="num" th:text="${elixirLeak.topWinMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.topWinMedian(), 1, 1)} : '-'"></td>
+                            <td class="num" th:text="${elixirLeak.topLoseMedian() != null} ? ${#numbers.formatDecimal(elixirLeak.topLoseMedian(), 1, 1)} : '-'"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p th:unless="${elixirLeak.enough()}" class="empty-state" th:text="#{leak.insufficient}"></p>
+            <div class="card-notes">
+                <p th:replace="~{fragments/layout :: notice(#{leak.notice})}"></p>
+            </div>
         </div>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
