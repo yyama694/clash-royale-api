@@ -79,6 +79,17 @@ BEGIN {
 sudo chmod 644 /tmp/access-check-window.log
 
 echo
+echo "== ボット込みの総リクエスト(参考) =="
+echo "全リクエスト: $(wc -l < /tmp/access-check-window.log)件 / ユニーク$(awk '{print $1}' /tmp/access-check-window.log | sort -u | wc -l) IP"
+echo "HTMLページの表示(GETで200、静的ファイル・beacon・robots.txt・sitemap除く): $(awk '$6 == "\"GET" && $9 == 200 {print $7}' /tmp/access-check-window.log | grep -vcE '^/(beacon|css/|js/|images/|favicon|manifest|robots\.txt|sitemap|apple-touch|llms\.txt)' || true)"
+echo "-- ボット別のリクエスト数 --"
+# BOT_REGEXの汎用パターン(Bot/・crawl等)は1つのUAに何度も当たるので、名前の付いたボットを先に1つだけ拾う。
+awk -F'"' -v named='ClaudeBot|GPTBot|OAI-SearchBot|ChatGPT-User|Applebot|meta-externalagent|Amazonbot|Googlebot|GoogleOther|bingbot|PerplexityBot|Bytespider|YandexBot|AhrefsBot|SemrushBot|PetalBot|CCBot|ShapBot|Reflectionbot' -v bot="$BOT_REGEX" '
+    match($6, named) { print substr($6, RSTART, RLENGTH); next }
+    $6 ~ bot { print "その他のボット"; next }
+    { print "ボット以外のUA" }' /tmp/access-check-window.log | sort | uniq -c | sort -rn | head -12
+
+echo
 echo "== 日次集計(UAベースの簡易ボット除外のみ) =="
 grep -viE "$BOT_REGEX" /tmp/access-check-window.log > /tmp/access-check-uafilter.log || true
 echo "real_requests=$(wc -l < /tmp/access-check-uafilter.log) real_unique_ips=$(awk '{print $1}' /tmp/access-check-uafilter.log | sort -u | wc -l)"
