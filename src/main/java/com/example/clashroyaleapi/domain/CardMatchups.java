@@ -12,7 +12,7 @@ import java.util.Set;
 
 /**
  * 世界上位どうしのランク戦({@link TopBattle})から、「このカード入りのデッキと当たったとき、勝率が高かったデッキに
- * 入っていたカード」を求める(カード詳細画面の「〇〇入りのデッキに勝っているカード」)。
+ * 入っていたカード」を求める(カード詳細画面の「〇〇入りのデッキが得意なカード」)。
  *
  * カード1枚の強さではなく、そのカードが入ったデッキ全体の相性である点に注意(画面にも書く)。
  * 両方のデッキに入っていたカードは、その対戦では差にならないので数えない。引き分けも数えない。
@@ -120,7 +120,7 @@ public final class CardMatchups {
                 .filter(entry -> entry.getValue()[0] >= MIN_BATTLES)
                 .map(entry -> new Counter(entry.getKey(), entry.getValue()[0], entry.getValue()[1]))
                 // 全体の勝率より高いものだけ(プレイヤー情報画面の得意カードと同じ考え方)。画面に出す整数の勝率で比べる
-                // (わずかに上回るだけだと、全体と同じ勝率が「勝っているカード」に並んでしまうため。2026-10-18にユーザーが決定)。
+                // (わずかに上回るだけだと、全体と同じ勝率が「得意なカード」に並んでしまうため。2026-10-18にユーザーが決定)。
                 .filter(counter -> counter.winRatePercent() > baseline)
                 .sorted(Comparator.comparingDouble((Counter c) -> WilsonScore.lowerBound(c.wins(), c.battles()))
                         .reversed()

@@ -104,7 +104,7 @@ def wilson_lower(wins, n, z=1.96):
 
 
 def matchups(work, cards):
-    """カード詳細画面の「〇〇入りのデッキに勝っているカード」(1.179)を、CardMatchups と同じ規則で数え直す。
+    """カード詳細画面の「〇〇入りのデッキが得意なカード」(1.179)を、CardMatchups と同じ規則で数え直す。
     数えるのは画面の期間(最も古い〜最も新しい対戦)の、引き分けでない対戦。両方のデッキにあるカードは数えない。"""
     for card in cards:
         page = site(f"/card/{card}?lang=en")

@@ -3,7 +3,7 @@ package com.example.clashroyaleapi.web.view;
 import java.util.List;
 
 /**
- * カード詳細画面の「〇〇入りのデッキに勝っているカード」。
+ * カード詳細画面の「〇〇入りのデッキが得意なカード」。
  *
  * @param battles        そのカードが片方のデッキだけに入っていた対戦の数
  * @param winRatePercent そのうち、そのカードを持たない側の勝率(全体の勝率)

@@ -811,7 +811,7 @@ public class ViewMapper {
                 top == null ? null : top.loseMedian(), topPlayers);
     }
 
-    /** そのカード入りのデッキに勝っているカードが無ければ空(カード詳細画面に欄ごと出さない)。 */
+    /** そのカード入りのデッキが得意なカードが無ければ空(カード詳細画面に欄ごと出さない)。 */
     public Optional<CardCountersView> toCardCounters(CardMatchups matchups, int cardId, int players,
             Map<Integer, CardsResponse.Card> cardsById, Locale locale) {
         Optional<CardMatchups.Against> against = matchups.against(cardId);
@@ -1260,7 +1260,7 @@ public class ViewMapper {
                 .toList();
     }
 
-    /** matchups が null なら、カード詳細画面の「勝っているカード」へはつながない。 */
+    /** matchups が null なら、カード詳細画面の「得意なカード」へはつながない。 */
     private List<CardPerformanceView> toPerformances(List<PlayerBattleStats.CardPerformance> performances,
             CardMatchups matchups, Locale locale) {
         return performances.stream()
