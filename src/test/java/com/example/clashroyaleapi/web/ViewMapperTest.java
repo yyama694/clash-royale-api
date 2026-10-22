@@ -15,6 +15,7 @@ import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
+import com.example.clashroyaleapi.domain.SeasonRankLog;
 import com.example.clashroyaleapi.domain.SimilarDecks;
 import com.example.clashroyaleapi.domain.TopDecks;
 import com.example.clashroyaleapi.service.CardImageService;
@@ -708,6 +709,22 @@ class ViewMapperTest {
         assertEquals(List.of(120, 180, 20), Arrays.stream(ViewMapper.rankAxis(120, 180)).boxed().toList());
         assertEquals(List.of(1, 5, 1), Arrays.stream(ViewMapper.rankAxis(1, 5)).boxed().toList());
         assertEquals(List.of(7, 8, 1), Arrays.stream(ViewMapper.rankAxis(7, 7)).boxed().toList());
+    }
+
+    @Test
+    void 今シーズンの最高順位がランキングに1000人そろう前のものなら当時の人数を添える() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        SeasonRankLog.Point early = new SeasonRankLog.Point(Instant.parse("2026-10-07T12:46:00Z"), 75, 1749, 133);
+        SeasonRankLog.Point later = new SeasonRankLog.Point(Instant.parse("2026-10-16T13:16:00Z"), 223, 2338, 1000);
+        SeasonRankLog.Point best = new SeasonRankLog.Point(Instant.parse("2026-10-16T14:16:00Z"), 60, 2500, 1000);
+
+        assertEquals("今シーズンの最高は75位(10/7・当時133人中)",
+                mapper.toRankHistory(List.of(early, later), Locale.JAPANESE).best());
+        assertEquals("Best this season: #75 (10/7, when only 133 players were ranked)",
+                mapper.toRankHistory(List.of(early, later), Locale.ENGLISH).best());
+        assertEquals("今シーズンの最高は60位(10/16)",
+                mapper.toRankHistory(List.of(early, later, best), Locale.JAPANESE).best());
     }
 
     @Test

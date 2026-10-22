@@ -553,9 +553,13 @@ public class ViewMapper {
                     .append(point.rank()).append(',').append(point.rating()).append(']');
         }
         json.append(']');
+        String bestDay = dayFormat.format(Date.from(best.at()));
+        // シーズン開始直後の少ない人数の中での順位は、そのままだと実際より良く見えるので、当時の人数を添える
+        String bestLabel = best.rankingIncomplete()
+                ? labels.message("rankHistory.bestEarly", locale, best.rank(), bestDay, best.ranked())
+                : labels.message("rankHistory.best", locale, best.rank(), bestDay);
         return new RankHistoryView(segments, yTicks, xTicks, percent(1.0), percent(endY),
-                labels.message("player.ranked.rank", locale, last.rank()), endY < 0.2,
-                labels.message("rankHistory.best", locale, best.rank(), dayFormat.format(Date.from(best.at()))),
+                labels.message("player.ranked.rank", locale, last.rank()), endY < 0.2, bestLabel,
                 json.toString(), labels.message("rankHistory.point", locale, "{rank}", "{rating}"), top, bottom);
     }
 
