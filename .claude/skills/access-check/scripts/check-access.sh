@@ -101,105 +101,6 @@ echo "== 既知のスキャナー・本人IPも除外した実アクセス =="
 echo "件数: $(wc -l < /tmp/access-check-clean.log)"
 echo "ユニークIP数: $(awk '{print $1}' /tmp/access-check-clean.log | sort -u | wc -l)"
 
-# ここから先はデータセンター由来の切り分け。IPのCIDR一覧を手で持つと保守しきれないため、
-# 逆引き(rDNS)のホスト名でホスティング事業者を判定する。事業者は自分のIPにその事業者と
-# 分かるホスト名を付けているので、CIDRを追いかけるより変化に強い。
-# 逆引きは1IPにつき1回だけ引き、結果は /tmp/access-check-rdns.txt に持つ。
-awk '{print $1}' /tmp/access-check-clean.log | sort -u > /tmp/access-check-ips.txt
-: > /tmp/access-check-rdns.txt
-if command -v dig >/dev/null 2>&1; then
-    lookup() { dig +short +time=2 +tries=1 -x "$1" 2>/dev/null | head -1; }
-else
-    # digが無い環境向け。getentはrDNSも引くが、引けないとき非0で終わるので握りつぶす。
-    lookup() { getent hosts "$1" 2>/dev/null | awk '{print $2}' | head -1; }
-fi
-while read -r ip; do
-    name=$(lookup "$ip") || true
-    # 引けなかったときdigは ";; connection timed out..." のような文を返す。ホスト名の形を
-    # していないものは「逆引きなし」として扱う。x.y.z.in-addr.arpa. は事業者の手がかりが
-    # 無い(PTRを形式的に置いているだけ)ので、同じく逆引きなし扱いにする。
-    case "$name" in
-        *' '*|'') name='-' ;;
-        *in-addr.arpa.) name='-' ;;
-    esac
-    printf '%s\t%s\n' "$ip" "$name" >> /tmp/access-check-rdns.txt
-done < /tmp/access-check-ips.txt
-
-# ホスティング事業者・クラウドを示すホスト名の断片。当たった=人間の家庭回線ではない。
-# `v22025112337...` のような数字だけの長いホスト名はVPSの自動採番(Contabo系)の典型。
-DC_REGEX='ovh\.|ovh\.net|your-server\.de|hetzner|amazonaws|digitalocean|linode|vultr|choopa|contabo|scaleway|leaseweb|m247|oraclecloud|azure|googleusercontent|hostwinds|colocrossing|datacenter|\.cloud\.|vps|dedicated|servers?\.|srv[0-9]*\.[a-z]+$|srv\.(de|net|com)|\bv[0-9]{8,}\.|p14\.io|hwclouds|pfcloud'
-# 素性を名乗っている大手スキャナー・インターネット調査プロジェクト。逆引き名にそのまま出る。
-# UAはブラウザを偽装していても逆引きは自分のドメインのままなので、ここで捕まえられる。
-SCANNER_REGEX='googlebot|crawl-|censys|shodan|internet-measurement|internet-census|bufferover\.run|criminalip|deepfield|infrawat|no-reverse-dns-configured|rwth-aachen|uni-[a-z]+\.de|scan\.|\bscanner|netsystemsresearch|binaryedge|onyphe|driftnet|stretchoid|alphastrike|securitytrails|leakix|palo ?alto|expanse|group-ib'
-grep -P "\t.*($DC_REGEX|$SCANNER_REGEX)" /tmp/access-check-rdns.txt | cut -f1 | sort -u > /tmp/access-check-dc-ips.txt || true
-
-# 逆引きが引けないIP。一般のISP(固定回線・モバイルとも)はほぼ必ずPTRを設定しているため、
-# 「逆引きなし」はデータセンター・スキャナーの強い目印になる。ただし断定はできないので
-# 上のDC判定とは別に数え、内訳に出す。
-grep -P '\t-$' /tmp/access-check-rdns.txt | cut -f1 | sort -u > /tmp/access-check-nordns-ips.txt || true
-
-# t.co経由を装う分散スキャナー群の目印(2026-09-22発見)。多数の別IPが揃って
-# 同じ古いChromeのUAを名乗る。実在ユーザーの分布としては起こり得ない。
-STALE_UA='Chrome/103\.0\.0\.0 Safari'
-grep -E "$STALE_UA" /tmp/access-check-clean.log | awk '{print $1}' | sort -u > /tmp/access-check-staleua-ips.txt || true
-
-cat /tmp/access-check-dc-ips.txt /tmp/access-check-staleua-ips.txt /tmp/access-check-nordns-ips.txt \
-  | sort -u > /tmp/access-check-machine-ips.txt
-if [ -s /tmp/access-check-machine-ips.txt ]; then
-    grep -vFf <(sed 's/$/ /' /tmp/access-check-machine-ips.txt) /tmp/access-check-clean.log > /tmp/access-check-human.log || true
-else
-    cp /tmp/access-check-clean.log /tmp/access-check-human.log
-fi
-
-echo
-echo "== さらにデータセンター由来を除外した「人間候補」 =="
-echo "件数: $(wc -l < /tmp/access-check-human.log)"
-echo "ユニークIP数: $(awk '{print $1}' /tmp/access-check-human.log | sort -u | wc -l)"
-echo "  (除外内訳: 逆引きがホスティング事業者 $(wc -l < /tmp/access-check-dc-ips.txt) IP / 逆引きなし $(wc -l < /tmp/access-check-nordns-ips.txt) IP / 古いChromeのUA $(wc -l < /tmp/access-check-staleua-ips.txt) IP、重複を除いて $(wc -l < /tmp/access-check-machine-ips.txt) IP)"
-
-echo
-echo "== 人間候補として残ったIPと逆引き結果(判断の材料) =="
-awk '{print $1}' /tmp/access-check-human.log | sort -u | while read -r ip; do
-    printf '  %-16s %s\n' "$ip" "$(grep -P "^$ip\t" /tmp/access-check-rdns.txt | cut -f2)"
-done
-
-echo
-echo "== ページ別の内訳(人間候補のみ、上位20) =="
-awk '{print $7}' /tmp/access-check-human.log \
-  | sed -E 's#/player/[^/? ]+#/player/{tag}#; s#/clan/[^/? ]+#/clan/{tag}#; s#/card/[^/? ]+#/card/{id}#; s#\?.*##' \
-  | sort | uniq -c | sort -rn | head -20 || true
-
-echo
-echo "== ページ別の内訳(除外前、参考、上位20) =="
-awk '{print $7}' /tmp/access-check-clean.log \
-  | sed -E 's#/player/[^/? ]+#/player/{tag}#; s#/clan/[^/? ]+#/clan/{tag}#; s#/card/[^/? ]+#/card/{id}#; s#\?.*##' \
-  | sort | uniq -c | sort -rn | head -20 || true
-
-echo
-echo "== 深いページ(player/clan/cards/ranking/favorites/card)へのアクセス =="
-echo "(先頭の * はデータセンター由来として上で除外したもの)"
-grep -E ' /(player|clan|cards|ranking|favorites|card)' /tmp/access-check-clean.log \
-  | awk '{print $1, $4, $7}' \
-  | while read -r ip rest; do
-        if grep -qxF "$ip" /tmp/access-check-machine-ips.txt; then printf '* '; else printf '  '; fi
-        echo "$ip $rest"
-    done || echo "(なし)"
-
-echo
-echo "== X(Twitter)経由のリファラ =="
-grep -iE 't\.co|x\.com' /tmp/access-check-clean.log || echo "(なし)"
-
-# X等に出すURLには ?from=x を付けている(2026-09-21、フェーズ1.55)。
-# リファラが付かない流入でもこれで数えられる。クエリの先頭(?from=)にも
-# 2番目以降のパラメータ(&from=)にも付き得るため両方拾う。
-# リファラ欄やビーコンのURLにも同じfrom=が載るため、行全体から拾うと1回の訪問が5件前後に
-# 膨らむ(2026-09-27に判明)。リクエストのURL($7)だけを、ビーコンを除いて数える。
-echo
-echo "== 流入元タグ(?from=)付きのアクセス =="
-echo "-- 除外前(clean) --"
-awk '$7 !~ /^\/beacon/ {print $7}' /tmp/access-check-clean.log | grep -oE '[?&]from=[A-Za-z0-9_-]+' | sed -E 's/^&/?/' | sort | uniq -c | sort -rn || echo "(なし)"
-echo "-- 人間候補のみ --"
-awk '$7 !~ /^\/beacon/ {print $7}' /tmp/access-check-human.log | grep -oE '[?&]from=[A-Za-z0-9_-]+' | sed -E 's/^&/?/' | sort | uniq -c | sort -rn || echo "(なし)"
 
 # ビーコン(/beacon)はブラウザがJSを実行したときだけ叩かれる(2026-09-22追加、フェーズ1.61)。
 # HTMLを取得するだけのクローラーはここに現れないため、ログのUA/IPによる推定と違って
@@ -213,20 +114,94 @@ awk '$7 !~ /^\/beacon/ {print $7}' /tmp/access-check-human.log | grep -oE '[?&]f
 grep '"POST /beacon' /tmp/access-check-window.log > /tmp/access-check-beacon-all.log || true
 grep -viE "$BOT_REGEX" /tmp/access-check-beacon-all.log | grep -vE "^($NOISE_REGEX) " > /tmp/access-check-beacon.log || true
 
+# 検索エンジンから来た訪問(2026-10-04追加、TODO.mdの「ページビュー向上」12)。検索対策の効果はこれで測る。
+# リファラが検索エンジンのページ表示を拾い、同じIPからビーコンが来ていれば「実訪問」とする。
+# Googleの先読み(逆引きがgooglezip・google-proxy)はHTMLだけ取りに来る。本人が実際に開いたときの
+# ビーコンは本人の回線のIPから来るため、ここでは結び付けられず「ビーコンなし」になる。
+# search.google.com はSearch Console(管理者の画面)なので数えない。
+# awkの-vはバックスラッシュを解釈してしまうので、正規表現は環境変数で渡す。
+SEARCH_REF_REGEX='^(https?://([a-z0-9-]+\.)*(google|bing|duckduckgo|yahoo|yandex|ecosia|naver|baidu|qwant|seznam|startpage)\.[a-z.]+(/|$)|https?://search\.brave\.com/|android-app://com\.google\.android\.googlequicksearchbox)'
+SEARCH_RE="$SEARCH_REF_REGEX" awk -F'"' '
+{
+    split($1, a, " "); split($2, r, " "); path = r[2]; ref = $4;
+    if (path ~ /^\/beacon/ || path ~ /\.(css|js|png|ico|jpg|jpeg|webp|svg|txt|xml|html)(\?|$)/) next;
+    if (ref ~ /^https?:\/\/search\.google\.com\//) next;
+    if (ref !~ ENVIRON["SEARCH_RE"]) next;
+    host = ref; sub(/^[a-z-]+:\/\//, "", host); sub(/\/.*/, "", host);
+    print a[1], substr(a[4], 2), path, host;
+}' /tmp/access-check-clean.log > /tmp/access-check-search.log || true
+awk '{print $1}' /tmp/access-check-beacon.log | sort -u > /tmp/access-check-beacon-ips.txt
+
+# データセンター由来の切り分け。IPのCIDR一覧を手で持つと保守しきれないため、
+# 逆引き(rDNS)のホスト名でホスティング事業者を判定する。事業者は自分のIPにその事業者と
+# 分かるホスト名を付けているので、CIDRを追いかけるより変化に強い。
+# 引くのはビーコンの送信元と検索エンジンから来たIPだけ。以前はUAで除いた後の全IPを1件ずつ引いて
+# 「人間候補」を出していたが、住宅プロキシ経由のクローラーが大半で人の数を表さず、
+# 4,000IPを引くのに30分以上かかっていた(2026-10-23にやめた)。並列で引き、結果は /tmp/access-check-rdns.txt に持つ。
+cat /tmp/access-check-beacon-ips.txt <(awk '{print $1}' /tmp/access-check-search.log) | sort -u > /tmp/access-check-ips.txt
+# 引けなかったときdigは ";; connection timed out..." のような文を返す。ホスト名の形を
+# していないものは「逆引きなし」として扱う。x.y.z.in-addr.arpa. は事業者の手がかりが
+# 無い(PTRを形式的に置いているだけ)ので、同じく逆引きなし扱いにする。
+# digが無い環境ではgetentで引く(引けないとき非0で終わるので握りつぶす)。
+xargs -r -P 16 -n 1 bash -c '
+    name=$( { if command -v dig >/dev/null 2>&1; then dig +short +time=2 +tries=1 -x "$1" 2>/dev/null; else getent hosts "$1" 2>/dev/null | awk "{print \$2}"; fi; } | head -1)
+    case "$name" in *" "*|""|*in-addr.arpa.) name="-" ;; esac
+    printf "%s\t%s\n" "$1" "$name"' _ < /tmp/access-check-ips.txt > /tmp/access-check-rdns.txt
+rdns_of() { grep -m1 -P "^$1\t" /tmp/access-check-rdns.txt | cut -f2; }
+
+# ホスティング事業者・クラウドを示すホスト名の断片。当たった=人間の家庭回線ではない。
+# `v22025112337...` のような数字だけの長いホスト名はVPSの自動採番(Contabo系)の典型。
+DC_REGEX='ovh\.|ovh\.net|your-server\.de|hetzner|amazonaws|digitalocean|linode|vultr|choopa|contabo|scaleway|leaseweb|m247|oraclecloud|azure|googleusercontent|hostwinds|colocrossing|datacenter|\.cloud\.|vps|dedicated|servers?\.|srv[0-9]*\.[a-z]+$|srv\.(de|net|com)|\bv[0-9]{8,}\.|p14\.io|hwclouds|pfcloud'
+# 素性を名乗っている大手スキャナー・インターネット調査プロジェクト。逆引き名にそのまま出る。
+# UAはブラウザを偽装していても逆引きは自分のドメインのままなので、ここで捕まえられる。
+SCANNER_REGEX='googlebot|crawl-|censys|shodan|internet-measurement|internet-census|bufferover\.run|criminalip|deepfield|infrawat|no-reverse-dns-configured|rwth-aachen|uni-[a-z]+\.de|scan\.|\bscanner|netsystemsresearch|binaryedge|onyphe|driftnet|stretchoid|alphastrike|securitytrails|leakix|palo ?alto|expanse|group-ib'
+grep -P "\t.*($DC_REGEX|$SCANNER_REGEX)" /tmp/access-check-rdns.txt | cut -f1 | sort -u > /tmp/access-check-dc-ips.txt || true
+
+# 逆引きが引けないIP。一般のISP(固定回線・モバイルとも)はほぼ必ずPTRを設定しているため、
+# 「逆引きなし」はデータセンター・スキャナーの強い目印になる(検索経由の判定にだけ使う)。
+grep -P '\t-$' /tmp/access-check-rdns.txt | cut -f1 | sort -u > /tmp/access-check-nordns-ips.txt || true
+
+# t.co経由を装う分散スキャナー群の目印(2026-09-22発見)。多数の別IPが揃って
+# 同じ古いChromeのUAを名乗る。実在ユーザーの分布としては起こり得ない。
+STALE_UA='Chrome/103\.0\.0\.0 Safari'
+grep -E "$STALE_UA" /tmp/access-check-clean.log | awk '{print $1}' | sort -u > /tmp/access-check-staleua-ips.txt || true
+
+cat /tmp/access-check-dc-ips.txt /tmp/access-check-staleua-ips.txt /tmp/access-check-nordns-ips.txt \
+  | sort -u > /tmp/access-check-machine-ips.txt
+
+echo
+echo "== ページ別の内訳(除外前、参考、上位20) =="
+awk '{print $7}' /tmp/access-check-clean.log \
+  | sed -E 's#/player/[^/? ]+#/player/{tag}#; s#/clan/[^/? ]+#/clan/{tag}#; s#/card/[^/? ]+#/card/{id}#; s#\?.*##' \
+  | sort | uniq -c | sort -rn | head -20 || true
+
+echo
+echo "== X(Twitter)経由のリファラ =="
+grep -iE 't\.co|x\.com' /tmp/access-check-clean.log || echo "(なし)"
+
+# X等に出すURLには ?from=x を付けている(2026-09-21、フェーズ1.55)。
+# リファラが付かない流入でもこれで数えられる。クエリの先頭(?from=)にも
+# 2番目以降のパラメータ(&from=)にも付き得るため両方拾う。
+# リファラ欄やビーコンのURLにも同じfrom=が載るため、行全体から拾うと1回の訪問が5件前後に
+# 膨らむ(2026-09-27に判明)。リクエストのURL($7)だけを、ビーコンを除いて数える。
+# クローラーも?from=付きのURLを拾って叩くので、人の流入はビーコンの節の「流入元タグ別」で見る。
+echo
+echo "== 流入元タグ(?from=)付きのアクセス(除外前、参考) =="
+awk '$7 !~ /^\/beacon/ {print $7}' /tmp/access-check-clean.log | grep -oE '[?&]from=[A-Za-z0-9_-]+' | sed -E 's/^&/?/' | sort | uniq -c | sort -rn || echo "(なし)"
+
 echo
 echo "== 実ブラウザ表示(ビーコン /beacon) =="
 # 除外後が0件でも「仕組みが動いていない」のか「本人の分しか無かった」のかを見分けられるよう、除外前の件数も出す。
 echo "除外前(ボットのUA・本人・既知ノイズ込み): $(wc -l < /tmp/access-check-beacon-all.log)件 / ユニーク$(awk '{print $1}' /tmp/access-check-beacon-all.log | sort -u | wc -l) IP"
+: > /tmp/access-check-beacon-senders.txt
 if [ -s /tmp/access-check-beacon.log ]; then
     echo "件数: $(wc -l < /tmp/access-check-beacon.log)"
-    echo "ユニークIP数: $(awk '{print $1}' /tmp/access-check-beacon.log | sort -u | wc -l)"
+    echo "ユニークIP数: $(wc -l < /tmp/access-check-beacon-ips.txt)"
     # JSを実行するヘッドレスブラウザ型のボットもビーコンを送るため(Hetznerで実例あり)、
     # 送信元ごとに逆引きを出し、データセンター・スキャナー由来には * を付ける。
     echo "-- 送信元IP別(* はデータセンター・スキャナー由来) --"
-    : > /tmp/access-check-beacon-senders.txt
     awk '{print $1}' /tmp/access-check-beacon.log | sort | uniq -c | while read -r cnt ip; do
-        name=$(lookup "$ip") || true
-        case "$name" in *' '*|''|*in-addr.arpa.) name='-' ;; esac
+        name=$(rdns_of "$ip")
         if printf '%s' "$name" | grep -qP "$DC_REGEX|$SCANNER_REGEX"; then mark='*'; else mark=' '; fi
         printf '%s %3d %-16s %s\n' "$mark" "$cnt" "$ip" "$name"
         printf '%s\t%s\t%s\t%s\n' "$mark" "$cnt" "$ip" "$name" >> /tmp/access-check-beacon-senders.txt
@@ -236,6 +211,16 @@ if [ -s /tmp/access-check-beacon.log ]; then
       | grep -ohE 'p=[^& ]+' | sed 's/^p=//' \
       | sed -E 's#%2F#/#g; s#/player/[^/?]+#/player/{tag}#; s#/clan/[^/?]+#/clan/{tag}#; s#/card/[^/?]+#/card/{id}#' \
       | sort | uniq -c | sort -rn | head -20 || true
+    # ビーコンにはページのURLのfrom=がそのまま載る(/beacon?p=...&from=xreply)。入ってきたページの
+    # 表示ごとに1件なので、ページのURLで数えるのと違ってクローラーが混ざらない。
+    echo "-- 流入元タグ(?from=)別(* の送信元を除く。件数=入ってきたページの表示、人=ユニークIP) --"
+    awk -F'\t' '$1 != "*" {print $3}' /tmp/access-check-beacon-senders.txt > /tmp/access-check-beacon-real-ips.txt
+    awk 'NR == FNR {real[$1]; next}
+         ($1 in real) && match($7, /[?&]from=[A-Za-z0-9_-]+/) {print substr($7, RSTART + 6, RLENGTH - 6), $1}' \
+        /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log \
+      | awk '{n[$1]++; if (!(($1, $2) in seen)) {seen[$1, $2]; u[$1]++}}
+             END {if (length(n) == 0) print "  (なし)"; for (t in n) printf "  from=%s: %d件 / %d人\n", t, n[t], u[t]}'
+    echo "  X(from=x・xreply)の人数: $(awk 'NR == FNR {real[$1]; next} ($1 in real) && $7 ~ /[?&]from=(x|xreply)(&| |$)/ {print $1}' /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log | sort -u | wc -l)"
 else
     if [ -s /tmp/access-check-beacon-all.log ]; then
         echo "除外後: 0件(本人・既知ノイズのIPからのビーコンしか無かった)"
@@ -281,24 +266,6 @@ else
     echo "(ビーコンなし)"
 fi
 
-# 検索エンジンから来た訪問(2026-10-04追加、TODO.mdの「ページビュー向上」12)。検索対策の効果はこれで測る。
-# リファラが検索エンジンのページ表示を拾い、同じIPからビーコンが来ていれば「実訪問」とする。
-# Googleの先読み(逆引きがgooglezip・google-proxy)はHTMLだけ取りに来る。本人が実際に開いたときの
-# ビーコンは本人の回線のIPから来るため、ここでは結び付けられず「ビーコンなし」になる。
-# search.google.com はSearch Console(管理者の画面)なので数えない。
-# awkの-vはバックスラッシュを解釈してしまうので、正規表現は環境変数で渡す。
-SEARCH_REF_REGEX='^(https?://([a-z0-9-]+\.)*(google|bing|duckduckgo|yahoo|yandex|ecosia|naver|baidu|qwant|seznam|startpage)\.[a-z.]+(/|$)|https?://search\.brave\.com/|android-app://com\.google\.android\.googlequicksearchbox)'
-SEARCH_RE="$SEARCH_REF_REGEX" awk -F'"' '
-{
-    split($1, a, " "); split($2, r, " "); path = r[2]; ref = $4;
-    if (path ~ /^\/beacon/ || path ~ /\.(css|js|png|ico|jpg|jpeg|webp|svg|txt|xml|html)(\?|$)/) next;
-    if (ref ~ /^https?:\/\/search\.google\.com\//) next;
-    if (ref !~ ENVIRON["SEARCH_RE"]) next;
-    host = ref; sub(/^[a-z-]+:\/\//, "", host); sub(/\/.*/, "", host);
-    print a[1], substr(a[4], 2), path, host;
-}' /tmp/access-check-clean.log > /tmp/access-check-search.log || true
-awk '{print $1}' /tmp/access-check-beacon.log | sort -u > /tmp/access-check-beacon-ips.txt
-
 echo
 echo "== 検索エンジン経由の訪問 =="
 if [ -s /tmp/access-check-search.log ]; then
@@ -306,8 +273,7 @@ if [ -s /tmp/access-check-search.log ]; then
     while read -r ip time path host; do
         if grep -qxF "$ip" /tmp/access-check-machine-ips.txt; then mark='*'; else mark=' '; fi
         if grep -qxF "$ip" /tmp/access-check-beacon-ips.txt; then shown='ビーコンあり'; else shown='ビーコンなし'; fi
-        printf '%s %-16s %s %s %s %s (%s)\n' "$mark" "$ip" "$time" "$shown" "$host" "$path" \
-            "$(grep -m1 -P "^$ip\t" /tmp/access-check-rdns.txt | cut -f2)"
+        printf '%s %-16s %s %s %s %s (%s)\n' "$mark" "$ip" "$time" "$shown" "$host" "$path" "$(rdns_of "$ip")"
     done < /tmp/access-check-search.log
     echo "-- 実訪問(データセンター以外で、ビーコンあり) --"
     awk '{print $1}' /tmp/access-check-search.log | sort -u \
