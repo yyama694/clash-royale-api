@@ -15,6 +15,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    ```
    bash "C:\dev\clash-royale-api\.claude\skills\access-check\scripts\check-access.sh"
    ```
+   **複数の日付を集計するときも、1本ずつ順番に実行する**(同時に走らせない)。VM側の一時ファイル(`/tmp/access-check-*`)が共通なので、並行すると互いに上書きし、後半の数字が別の日のものになる(2026-10-23に今日分の出力が10/22の中身になった)。
    このスクリプトはVMにSSHし、以下をまとめて行う。
    - 日次集計スクリプト(`/usr/local/bin/clash-royale-access-stats.sh`、UA文字列ベースの簡易ボット除外)を最新の状態に再実行
    - それに加えて`references/known_noise.md`に載っている「UAは本物のブラウザに見えるが実は人間ではない」IP(既知のスキャナー・ユーザー本人の開発用IP)も除外
