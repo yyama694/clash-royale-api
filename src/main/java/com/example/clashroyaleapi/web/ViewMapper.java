@@ -54,8 +54,8 @@ import com.example.clashroyaleapi.web.view.BattleSummaryView;
 import com.example.clashroyaleapi.web.view.CardCatalogGroupView;
 import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
-import com.example.clashroyaleapi.web.view.CardCountersView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
+import com.example.clashroyaleapi.web.view.CardMatchupsView;
 import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
@@ -815,28 +815,34 @@ public class ViewMapper {
                 top == null ? null : top.loseMedian(), topPlayers);
     }
 
-    /** そのカード入りのデッキが得意なカードが無ければ空(カード詳細画面に欄ごと出さない)。 */
-    public Optional<CardCountersView> toCardCounters(CardMatchups matchups, int cardId, int players,
+    /** そのカード入りのデッキが得意なカードも苦手なカードも無ければ空(カード詳細画面に欄ごと出さない)。 */
+    public Optional<CardMatchupsView> toCardMatchups(CardMatchups matchups, int cardId, int players,
             Map<Integer, CardsResponse.Card> cardsById, Locale locale) {
-        Optional<CardMatchups.Against> against = matchups.against(cardId);
-        if (against.isEmpty()) {
+        Optional<CardMatchups.Stats> stats = matchups.decksWith(cardId);
+        if (stats.isEmpty()) {
             return Optional.empty();
         }
-        List<CardCountersView.CounterView> counters = against.get().counters().stream()
-                .filter(counter -> cardsById.containsKey(counter.cardId()))
-                .map(counter -> {
-                    CardsResponse.Card card = cardsById.get(counter.cardId());
-                    return new CardCountersView.CounterView(card.id(), labels.cardName(card.name(), locale),
-                            card.iconUrls() == null ? null : card.iconUrls().medium(), counter.battles(),
-                            counter.winRatePercent());
+        List<CardMatchupsView.OpponentView> favorable = toOpponents(stats.get().favorable(), cardsById, locale);
+        List<CardMatchupsView.OpponentView> unfavorable = toOpponents(stats.get().unfavorable(), cardsById, locale);
+        if (favorable.isEmpty() && unfavorable.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new CardMatchupsView(stats.get().battles(), stats.get().winRatePercent(), players,
+                CardMatchups.MIN_BATTLES, timeFormatter.instant(matchups.from(), locale),
+                timeFormatter.instant(matchups.to(), locale), favorable, unfavorable));
+    }
+
+    private List<CardMatchupsView.OpponentView> toOpponents(List<CardMatchups.Opponent> opponents,
+            Map<Integer, CardsResponse.Card> cardsById, Locale locale) {
+        return opponents.stream()
+                .filter(opponent -> cardsById.containsKey(opponent.cardId()))
+                .map(opponent -> {
+                    CardsResponse.Card card = cardsById.get(opponent.cardId());
+                    return new CardMatchupsView.OpponentView(card.id(), labels.cardName(card.name(), locale),
+                            card.iconUrls() == null ? null : card.iconUrls().medium(), opponent.battles(),
+                            opponent.winRatePercent());
                 })
                 .toList();
-        if (counters.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(new CardCountersView(against.get().battles(), against.get().winRatePercent(), players,
-                CardMatchups.MIN_BATTLES, timeFormatter.instant(matchups.from(), locale),
-                timeFormatter.instant(matchups.to(), locale), counters));
     }
 
     public List<ClanMemberView> toMembers(List<ClanResponse.Member> members, Map<String, Integer> worldRanks,
@@ -1264,14 +1270,14 @@ public class ViewMapper {
                 .toList();
     }
 
-    /** matchups が null なら、カード詳細画面の「得意なカード」へはつながない。 */
+    /** matchups が null なら、カード詳細画面の「苦手なカード」へはつながない。 */
     private List<CardPerformanceView> toPerformances(List<PlayerBattleStats.CardPerformance> performances,
             CardMatchups matchups, Locale locale) {
         return performances.stream()
                 .map(card -> new CardPerformanceView(card.cardId(), labels.cardName(card.cardName(), locale),
                         card.iconUrl(), card.uses(), card.wins(), card.winRatePercent(),
-                        matchups != null && matchups.against(card.cardId())
-                                .filter(against -> !against.counters().isEmpty()).isPresent()))
+                        matchups != null && matchups.decksWith(card.cardId())
+                                .filter(stats -> !stats.unfavorable().isEmpty()).isPresent()))
                 .toList();
     }
 
