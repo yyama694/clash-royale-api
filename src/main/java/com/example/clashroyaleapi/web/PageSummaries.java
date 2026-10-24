@@ -25,6 +25,8 @@ import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
+import com.example.clashroyaleapi.web.view.ProBadgeView;
+import com.example.clashroyaleapi.web.view.ProPlayerView;
 
 import com.ibm.icu.text.ListFormatter;
 import com.ibm.icu.util.ULocale;
@@ -58,6 +60,7 @@ public class PageSummaries {
     // 説明文は検索結果で120〜160字ほどしか出ないので、一緒に使われるカードは上位だけにする。
     private static final int SUMMARY_PARTNER_LIMIT = 3;
     private static final int SUMMARY_TOP_CARDS = 3;
+    private static final int SUMMARY_TOP_PROS = 3;
 
     private final LabelResolver labels;
     private final Clock clock;
@@ -77,15 +80,19 @@ public class PageSummaries {
     }
 
     /**
+     * @param pro           プロ・クリエイターの一覧に載せている人なら、その肩書き。無ければ null
      * @param streak        無ければ null
      * @param averageElixir 使用中のデッキの平均エリクサー。求められなければ null
      * @param stats         対戦履歴の集計。取得できなければ null
      */
-    public String playerSummary(PlayerResponse player, String playerName, WinLoseStreak streak, Double averageElixir,
-            PlayerBattleStats stats, Locale locale) {
+    public String playerSummary(PlayerResponse player, String playerName, ProBadgeView pro, WinLoseStreak streak,
+            Double averageElixir, PlayerBattleStats stats, Locale locale) {
         List<String> sentences = new ArrayList<>();
         sentences.add(labels.message("player.summary.base", locale, playerName, Tags.toPathSegment(player.tag()),
                 player.trophies(), player.wins()));
+        if (pro != null) {
+            sentences.add(labels.message("player.summary." + pro.kindCode(), locale, pro.name(), pro.countryName()));
+        }
         PlayerResponse.RankedSeasonResult ranked = player.currentPathOfLegendSeasonResult();
         if (ranked != null && ranked.hasRank()) {
             sentences.add(labels.message("player.summary.ranked", locale, ranked.rank()));
@@ -328,6 +335,20 @@ public class PageSummaries {
             return null;
         }
         return labels.message("decks.winRate.summary", locale, page.battles(), page.decks().size());
+    }
+
+    public String prosTitle(Locale locale) {
+        return labels.message("pros.seo.title", locale);
+    }
+
+    /**
+     * 先頭の数人の活動名を入れる。「〇〇 デッキ」のような名前での検索で、この画面も拾われるようにするため。
+     *
+     * @param pros 世界順位の順
+     */
+    public String prosSummary(List<ProPlayerView> pros, Locale locale) {
+        List<String> names = pros.stream().limit(SUMMARY_TOP_PROS).map(pro -> pro.badge().name()).toList();
+        return labels.message("pros.summary", locale, pros.size(), cardList(names, locale));
     }
 
     /** 複数枚はその言語の「AとB」の形でつなぐ(すべて入ったデッキなので、「または」の形にはしない)。 */

@@ -15,11 +15,13 @@ import com.example.clashroyaleapi.domain.SeasonRankLog;
 import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerService;
+import com.example.clashroyaleapi.service.ProPlayerService;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.TopBattleService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
 import com.example.clashroyaleapi.web.view.BattleDetailView;
 import com.example.clashroyaleapi.web.view.CurrentDeckView;
+import com.example.clashroyaleapi.web.view.ProBadgeView;
 import com.example.clashroyaleapi.web.view.RankHistoryView;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,10 +52,12 @@ public class PlayerController {
     private final CardService cardService;
     private final RankingHistoryService rankingHistoryService;
     private final TopBattleService topBattleService;
+    private final ProPlayerService proPlayerService;
 
     public PlayerController(PlayerService playerService, ViewMapper viewMapper, FavoriteCookies favoriteCookies,
             MeCookie meCookie, PageSummaries pageSummaries, TopPlayerDeckService topPlayerDeckService,
-            CardService cardService, RankingHistoryService rankingHistoryService, TopBattleService topBattleService) {
+            CardService cardService, RankingHistoryService rankingHistoryService, TopBattleService topBattleService,
+            ProPlayerService proPlayerService) {
         this.playerService = playerService;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
@@ -63,6 +67,7 @@ public class PlayerController {
         this.cardService = cardService;
         this.rankingHistoryService = rankingHistoryService;
         this.topBattleService = topBattleService;
+        this.proPlayerService = proPlayerService;
     }
 
     /** 検索フォームの受け口。タグで特定できたら正規化したタグのURLへ転送し、以降はブックマーク可能なパスで扱う。 */
@@ -116,6 +121,9 @@ public class PlayerController {
         model.addAttribute("favoriteLimit", favoriteLimit != null);
         model.addAttribute("favoriteHint", !favoriteCookies.hasAny(request));
         model.addAttribute("isMe", meCookie.read(request).filter(playerPathTag::equals).isPresent());
+        ProBadgeView pro = proPlayerService.find(player.tag()).map(found -> viewMapper.toProBadge(found, locale))
+                .orElse(null);
+        model.addAttribute("pro", pro);
         if (player.clan() != null) {
             model.addAttribute("clanName", GameText.stripFormatting(player.clan().name()));
             model.addAttribute("clanPathTag", Tags.toPathSegment(player.clan().tag()));
@@ -156,7 +164,7 @@ public class PlayerController {
 
         model.addAttribute("pageTitle", pageSummaries.playerTitle(player, playerName, locale));
         model.addAttribute("shareText", pageSummaries.playerShareText(player, playerName, streak, locale));
-        model.addAttribute("pageDescription", pageSummaries.playerSummary(player, playerName, streak,
+        model.addAttribute("pageDescription", pageSummaries.playerSummary(player, playerName, pro, streak,
                 currentDeck == null ? null : currentDeck.meta().averageElixir(), stats, locale));
         return "player";
     }
