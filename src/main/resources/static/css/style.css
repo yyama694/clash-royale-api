@@ -1925,6 +1925,11 @@ td.cell-action {
     font-size: 0.75rem;
 }
 
+/* カード詳細画面の得意/苦手なカード。.card h2 は上の余白が0なので、2つ目の見出しが前の表に詰まらないようにする。 */
+.matchups-list + .matchups-list {
+    margin-top: 1.5rem;
+}
+
 /* 消費漏れの表。行の見出し(誰の値か)が長いので、数値の列は詰めて右に寄せる。 */
 .leak-table {
     min-width: 0;

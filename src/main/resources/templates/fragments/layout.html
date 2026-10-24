@@ -1070,7 +1070,7 @@
         <a th:replace="~{fragments/layout :: cardLink(${c.cardId()}, ${c.name()}, ${c.iconUrl()})}"></a>
         <div class="card-name" th:text="${c.name()}"></div>
         <div class="card-sub perf-rate" th:text="#{stats.record(${c.winRatePercent()}, ${c.wins()}, ${c.uses()})}"></div>
-        <!--/* 苦手カードから、世界上位でそのカード入りのデッキが得意なカード(カード詳細画面)へ */-->
+        <!--/* 苦手カードから、世界上位でそのカード入りのデッキが苦手なカード(カード詳細画面)へ */-->
         <a class="perf-counters" th:if="${c.counters()}" th:href="@{/card/{id}(id=${c.cardId()})} + '#counters'"
            th:text="#{stats.weak.counters}"></a>
     </div>

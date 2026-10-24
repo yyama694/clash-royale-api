@@ -70,25 +70,40 @@
         </div>
 
         <!--/*
-          世界上位どうしの対戦で、このカード入りのデッキに勝率が高かったデッキに入っていたカード。プレイヤー情報画面の苦手カードからも来る。
+          世界上位どうしの対戦で、このカード入りのデッキの勝率が全体より高かった(低かった)相手のカード。
+          勝率はどちらもこのカード入りのデッキの側から見たもの(プレイヤー情報画面の得意/苦手カードが本人の勝率を出すのと同じ)。
+          苦手なカード(#counters)には、プレイヤー情報画面の苦手カードの「対策を見る」から来る。
           数えられるだけの対戦が無いカード(使用率の低いカード)と、初回の集計が終わる前は出さない。
         */-->
-        <section class="card" id="counters" th:if="${counters}">
-            <h2 th:text="#{counters.heading(${card.name()})}"></h2>
-            <p th:text="#{counters.lead(${card.name()}, ${counters.players()})}"></p>
-            <div class="deck-grid perf-grid">
-                <div class="deck-card perf-good" th:each="c : ${counters.counters()}">
-                    <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
-                    <div class="card-name" th:text="${c.name()}"></div>
-                    <div class="card-sub perf-rate" th:text="#{counters.value(${c.winRatePercent()}, ${c.battles()})}"></div>
+        <section class="card" id="matchups" th:if="${matchups}">
+            <div class="matchups-list" id="favorable" th:unless="${#lists.isEmpty(matchups.favorable())}">
+                <h2 th:text="#{matchups.favorable.heading(${card.name()})}"></h2>
+                <p th:text="#{matchups.favorable.lead(${card.name()}, ${matchups.players()})}"></p>
+                <div class="deck-grid perf-grid">
+                    <div class="deck-card perf-good" th:each="c : ${matchups.favorable()}">
+                        <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
+                        <div class="card-name" th:text="${c.name()}"></div>
+                        <div class="card-sub perf-rate" th:text="#{matchups.value(${c.winRatePercent()}, ${c.battles()})}"></div>
+                    </div>
                 </div>
             </div>
-            <p th:text="#{counters.baseline(${card.name()}, ${counters.battles()}, ${counters.winRatePercent()})}"></p>
-            <p th:replace="~{fragments/layout :: notice(#{counters.notice(${counters.minBattles()})})}"></p>
-            <p class="notice"><span th:text="#{counters.period}"></span>
-                <time th:replace="~{fragments/layout :: localTime(${counters.from()})}"></time>
-                <span th:text="#{counters.period.to}"></span>
-                <time th:replace="~{fragments/layout :: localTime(${counters.to()})}"></time></p>
+            <div class="matchups-list" id="counters" th:unless="${#lists.isEmpty(matchups.unfavorable())}">
+                <h2 th:text="#{matchups.unfavorable.heading(${card.name()})}"></h2>
+                <p th:text="#{matchups.unfavorable.lead(${card.name()}, ${matchups.players()})}"></p>
+                <div class="deck-grid perf-grid">
+                    <div class="deck-card perf-bad" th:each="c : ${matchups.unfavorable()}">
+                        <a th:replace="~{fragments/layout :: cardLink(${c.id()}, ${c.name()}, ${c.iconUrl()})}"></a>
+                        <div class="card-name" th:text="${c.name()}"></div>
+                        <div class="card-sub perf-rate" th:text="#{matchups.value(${c.winRatePercent()}, ${c.battles()})}"></div>
+                    </div>
+                </div>
+            </div>
+            <p th:text="#{matchups.baseline(${card.name()}, ${matchups.battles()}, ${matchups.winRatePercent()})}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{matchups.notice(${matchups.minBattles()})})}"></p>
+            <p class="notice"><span th:text="#{matchups.period}"></span>
+                <time th:replace="~{fragments/layout :: localTime(${matchups.from()})}"></time>
+                <span th:text="#{matchups.period.to}"></span>
+                <time th:replace="~{fragments/layout :: localTime(${matchups.to()})}"></time></p>
         </section>
 
         <section class="card" id="balance" th:unless="${#lists.isEmpty(balanceHistory)}">
