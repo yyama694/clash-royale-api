@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <main class="container">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <div class="card">
+            <h1 th:text="#{pros.heading}"></h1>
+            <p th:text="#{pros.lead}"></p>
+            <p th:replace="~{fragments/layout :: notice(#{pros.notice})}"></p>
+        </div>
+
+        <!--/* 世界順位の順。順位の無い人はトロフィーの多い順に後ろへ、取得できなかった人は最後(ProPlayerService) */-->
+        <div class="card top-deck pro-deck" th:each="p : ${pros}">
+            <div class="top-deck-head">
+                <span class="top-deck-rank" th:if="${p.rank() != null}" th:text="#{player.ranked.rank(${p.rank()})}"></span>
+                <a class="pro-name" th:href="@{/player/{tag}(tag=${p.pathTag()})}"><bdi th:text="${p.badge().name()}"></bdi></a>
+                <span class="top-deck-rating" th:if="${p.rating() != null}" th:text="#{decks.rating(${p.rating()})}"></span>
+                <span class="top-deck-rating" th:if="${p.rating() == null and p.trophies() != null}"
+                      th:text="#{pros.trophies(${p.trophies()})}"></span>
+            </div>
+            <p class="pro-meta">
+                <span th:replace="~{fragments/layout :: proBadge(${p.badge()}, false)}"></span>
+                <span class="pro-ingame" th:if="${p.inGameName() != null}"><span th:text="#{pros.inGameName}"></span>
+                    <bdi th:text="${p.inGameName()}"></bdi></span>
+                <a th:if="${p.channelUrl() != null}" th:href="${p.channelUrl()}" rel="noopener"
+                   th:text="${p.channelService()}"></a>
+            </p>
+            <th:block th:if="${p.deck() != null}">
+                <div th:replace="~{fragments/layout :: deckGrid(${p.deck().cards()})}"></div>
+                <th:block th:if="${not #lists.isEmpty(p.deck().supportCards())}">
+                    <div th:replace="~{fragments/layout :: supportCardRow(#{battle.supportCards}, ${p.deck().supportCards()})}"></div>
+                </th:block>
+                <div th:replace="~{fragments/layout :: deckMeta(${p.deck().meta()})}"></div>
+            </th:block>
+            <p th:if="${p.available() and p.deck() == null}" class="empty-state" th:text="#{deck.empty}"></p>
+            <p th:unless="${p.available()}" class="empty-state" th:text="#{favorites.unavailable}"></p>
+        </div>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

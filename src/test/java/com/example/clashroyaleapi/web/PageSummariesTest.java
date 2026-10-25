@@ -20,6 +20,8 @@ import com.example.clashroyaleapi.web.view.CardCatalogItemView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
+import com.example.clashroyaleapi.web.view.ProBadgeView;
+import com.example.clashroyaleapi.web.view.ProPlayerView;
 
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +65,7 @@ class PageSummariesTest {
 
     @Test
     void プレイヤーの要約はある情報だけを文にしてつなぐ() {
-        String summary = summaries.playerSummary(player(new PlayerResponse.RankedSeasonResult(7, 2800, 12)), "Taro",
+        String summary = summaries.playerSummary(player(new PlayerResponse.RankedSeasonResult(7, 2800, 12)), "Taro", null,
                 new WinLoseStreak(true, 5, false), 3.125, stats(18, 7), Locale.JAPANESE);
 
         assertEquals(FSI + "Taro" + PDI + "(#ABC123)のクラロワのプレイヤー情報です。トロフィー9,000、通算3,210勝。"
@@ -71,22 +73,47 @@ class PageSummariesTest {
     }
 
     @Test
+    void プロ_クリエイターの一覧に載せている人は肩書きの文を足す() {
+        ProBadgeView pro = new ProBadgeView("Mohamed Light", "pro", "プロ", "SKCalalas", "エジプト");
+
+        assertEquals(FSI + "Taro" + PDI + "(#ABC123)のクラロワのプレイヤー情報です。トロフィー9,000、通算3,210勝。"
+                + FSI + "Mohamed Light" + PDI + "はエジプトのプロ選手です。",
+                summaries.playerSummary(player(null), "Taro", pro, null, null, null, Locale.JAPANESE));
+    }
+
+    @Test
+    void プロ_クリエイターの一覧の要約に先頭の3人の名前を入れる() {
+        List<ProPlayerView> pros = List.of(proRow("A"), proRow("B"), proRow("C"), proRow("D"));
+
+        assertEquals("クラロワのプロ選手とクリエイター4人が今使っているデッキと、ランク戦の世界順位を紹介。"
+                + FSI + "A、B、C" + PDI + "など。デッキはそのままゲームにコピーできます。",
+                summaries.prosSummary(pros, Locale.JAPANESE));
+        assertTrue(summaries.prosSummary(pros, Locale.ENGLISH)
+                .contains("4 Clash Royale pro players and content creators are using right now"));
+    }
+
+    private static ProPlayerView proRow(String name) {
+        return new ProPlayerView(new ProBadgeView(name, "pro", "Pro", null, "Japan"), name, true, null, null, null,
+                14000, null, null, null);
+    }
+
+    @Test
     void 順位や連勝や戦績が無ければその文を省く() {
         assertEquals(FSI + "Taro" + PDI + "(#ABC123)のクラロワのプレイヤー情報です。トロフィー9,000、通算3,210勝。",
-                summaries.playerSummary(player(new PlayerResponse.RankedSeasonResult(null, 0, null)), "Taro", null,
+                summaries.playerSummary(player(new PlayerResponse.RankedSeasonResult(null, 0, null)), "Taro", null, null,
                         null, null, Locale.JAPANESE));
     }
 
     @Test
     void シーズンの切り替え直後にレーティング0で前のシーズンの順位が残っていても順位の文を省く() {
         assertEquals(FSI + "Taro" + PDI + "(#ABC123)のクラロワのプレイヤー情報です。トロフィー9,000、通算3,210勝。",
-                summaries.playerSummary(player(new PlayerResponse.RankedSeasonResult(1, 0, 1)), "Taro", null,
+                summaries.playerSummary(player(new PlayerResponse.RankedSeasonResult(1, 0, 1)), "Taro", null, null,
                         null, null, Locale.JAPANESE));
     }
 
     @Test
     void 英語は文を空白で区切り単複を合わせる() {
-        String summary = summaries.playerSummary(player(null), "Taro", new WinLoseStreak(false, 1, false), null,
+        String summary = summaries.playerSummary(player(null), "Taro", null, new WinLoseStreak(false, 1, false), null,
                 stats(1, 2),
                 Locale.ENGLISH);
 
@@ -96,7 +123,7 @@ class PageSummariesTest {
 
     @Test
     void ロシア語の複数形() {
-        String summary = summaries.playerSummary(player(null), "Taro", new WinLoseStreak(true, 3, false), null, null,
+        String summary = summaries.playerSummary(player(null), "Taro", null, new WinLoseStreak(true, 3, false), null, null,
                 Locale.forLanguageTag("ru"));
 
         assertEquals("Игрок Clash Royale " + FSI + "Taro" + PDI + " (#ABC123): 9 000 трофеев и 3 210 побед всего."
@@ -108,10 +135,10 @@ class PageSummariesTest {
         WinLoseStreak allWins = new WinLoseStreak(true, 30, true);
 
         assertEquals(FSI + "Taro" + PDI + "(#ABC123)のクラロワのプレイヤー情報です。トロフィー9,000、通算3,210勝。"
-                + "現在、少なくとも30連勝中。", summaries.playerSummary(player(null), "Taro", allWins, null, null,
+                + "現在、少なくとも30連勝中。", summaries.playerSummary(player(null), "Taro", null, allWins, null, null,
                 Locale.JAPANESE));
         assertEquals("Clash Royale player " + FSI + "Taro" + PDI + " (#ABC123) has 9,000 trophies and 3,210 wins in total."
-                + " Currently on at least 30 wins in a row.", summaries.playerSummary(player(null), "Taro", allWins,
+                + " Currently on at least 30 wins in a row.", summaries.playerSummary(player(null), "Taro", null, allWins,
                 null, null, Locale.ENGLISH));
     }
 

@@ -1159,6 +1159,14 @@
 </th:block>
 
 <!--/*
+  プロ・クリエイターの肩書き(「プロ · SKCalalas · エジプト」)。一覧とプレイヤー情報画面で使う。
+  プレイヤー情報画面の見出しはゲーム内の名前なので、活動名で検索して来た人のために showName で活動名を先頭に出す。
+*/-->
+<span th:fragment="proBadge(b, showName)" class="pro-badge"><th:block th:if="${showName}"><bdi class="pro-badge-name"
+      th:text="${b.name()}"></bdi> · </th:block><span class="pro-kind" th:text="${b.kindLabel()}"></span><th:block
+      th:if="${b.team() != null}"> · <bdi th:text="${b.team()}"></bdi></th:block> · <span th:text="${b.countryName()}"></span></span>
+
+<!--/*
   対戦詳細の片側。2v2では参加者が2人になるためリストで受け取る。見ているプレイヤー本人は強調する。
   クラウン数は中央に大きく出すので、ここでは読み上げ用にだけ残す。
 */-->

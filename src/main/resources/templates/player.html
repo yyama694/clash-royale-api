@@ -27,6 +27,9 @@
                     <span class="visually-hidden" th:text="#{player.clan}"></span>
                     <bdi th:text="${clanName}"></bdi>
                 </a>
+                <!--/* 名前で検索して来た人に、本人のアカウントだと分かるように。一覧への入口も兼ねる。 */-->
+                <a class="pro-link" th:if="${pro}" th:href="@{/pros(lang=${#locale.language})}"
+                   th:title="#{pros.badge.title}"><span th:replace="~{fragments/layout :: proBadge(${pro}, ${not #strings.equalsIgnoreCase(pro.name(), playerName)})}"></span></a>
             </p>
             <!--/*
               「これは自分」。登録するとトップページの一番上に、この人の今の成績と前回見たときからの変化が出る。

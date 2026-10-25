@@ -32,6 +32,7 @@ import com.example.clashroyaleapi.domain.MemberActivity;
 import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.PopularDeck;
+import com.example.clashroyaleapi.domain.ProPlayer;
 import com.example.clashroyaleapi.domain.RankChange;
 import com.example.clashroyaleapi.domain.RankedLeague;
 import com.example.clashroyaleapi.domain.RankingMovements;
@@ -45,6 +46,7 @@ import com.example.clashroyaleapi.domain.WinLoseStreak;
 import com.example.clashroyaleapi.service.CardImageService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.PlayerRanking;
+import com.example.clashroyaleapi.service.ProPlayerService;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
 import com.example.clashroyaleapi.web.view.BalanceUpdateView;
@@ -80,6 +82,8 @@ import com.example.clashroyaleapi.web.view.OpponentView;
 import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerNameMatchView;
+import com.example.clashroyaleapi.web.view.ProBadgeView;
+import com.example.clashroyaleapi.web.view.ProPlayerView;
 import com.example.clashroyaleapi.web.view.PlayerProfileView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
@@ -1043,6 +1047,31 @@ public class ViewMapper {
 
     private static String signed(int value, NumberFormat numbers) {
         return value > 0 ? "+" + numbers.format(value) : value == 0 ? "±0" : numbers.format(value);
+    }
+
+    public List<ProPlayerView> toProPlayers(List<ProPlayerService.Entry> entries, Locale locale) {
+        return entries.stream().map(entry -> toProPlayer(entry, locale)).toList();
+    }
+
+    private ProPlayerView toProPlayer(ProPlayerService.Entry entry, Locale locale) {
+        ProPlayer pro = entry.pro();
+        String channelUrl = pro.channel() == null ? null : pro.channel().toString();
+        ProBadgeView badge = toProBadge(pro, locale);
+        if (!entry.available()) {
+            return new ProPlayerView(badge, Tags.toPathSegment(pro.tag()), false, null, null, null, null, null,
+                    channelUrl, pro.channelService());
+        }
+        PlayerResponse player = entry.player();
+        String inGameName = GameText.stripFormatting(player.name());
+        return new ProPlayerView(badge, Tags.toPathSegment(pro.tag()), true,
+                inGameName.equalsIgnoreCase(pro.name()) ? null : inGameName,
+                entry.rank(), rankedRating(player), player.trophies(),
+                entry.deck() == null ? null : toCurrentDeck(entry.deck(), locale), channelUrl, pro.channelService());
+    }
+
+    public ProBadgeView toProBadge(ProPlayer pro, Locale locale) {
+        return new ProBadgeView(pro.name(), pro.kind().code(), labels.message("pros.kind." + pro.kind().code(), locale),
+                pro.team(), countryNames.countryName(pro.country(), pro.country(), locale));
     }
 
     public List<FavoritePlayerView> toFavoritePlayerRows(List<FavoriteFetch<PlayerResponse>> results) {
