@@ -114,13 +114,13 @@ function FindMenu($bmp, $cx, $cy) {
     }
   }
   if ($yTop -lt 0) { return @{ kind = 'none' } }
-  $blue = 0; $green = 0; $bMin = 9999; $bMax = -1
+  $blue = 0; $green = 0; $bMin = 9999; $bMax = -1; $gMin = 9999; $gMax = -1
   for ($y = $yTop - 70; $y -le $yTop - 8; $y += 2) { for ($x = [Math]::Max(0, $cx - 60); $x -le [Math]::Min(558, $cx + 60); $x += 3) {
     $c = $bmp.GetPixel($x, $y)
     if (IsBlue $c) { $blue++; $bMin = [Math]::Min($bMin, $y); $bMax = [Math]::Max($bMax, $y) }
-    elseif (IsGreen $c) { $green++ } } }
+    elseif (IsGreen $c) { $green++; $gMin = [Math]::Min($gMin, $y); $gMax = [Math]::Max($gMax, $y) } } }
   if ($blue -ge 15 -and $blue -gt $green) { return @{ kind = 'info'; y = [int](($bMin + $bMax) / 2) } }
-  if ($green -ge 15 -and $green -gt $blue) { return @{ kind = 'upgrade' } }
+  if ($green -ge 15 -and $green -gt $blue) { return @{ kind = 'upgrade'; y = [int](($gMin + $gMax) / 2) } }
   return @{ kind = 'none' }
 }
 
@@ -190,16 +190,11 @@ foreach ($pair in $Cards.Split(';')) {
     $b = Grab
     $menu = FindMenu $b $cx $cy
   }
-  if ($menu.kind -eq 'upgrade') {
-    # Never press the upgrade button
-    Save $b "${tag}_skipped_upgrade.png"
-    $b.Dispose()
-    CloseMenu $cx $cy $tag
-    "skipped $tag ($cx,$cy): upgrade button instead of info"
-    $idx++
-    continue
-  }
-  if ($menu.kind -ne 'info') { Fail "menu (yellow use button with the blue info button above it) not found under card $tag at ($cx,$cy)" $b }
+  # For an upgradable card the menu's green upgrade button only opens the info dialog (confirmed by the
+  # user on 2026-10-25); the real upgrade is a separate button at the bottom of that dialog, which this
+  # script never presses
+  if ($menu.kind -eq 'upgrade') { "card $tag ($cx,$cy): opening info through the menu's upgrade button" }
+  elseif ($menu.kind -ne 'info') { Fail "menu (yellow use button with the blue info or green upgrade button above it) not found under card $tag at ($cx,$cy)" $b }
   $b.Dispose()
 
   Click $cx $menu.y
