@@ -1,0 +1,934 @@
+# カードのステータス。ゲーム内のカード情報の画面から読み取り、レベル16とレベル11の値にしたもの。
+# 作り方は .claude/skills/card-stats-capture (このファイルは build_site_stats.py が書き出す。手で直さない)。
+# card<TAB>form(normal|evolution|hero|champion)<TAB>項目のメッセージキー<TAB>レベル16の値<TAB>レベル11の値(空=求められない)
+# 値の {s:1.8} は秒(stat.TID_VALUE_SECONDS)、{t:キー} はその言葉のメッセージ。並びはゲームの画面の順
+@asof	2026-10-25
+Goblinstein	champion	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	302	
+Goblinstein	champion	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	72	
+Goblinstein	champion	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:3.5}	{s:3.5}
+Goblinstein	champion	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.5}	{s:0.5}
+Goblinstein	champion	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Goblinstein	champion	stat.TID_SPELL_ATTRIBUTE_RADIUS	2	2
+Goblinstein	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1153	721
+Goblinstein	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	216	135
+Goblinstein	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+Goblinstein	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Goblinstein	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Goblinstein	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Electro Giant	evolution	stat.TID_TESLAPULSE_RADIUS	6	6
+Electro Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	294	184
+Electro Giant	normal	stat.TID_TYPE_REFLECTED_DAMAGE	306	192
+Electro Giant	normal	stat.TID_TYPE_REFLECTED_TOWER_DAMAGE	155	97
+Electro Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	163	102
+Electro Giant	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	6314	3952
+Electro Giant	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+Electro Giant	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Electro Giant	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Electro Giant	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Electro Wizard	hero	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	408 x2	
+Electro Wizard	hero	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	-50%	-50%
+Electro Wizard	hero	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:3}	{s:3}
+Electro Wizard	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	188 x2	117 x2
+Electro Wizard	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_DAMAGE	306	192
+Electro Wizard	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1141	714
+Electro Wizard	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+Electro Wizard	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Electro Wizard	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Electro Wizard	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Minion Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	245	153
+Minion Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	144	90
+Minion Giant	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2903	1817
+Minion Giant	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.7}	{s:1.7}
+Minion Giant	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Minion Giant	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Minion Giant	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	4	4
+Ronin	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	593	371
+Ronin	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	456	285
+Ronin	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2842	1779
+Ronin	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.3}	{s:1.3}
+Ronin	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Ronin	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Ronin	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Little Prince	champion	stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE	511	320
+Little Prince	champion	stat.TID_SPELL_ATTRIBUTE_HEALTH	2556	1600
+Little Prince	champion	stat.TID_SPELL_ATTRIBUTE_DAMAGE	372	232
+Little Prince	champion	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Little Prince	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1116	698
+Little Prince	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	167	104
+Little Prince	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}-{s:0.4}	{s:1.2}-{s:0.4}
+Little Prince	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Little Prince	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Little Prince	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Skeleton King	champion	stat.TID_ABILITY_STAT_MINIMUM_SOULS	6	6
+Skeleton King	champion	stat.TID_ABILITY_STAT_MAXIMUM_SOULS	16	16
+Skeleton King	champion	stat.TID_ABILITY_STAT_SKELETON_LEVEL	16	11
+Skeleton King	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	327	204
+Skeleton King	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	204	127
+Skeleton King	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3672	2298
+Skeleton King	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.6}	{s:1.6}
+Skeleton King	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Skeleton King	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Skeleton King	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Goblin Machine	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	372	232
+Goblin Machine	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	310	193
+Goblin Machine	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3619	2265
+Goblin Machine	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Goblin Machine	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Goblin Machine	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Goblin Machine	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Goblin Machine	normal	stat.TID_ROCKET_ATTACK_LEVEL	16	11
+Golden Knight	champion	stat.TID_ABILITY_STAT_DASH_RANGE	5	5
+Golden Knight	champion	stat.TID_ABILITY_STAT_DASH_DAMAGE	535	335
+Golden Knight	champion	stat.TID_ABILITY_STAT_DASH_COUNT	10	10
+Golden Knight	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	269	168
+Golden Knight	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	298	186
+Golden Knight	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2875	1799
+Golden Knight	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.9}	{s:0.9}
+Golden Knight	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Golden Knight	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Golden Knight	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Lumberjack	evolution	stat.TID_GHOST_LEVEL	16	11
+Lumberjack	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	409	256
+Lumberjack	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	511	320
+Lumberjack	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2049	1282
+Lumberjack	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.8}	{s:0.8}
+Lumberjack	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Lumberjack	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Lumberjack	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Mighty Miner	champion	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	531	332
+Mighty Miner	champion	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Mighty Miner	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	69-654	43-409
+Mighty Miner	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	172-1635	
+Mighty Miner	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3595	2250
+Mighty Miner	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.4}	{s:0.4}
+Mighty Miner	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Mighty Miner	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Mighty Miner	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	134	84
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_DAMAGE	134	84
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	53	33
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1963	1228
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.5}	{s:2.5}
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Ice Golem	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Inferno Dragon	evolution	stat.TID_SPELL_ATTRIBUTE_DECAY_TIME	{s:7}	{s:7}
+Inferno Dragon	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	57-674	35-422
+Inferno Dragon	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	142-1685	
+Inferno Dragon	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2069	1295
+Inferno Dragon	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.4}	{s:0.4}
+Inferno Dragon	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Inferno Dragon	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Inferno Dragon	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	3.5	3.5
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	310	194
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DASH_DAMAGE	621	389
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	310	194
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1447	906
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DASH_RANGE	3.5-6	3.5-6
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1}	{s:1}
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Bandit	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	503	314
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	386	241
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1447	906
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_SPAWN	{t:stat.TID_CHARACTER_BAT} x1	{t:stat.TID_CHARACTER_BAT} x1
+Night Witch	normal	stat.TID_CHARACTER_BAT.level	16	11
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:5}	{s:5}
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.3}	{s:1.3}
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Night Witch	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Royal Recruits	evolution	stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE	425	266
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	212	133
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	163	102
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	875	547
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_SHIELD_HEALTH	384	240
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.3}	{s:1.3}
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Royal Recruits	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	6	6
+Goblin Cage	evolution	stat.TID_CAPTURE_RADIUS	3	3
+Goblin Cage	evolution	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	584	366
+Goblin Cage	evolution	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Goblin Cage	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1247	780
+Goblin Cage	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_SPAWN	{t:stat.TID_CHARACTER_EVOLVED_GOBLINBRAWLER} x1	{t:stat.TID_CHARACTER_EVOLVED_GOBLINBRAWLER} x1
+Goblin Cage	normal	stat.TID_CHARACTER_EVOLVED_GOBLINBRAWLER.level	16	11
+Goblin Cage	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:20}	{s:20}
+Bomb Tower	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	355	222
+Bomb Tower	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_DAMAGE	355	222
+Bomb Tower	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2167	1356
+Bomb Tower	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+Bomb Tower	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Bomb Tower	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Bomb Tower	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Dark Prince	hero	stat.TID_SPELL_ATTRIBUTE_SPAWN_DAMAGE	490	307
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	425	266
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE	850	532
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	303	190
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1918	1200
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_SHIELD_HEALTH	384	240
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.4}	{s:1.4}
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Dark Prince	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Rune Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	245	153
+Rune Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	163	102
+Rune Giant	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	4499	2816
+Rune Giant	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.5}	{s:1.5}
+Rune Giant	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Rune Giant	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Rune Giant	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Rune Giant	normal	stat.TID_BUFF_DAMAGE	351	220
+Rune Giant	normal	stat.TID_BUFF_COUNT	2	2
+Rune Giant	normal	stat.TID_BUFF_RANGE	7	7
+Electro Dragon	evolution	stat.TID_TYPE_CHAINED_ATTACKS	{t:stat.TID_INFINITE}	{t:stat.TID_INFINITE}
+Electro Dragon	evolution	stat.TID_SPELL_ATTRIBUTE_EXTRA_CHAIN_DAMAGE	102	64
+Electro Dragon	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1676	1049
+Electro Dragon	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	306	192
+Electro Dragon	normal	stat.TID_TYPE_CHAINED_ATTACKS	3	3
+Electro Dragon	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.1}	{s:2.1}
+Electro Dragon	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Electro Dragon	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Electro Dragon	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	3.5	3.5
+Cannon Cart	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2891	1809
+Cannon Cart	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	323	202
+Cannon Cart	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.9}	{s:0.9}
+Cannon Cart	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Cannon Cart	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Cannon Cart	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Cannon Cart	normal	stat.TID_KAMIKAZE_TRIGGER_HEALTH	50%	50%
+X-Bow	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2556	1600
+X-Bow	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	98	61
+X-Bow	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.4}	{s:0.4}
+X-Bow	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+X-Bow	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	11.5	11.5
+X-Bow	normal	stat.TID_SPELL_ATTRIBUTE_DEPLOY_TIME	{s:3.5}	{s:3.5}
+X-Bow	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	433	271
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE	867	542
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	254	159
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2822	1766
+Ram Rider	normal	stat.TID_CHARACTER_RAMRIDER.level	16	11
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.7}	{s:1.7}
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Ram Rider	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Graveyard	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:9}	{s:9}
+Graveyard	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	4	4
+Graveyard	normal	stat.TID_CHARACTER_SKELETON.level	16	11
+Graveyard	normal	stat.TID_AUTOCHESS_SKILL_ATTR_SKCOUNT_TITLE	12	12
+Sparky	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	2126	1331
+Sparky	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2319	1451
+Sparky	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:4}	{s:4}
+Sparky	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Sparky	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Sparky	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	310	194
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	62	39
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	238	149
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1934	1210
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.3}	{s:1.3}
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Miner	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Valkyrie	evolution	stat.TID_VALKEVO_TORNADO_RADIUS	5	5
+Valkyrie	evolution	stat.TID_VALKEVO_TORNADO_DAMAGE	68	
+Valkyrie	evolution	stat.TID_VALKEVO_TORNADO_DURATION	{s:0.5}	{s:0.5}
+Valkyrie	hero	stat.TID_ABILITY_STAT_DASH_RANGE	5.5	5.5
+Valkyrie	hero	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	620	
+Valkyrie	hero	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	308	
+Valkyrie	hero	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5	2.5
+Valkyrie	hero	stat.TID_ABILITY_DAMAGE_RESISTANCE	15%	15%
+Valkyrie	hero	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:3.5}	{s:3.5}
+Valkyrie	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	425	266
+Valkyrie	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	283	177
+Valkyrie	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3047	1907
+Valkyrie	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.5}	{s:1.5}
+Valkyrie	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Valkyrie	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Valkyrie	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	188	117
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	81	50
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	846	529
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.3}	{s:2.3}
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	4.5	4.5
+Zappies	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Earthquake	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	130	81
+Earthquake	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	78	49
+Earthquake	normal	stat.TID_SPELL_ATTRIBUTE_BUILDING_DPS	455	
+Earthquake	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:3}	{s:3}
+Earthquake	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3.5	3.5
+Skeleton Barrel	evolution	stat.TID_SPELL_ATTRIBUTE_HEALTH	1063	665
+Skeleton Barrel	evolution	stat.TID_KAMIKAZE_TRIGGER_HEALTH	75%	75%
+Skeleton Barrel	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_DAMAGE	261	163
+Skeleton Barrel	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	850	532
+Skeleton Barrel	normal	stat.TID_AUTOCHESS_SKILL_ATTR_SKCOUNT_TITLE	7	7
+Skeleton Barrel	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Skeleton Barrel	normal	stat.TID_CHARACTER_SKELETON.level	16	11
+Skeleton Barrel	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Wall Breakers	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	482	302
+Wall Breakers	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	527	330
+Wall Breakers	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Wall Breakers	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Wall Breakers	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Wall Breakers	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	2	2
+Ice Spirit	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	175	110
+Ice Spirit	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	343	215
+Ice Spirit	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Ice Spirit	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Ice Spirit	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	2.5	2.5
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	200	125
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	181	113
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	323	202
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Goblins	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	4	4
+Spear Goblins	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	212	133
+Spear Goblins	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	130	81
+Spear Goblins	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.6}	{s:1.6}
+Spear Goblins	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Spear Goblins	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Spear Goblins	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Spear Goblins	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Zap	evolution	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5-3	2.5-3
+Zap	evolution	stat.TID_ZAPEVO_COUNT	2	2
+Zap	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	306	192
+Zap	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	77	48
+Zap	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5	2.5
+Berserker	hero	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.2}	{s:0.2}
+Berserker	hero	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_6}	{t:stat.TID_SPEED_6}
+Berserker	hero	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	-75%	-75%
+Berserker	hero	stat.TID_SPELL_ATTRIBUTE_DAMAGE	267	
+Berserker	hero	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:3.5}	{s:3.5}
+Berserker	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	163	102
+Berserker	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	271	170
+Berserker	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1431	896
+Berserker	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.6}	{s:0.6}
+Berserker	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Berserker	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Berserker	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Knight	evolution	stat.TID_ABILITY_DAMAGE_RESISTANCE	60%	60%
+Knight	hero	stat.TID_SPELL_ATTRIBUTE_SHIELD_HEALTH	818	512
+Knight	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	323	202
+Knight	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	269	168
+Knight	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2822	1766
+Knight	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Knight	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Knight	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Knight	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Archers	evolution	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Archers	evolution	stat.TID_SPELL_EVO_ARCHER_SPECIAL_DAMAGE	224	140
+Archers	evolution	stat.TID_SPELL_EVO_ARCHER_SPECIAL_RANGE	4.5-6	4.5-6
+Archers	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	486	304
+Archers	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	179	112
+Archers	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.9}	{s:0.9}
+Archers	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Archers	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Archers	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Archers	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	2	2
+Minions	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	368	230
+Minions	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	171	107
+Minions	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Minions	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Minions	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Minions	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	2.5	2.5
+Minions	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Cannon	evolution	stat.TID_BOMB_DAMAGE	417	261
+Cannon	evolution	stat.TID_BOMB_RADIUS	2	2
+Cannon	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1316	824
+Cannon	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	323	202
+Cannon	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1}	{s:1}
+Cannon	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Cannon	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Cannon	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Royal Delivery	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	613	384
+Royal Delivery	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	1	1
+Royal Delivery	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3	3
+Skeleton Dragons	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	241	151
+Skeleton Dragons	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	895	560
+Skeleton Dragons	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2}	{s:2}
+Skeleton Dragons	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Skeleton Dragons	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Skeleton Dragons	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	3.5	3.5
+Skeleton Dragons	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	2	2
+Mortar	evolution	stat.TID_CHARACTER_GOBLIN.level	16	11
+Mortar	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	425	266
+Mortar	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2188	1369
+Mortar	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:4.7}	{s:4.7}
+Mortar	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Mortar	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	11.5	11.5
+Mortar	normal	stat.TID_SPELL_ATTRIBUTE_DEPLOY_TIME	{s:3.5}	{s:3.5}
+Mortar	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Tesla	evolution	stat.TID_TESLAPULSE_RADIUS	6	6
+Tesla	evolution	stat.TID_TESLAPULSE_DAMAGE	237	148
+Tesla	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	351	220
+Tesla	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	319	199
+Tesla	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1889	1182
+Tesla	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Tesla	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Tesla	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Tesla	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:25}	{s:25}
+Barbarians	evolution	stat.TID_SPELL_ATTRIBUTE_BOOST_DURATION	{s:5}	{s:5}
+Barbarians	evolution	stat.TID_SPELL_ATTRIBUTE_BOOST	+30%	+30%
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	306	192
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	218	137
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1145	716
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.4}	{s:1.4}
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	5	5
+Minion Horde	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	368	230
+Minion Horde	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	171	107
+Minion Horde	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Minion Horde	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Minion Horde	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Minion Horde	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	2.5	2.5
+Minion Horde	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	6	6
+Rascals	normal	stat.TID_CHARACTER_HOODED_THUG.level	16	11
+Rascals	normal	stat.TID_CHARACTER_HOODED_ARCHER.level	16	11
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	613	384
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	437	274
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2143	1341
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.4}	{s:1.4}
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Elite Barbarians	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	2	2
+Heal Spirit	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	175	110
+Heal Spirit	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	343	215
+Heal Spirit	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:1}	{s:1}
+Heal Spirit	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Heal Spirit	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Heal Spirit	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	2.5	2.5
+Suspicious Bush	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	130	81
+Suspicious Bush	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Suspicious Bush	normal	stat.TID_CHARACTER_BUSH_GOBLIN.level	16	11
+Suspicious Bush	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Tombstone	hero	stat.TID_SPELL_ATTRIBUTE_DAMAGE	674	422
+Tombstone	hero	stat.TID_SPELL_ATTRIBUTE_HEALTH	6748	4224
+Tombstone	hero	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.1}	{s:2.1}
+Tombstone	hero	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Tombstone	hero	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Tombstone	hero	stat.TID_SPELL_ATTRIBUTE_DEATH_SPAWN	{t:stat.TID_CHARACTER_SKELETON} x4	{t:stat.TID_CHARACTER_SKELETON} x4
+Tombstone	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	846	529
+Tombstone	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_SPAWN	{t:stat.TID_CHARACTER_SKELETON} x4	{t:stat.TID_CHARACTER_SKELETON} x4
+Tombstone	normal	stat.TID_CHARACTER_SKELETON.level	16	11
+Tombstone	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:4}	{s:4}
+Tombstone	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Mega Minion	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1337	837
+Mega Minion	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	498	312
+Mega Minion	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.5}	{s:1.5}
+Mega Minion	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Mega Minion	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Mega Minion	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Elixir Golem	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	404	253
+Elixir Golem	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	367	229
+Elixir Golem	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2507	1569
+Elixir Golem	normal	stat.TID_CHARACTER_MINI_GOLEM.level	16	11
+Elixir Golem	normal	stat.TID_CHARACTER_MICRO_GOLEM.level	16	11
+Elixir Golem	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Elixir Golem	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Elixir Golem	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Elixir Golem	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Mini P.E.K.K.A	hero	stat.TID_COOKING_TIME	{s:4}-{s:22}	{s:4}-{s:22}
+Mini P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	1206	755
+Mini P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	753	471
+Mini P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2220	1390
+Mini P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.6}	{s:1.6}
+Mini P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Mini P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Mini P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Goblin Hut	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1885	1180
+Goblin Hut	normal	stat.TID_CHARACTER_SPEAR_GOBLIN.level	16	11
+Goblin Hut	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:2.2}	{s:2.2}
+Goblin Hut	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Goblin Hut	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Goblin Hut	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_SPAWN	{t:stat.TID_CHARACTER_SPEAR_GOBLIN} x1	{t:stat.TID_CHARACTER_SPEAR_GOBLIN} x1
+Goblin Hut	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Battle Ram	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	458	286
+Battle Ram	normal	stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE	916	573
+Battle Ram	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1546	967
+Battle Ram	normal	stat.TID_CHARACTER_BARBARIAN.level	16	11
+Battle Ram	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Battle Ram	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Battle Ram	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Flying Machine	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	981	614
+Flying Machine	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	286	179
+Flying Machine	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Flying Machine	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Flying Machine	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Flying Machine	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	429	268
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	214	134
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3067	1920
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2}	{s:2}
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_HEAL_PER_ATTACK	160	
+Battle Healer	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_HEAL	320	
+Furnace	evolution	stat.TID_SPELL_ATTRIBUTE_QUICK_SPAWN_SPEED	{s:2.4}	{s:2.4}
+Furnace	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1161	727
+Furnace	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	286	179
+Furnace	normal	stat.TID_CHARACTER_FIRE_SPIRITS.level	16	11
+Furnace	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:5}	{s:5}
+Furnace	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.7}	{s:1.7}
+Furnace	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Furnace	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Furnace	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Goblin Demolisher	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	298	186
+Goblin Demolisher	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2077	1300
+Goblin Demolisher	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Goblin Demolisher	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Goblin Demolisher	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Goblin Demolisher	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Goblin Demolisher	normal	stat.TID_KAMIKAZE_TRIGGER_HEALTH	50%	50%
+Goblin Demolisher	normal	stat.TID_KAMIKAZE_MODE_TARGETS	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Goblin Demolisher	normal	stat.TID_KAMIKAZE_MODE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	404	253
+Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	269	168
+Giant	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	6339	3968
+Giant	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.5}	{s:1.5}
+Giant	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Giant	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Giant	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Inferno Tower	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	69-1353	43-847
+Inferno Tower	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	172-3382	
+Inferno Tower	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2793	1748
+Inferno Tower	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.4}	{s:0.4}
+Inferno Tower	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Inferno Tower	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Inferno Tower	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	118	74
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	98	61
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1337	837
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Royal Hogs	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	4	4
+Rocket	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	2372	1484
+Rocket	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	546	342
+Rocket	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	2	2
+Barbarian Hut	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1860	1164
+Barbarian Hut	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_SPAWN	{t:stat.TID_CHARACTER_BARBARIAN} x1	{t:stat.TID_CHARACTER_BARBARIAN} x1
+Barbarian Hut	normal	stat.TID_CHARACTER_BARBARIAN.level	16	11
+Barbarian Hut	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:15}	{s:15}
+Barbarian Hut	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:30}	{s:30}
+Elixir Collector	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1709	1070
+Elixir Collector	normal	stat.TID_SPELL_ATTRIBUTE_ELIXIR_TIME	{s:15}	{s:15}
+Elixir Collector	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:110}	{s:110}
+Goblin Curse	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	57	35
+Goblin Curse	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	16	10
+Goblin Curse	normal	stat.TID_CHARACTER_GOBLIN.level	16	11
+Goblin Curse	normal	stat.TID_SPELL_ATTRIBUTE_CURSE_DURATION	{s:6}	{s:6}
+Goblin Curse	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3	3
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	188	117
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	188	117
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	130	81
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_SHIELD_HEALTH	409	256
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1}	{s:1}
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Guards	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Vines	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	245	153
+Vines	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	57	
+Vines	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Vines	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:2}	{s:2}
+Vines	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5	2.5
+Poison	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	147	92
+Poison	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	33	21
+Poison	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:8}	{s:8}
+Poison	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3.5	3.5
+Witch	evolution	stat.TID_SPELL_ATTRIBUTE_HEAL_PER_SKELETON	245	153
+Witch	evolution	stat.TID_SPELL_ATTRIBUTE_MAX_OVERHEAL	2319	1451
+Witch	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	216	135
+Witch	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1341	839
+Witch	normal	stat.TID_CHARACTER_SKELETON.level	16	11
+Witch	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:7}	{s:7}
+Witch	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Witch	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Witch	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Witch	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	625	391
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE	1251	783
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	446	279
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3067	1920
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.4}	{s:1.4}
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Prince	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Bowler	hero	stat.TID_SPELL_ATTRIBUTE_RANGE	11.5	11.5
+Bowler	hero	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	613	384
+Bowler	hero	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	307	192
+Bowler	hero	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.9}	{s:1.9}
+Bowler	hero	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:7.3}	{s:7.3}
+Bowler	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	462	289
+Bowler	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3325	2081
+Bowler	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.5}	{s:2.5}
+Bowler	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Bowler	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Bowler	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	4	4
+Bowler	normal	stat.TID_SPELL_ATTRIBUTE_BULLET_RANGE	7	7
+Void	normal	stat.TID_DAMAGE_WITH_SINGLE_TARGET	1112	696
+Void	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:4}	{s:4}
+Void	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5	2.5
+Goblin Giant	evolution	stat.TID_KAMIKAZE_TRIGGER_HEALTH	50%	50%
+Goblin Giant	evolution	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:2.2}	{s:2.2}
+Goblin Giant	evolution	stat.TID_CHARACTER_GOBLIN.level	16	11
+Goblin Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	282	176
+Goblin Giant	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	188	117
+Goblin Giant	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	4969	3110
+Goblin Giant	normal	stat.TID_CHARACTER_SPEAR_GOBLIN.level	16	11
+Goblin Giant	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.5}	{s:1.5}
+Goblin Giant	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Goblin Giant	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Goblin Giant	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+P.E.K.K.A	evolution	stat.TID_SPELL_ATTRIBUTE_MAX_OVERHEAL	9012	
+P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	1345	842
+P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	747	467
+P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	6008	3760
+P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+P.E.K.K.A	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	498	312
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_DAMAGE	359	225
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	199	124
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	8180	5120
+Golem	normal	stat.TID_CHARACTER_SMALL_GOLEM.level	16	11
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.5}	{s:2.5}
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Golem	normal	stat.TID_SPELL_ATTRIBUTE_DEPLOY_TIME	{s:3}	{s:3}
+Ice Wizard	hero	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5	2.5
+Ice Wizard	hero	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	73	46
+Ice Wizard	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	143	89
+Ice Wizard	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_DAMAGE	134	84
+Ice Wizard	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1100	688
+Ice Wizard	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.7}	{s:1.7}
+Ice Wizard	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Ice Wizard	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Ice Wizard	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Phoenix	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	347	217
+Phoenix	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	347	217
+Phoenix	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1680	1052
+Phoenix	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1}	{s:1}
+Phoenix	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Phoenix	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Phoenix	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_LONG}	{t:stat.TID_MELEE_LONG}
+Mother Witch	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	846	529
+Mother Witch	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	212	133
+Mother Witch	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1}	{s:1}
+Mother Witch	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Mother Witch	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Mother Witch	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Mother Witch	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:5}	{s:5}
+Spirit Empress	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1791	1121
+Spirit Empress	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	511	320
+Spirit Empress	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.4}	{s:1.4}
+Spirit Empress	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Spirit Empress	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Spirit Empress	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Spirit Empress	normal	stat.TID_SPELL_ATTRIBUTE_ALTERNATE_CARD	3	3
+Mega Knight	evolution	stat.TID_SPELL_ATTRIBUTE_DAMAGE	687	430
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	429	268
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_JUMP_DAMAGE	858	537
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_DAMAGE	687	430
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	252	157
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	6380	3993
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_JUMP_RANGE	3.5-5	3.5-5
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.7}	{s:1.7}
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Mega Knight	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Lava Hound	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	5721	3581
+Lava Hound	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	114	71
+Lava Hound	normal	stat.TID_CHARACTER_LAVA_PUPS.level	16	11
+Lava Hound	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.5}	{s:1.5}
+Lava Hound	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Lava Hound	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Lava Hound	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	3.5	3.5
+Archer Queen	champion	stat.TID_AUTOCHESS_SKILL_ATTR_INVISIBLE_TITLE	{s:3.5}	{s:3.5}
+Archer Queen	champion	stat.TID_ABILITY_STAT_FIRE_RATE_BOOST	+180%	+180%
+Archer Queen	champion	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	558	
+Archer Queen	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1599	1000
+Archer Queen	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	372	232
+Archer Queen	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Archer Queen	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Archer Queen	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Archer Queen	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Monk	champion	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:4}	{s:4}
+Monk	champion	stat.TID_ABILITY_DAMAGE_RESISTANCE	65%	65%
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	224	140
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_COMBO_DAMAGE	674	422
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	280	175
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	3537	2214
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.8}	{s:0.8}
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Monk	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Boss Bandit	champion	stat.TID_ABILITY_STAT_COOLDOWN	{s:3}	{s:3}
+Boss Bandit	champion	stat.TID_BOSS_BANDIT_ABILITY_COUNT	2	2
+Boss Bandit	champion	stat.TID_ABILITY_STAT_TELEPORT_RANGE	6	6
+Boss Bandit	champion	stat.TID_AUTOCHESS_SKILL_ATTR_INVISIBLE_TITLE	{s:1}	{s:1}
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	392	245
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DASH_DAMAGE	785	491
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	356	222
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	4192	2624
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_DASH_RANGE	3.5-6	3.5-6
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Boss Bandit	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Fire Spirit	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	343	215
+Fire Spirit	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	343	215
+Fire Spirit	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Fire Spirit	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Fire Spirit	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	2.5	2.5
+Giant Snowball	evolution	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	73	46
+Giant Snowball	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	286	179
+Giant Snowball	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	72	45
+Giant Snowball	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5	2.5
+Firecracker	evolution	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	320	
+Firecracker	evolution	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	24	15
+Firecracker	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	486	304
+Firecracker	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	102 x5	64 x5
+Firecracker	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:3}	{s:3}
+Firecracker	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Firecracker	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Firecracker	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Rage	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	286	179
+Rage	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	73	46
+Rage	normal	stat.TID_SPELL_ATTRIBUTE_DEPLOY_TIME	{s:0.5}	{s:0.5}
+Rage	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:4.5}	{s:4.5}
+Rage	normal	stat.TID_SPELL_ATTRIBUTE_BOOST	+30%	+30%
+Rage	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3	3
+Tornado	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	134	84
+Tornado	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	40	25
+Tornado	normal	stat.TID_SPELL_ATTRIBUTE_DURATION	{s:1}	{s:1}
+Tornado	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	5.5	5.5
+Clone	normal	stat.TID_CLONED_COMMON_LEVEL	16	11
+Clone	normal	stat.TID_CLONED_RARE_LEVEL	16	11
+Clone	normal	stat.TID_CLONED_EPIC_LEVEL	16	11
+Clone	normal	stat.TID_CLONED_LEGENDARY_LEVEL	16	11
+Clone	normal	stat.TID_CLONED_CHAMPION_LEVEL	16	11
+Clone	normal	stat.TID_SPELL_ATTRIBUTE_CLONE_HEALTH	1	
+Clone	normal	stat.TID_SPELL_ATTRIBUTE_CLONE_SHIELD_HEALTH	1	
+Clone	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3	3
+Freeze	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	237	148
+Freeze	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	61	38
+Freeze	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3	3
+Goblin Drill	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	134	84
+Goblin Drill	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	32	20
+Goblin Drill	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2098	1313
+Goblin Drill	normal	stat.TID_SPELL_ATTRIBUTE_SPAWN_TIME	{s:3}	{s:3}
+Goblin Drill	normal	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:10}	{s:10}
+The Log	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	429	268
+The Log	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	56	35
+The Log	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+The Log	normal	stat.TID_SPELL_ATTRIBUTE_WIDTH	3.9	3.9
+The Log	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	10.1	10.1
+Princess	evolution	stat.TID_SPELL_ATTRIBUTE_DEATH_DAMAGE	269	168
+Princess	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	269	168
+Princess	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	417	261
+Princess	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:3}	{s:3}
+Princess	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Princess	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Princess	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	9	9
+Princess	normal	stat.TID_SPELL_ATTRIBUTE_DEPLOY_TIME	{s:1.2}	{s:1.2}
+Bomber	evolution	stat.TID_SPELL_ATTRIBUTE_BOUNCE_COUNT	2	2
+Bomber	evolution	stat.TID_SPELL_ATTRIBUTE_BOUNCE_DAMAGE	339	212
+Bomber	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	339	212
+Bomber	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	486	304
+Bomber	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+Bomber	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Bomber	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Bomber	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	4.5	4.5
+Bats	evolution	stat.TID_SPELL_ATTRIBUTE_HEALTH	196	122
+Bats	evolution	stat.TID_SPELL_ATTRIBUTE_MAX_OVERHEAL	392	245
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	130	81
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	108	67
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	130	81
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Bats	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	5	5
+Dart Goblin	evolution	stat.TID_POISON_DPS	102-490	64-307
+Dart Goblin	evolution	stat.TID_POISON_RADIUS	1.5	1.5
+Dart Goblin	evolution	stat.TID_SPELL_ATTRIBUTE_TOWER_DPS	24-122	15-76
+Dart Goblin	evolution	stat.TID_POISON_DURATION	{s:1}	{s:1}
+Dart Goblin	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	417	261
+Dart Goblin	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	229	143
+Dart Goblin	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.8}	{s:0.8}
+Dart Goblin	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Dart Goblin	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Dart Goblin	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6.5	6.5
+Musketeer	evolution	stat.TID_SNIPER_AMMO	3	3
+Musketeer	evolution	stat.TID_SNIPER_DAMAGE	625	391
+Musketeer	evolution	stat.TID_SNIPER_RANGE	{t:stat.TID_INFINITE_RANGE}	{t:stat.TID_INFINITE_RANGE}
+Musketeer	hero	stat.TID_SPELL_ATTRIBUTE_SPAWN_DAMAGE	327	204
+Musketeer	hero	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:0.5}	{s:0.5}
+Musketeer	hero	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Musketeer	hero	stat.TID_SPELL_ATTRIBUTE_RANGE	4	4
+Musketeer	hero	stat.TID_SPELL_ATTRIBUTE_LIFETIME	{s:10}	{s:10}
+Musketeer	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1153	721
+Musketeer	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	347	217
+Musketeer	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1}	{s:1}
+Musketeer	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Musketeer	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Musketeer	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Fireball	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	1100	688
+Fireball	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	253	
+Fireball	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	2.5	2.5
+Wizard	evolution	stat.TID_SPELL_ATTRIBUTE_SHIELD_HEALTH	282	176
+Wizard	evolution	stat.TID_SHIELD_EXPLOSION_DAMAGE	449	281
+Wizard	hero	stat.TID_VALKEVO_TORNADO_RADIUS	4	4
+Wizard	hero	stat.TID_VALKEVO_TORNADO_DAMAGE	69	43
+Wizard	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	486	304
+Wizard	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1206	755
+Wizard	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.4}	{s:1.4}
+Wizard	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Wizard	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Wizard	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5.5	5.5
+Three Musketeers	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1447	906
+Three Musketeers	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	327	204
+Three Musketeers	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.3}	{s:1.3}
+Three Musketeers	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Three Musketeers	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Three Musketeers	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	6	6
+Three Musketeers	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Baby Dragon	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	269	168
+Baby Dragon	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1840	1152
+Baby Dragon	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.5}	{s:1.5}
+Baby Dragon	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Baby Dragon	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Baby Dragon	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	3.5	3.5
+Executioner	evolution	stat.TID_SPELL_ATTRIBUTE_STRONG_DAMAGE	384 x2	240 x2
+Executioner	evolution	stat.TID_SPELL_ATTRIBUTE_STRONG_RANGE	2.5	2.5
+Executioner	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	286 x2	179 x2
+Executioner	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2045	1280
+Executioner	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.4}	{s:2.4}
+Executioner	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Executioner	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Executioner	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	4.5	4.5
+Executioner	normal	stat.TID_SPELL_ATTRIBUTE_BULLET_RANGE	7	7
+Arrows	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	196 x3	122 x3
+Arrows	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	40 x3	25 x3
+Arrows	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3.5	3.5
+Goblin Gang	normal	stat.TID_CHARACTER_GOBLIN.level	16	11
+Goblin Gang	normal	stat.TID_CHARACTER_SPEAR_GOBLIN.level	16	11
+Hog Rider	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	507	317
+Hog Rider	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	316	198
+Hog Rider	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2711	1697
+Hog Rider	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.6}	{s:1.6}
+Hog Rider	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Hog Rider	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Hog Rider	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Mirror	normal	stat.TID_MIRRORED_COMMON_LEVEL	17	12
+Mirror	normal	stat.TID_MIRRORED_RARE_LEVEL	17	12
+Mirror	normal	stat.TID_MIRRORED_EPIC_LEVEL	17	12
+Mirror	normal	stat.TID_MIRRORED_LEGENDARY_LEVEL	17	12
+Mirror	normal	stat.TID_CLONED_CHAMPION_LEVEL	17	12
+Skeleton Army	normal	stat.TID_CHARACTER_SKELETON.level	16	11
+Skeleton Army	normal	stat.TID_AUTOCHESS_SKILL_ATTR_SKCOUNT_TITLE	15	15
+Goblin Barrel	evolution	stat.TID_CHARACTER_GOBLIN_DUMMY.level	16	11
+Goblin Barrel	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	1.5	1.5
+Goblin Barrel	normal	stat.TID_CHARACTER_GOBLIN.level	16	11
+Balloon	hero	stat.TID_SPELL_ATTRIBUTE_RANGE	6.5	6.5
+Balloon	hero	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	40	25
+Balloon	hero	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	1022	640
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_DAMAGE	384	240
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	511	320
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	2678	1676
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2}	{s:2}
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Balloon	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	441	276
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_DEATH_DAMAGE	1100	688
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	339	212
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	5370	3361
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.3}	{s:1.3}
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Giant Skeleton	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Magic Archer	hero	stat.TID_ABILITY_STAT_TELEPORT_RANGE	3.5	3.5
+Magic Archer	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	216	135
+Magic Archer	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	846	529
+Magic Archer	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Magic Archer	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Magic Archer	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Magic Archer	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	7	7
+Magic Archer	normal	stat.TID_SPELL_ATTRIBUTE_BULLET_RANGE	11	11
+Royal Giant	evolution	stat.TID_SPELL_ATTRIBUTE_DMG_RECOIL	130	81
+Royal Giant	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	5055	3164
+Royal Giant	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	490	307
+Royal Giant	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+Royal Giant	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}
+Royal Giant	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_2}	{t:stat.TID_SPEED_2}
+Royal Giant	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
+Barbarian Barrel	hero	stat.TID_SPELL_ATTRIBUTE_RANGE	3	3
+Barbarian Barrel	hero	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	343	215
+Barbarian Barrel	hero	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	172	108
+Barbarian Barrel	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	343	215
+Barbarian Barrel	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Barbarian Barrel	normal	stat.TID_SPELL_ATTRIBUTE_WIDTH	2.6	2.6
+Barbarian Barrel	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	4.5	4.5
+Barbarian Barrel	normal	stat.TID_CHARACTER_BARBARIAN.level	16	11
+Royal Ghost	evolution	stat.TID_SPELL_ATTRIBUTE_SPAWN_DAMAGE	130	81
+Royal Ghost	normal	stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE	421	263
+Royal Ghost	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	233	146
+Royal Ghost	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1840	1152
+Royal Ghost	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.8}	{s:1.8}
+Royal Ghost	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Royal Ghost	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Royal Ghost	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Hunter	evolution	stat.TID_NET_DURATION	{s:3}	{s:3}
+Hunter	evolution	stat.TID_NET_RANGE	4	4
+Hunter	evolution	stat.TID_NET_COOLDOWN	{s:5}	{s:5}
+Hunter	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1415	885
+Hunter	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	134 x10	84 x10
+Hunter	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:2.2}	{s:2.2}
+Hunter	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Hunter	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Hunter	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	4	4
+Hunter	normal	stat.TID_SPELL_ATTRIBUTE_BULLET_RANGE	6.5	6.5
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	310	194
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	238	149
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1390	870
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_ATTACK_RANGE	3.5-7	3.5-7
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.3}	{s:1.3}
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_3}	{t:stat.TID_SPEED_3}
+Fisherman	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}
+Lightning	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	1689	1057
+Lightning	normal	stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE	423	265
+Lightning	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Lightning	normal	stat.TID_SPELL_ATTRIBUTE_RADIUS	3.5	3.5
+Skeletons	evolution	stat.TID_SPELL_ATTRIBUTE_MAX_GROUP_SIZE	8	8
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	130	81
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	118	73
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	130	81
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.1}	{s:1.1}
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_CLOSE}	{t:stat.TID_MELEE_CLOSE}
+Skeletons	normal	stat.TID_SPELL_ATTRIBUTE_COUNT	3	3
+Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	343	215
+Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE	159	99
+Electro Spirit	normal	stat.TID_TYPE_CHAINED_ATTACKS	9	9
+Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}
+Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}
+Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	2.5	2.5

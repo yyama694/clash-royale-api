@@ -10,6 +10,7 @@ import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.BattleResult;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
+import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.DeckWinRates;
@@ -29,6 +30,7 @@ import com.example.clashroyaleapi.web.view.ClanWarView;
 import com.example.clashroyaleapi.web.view.CardCollectionView;
 import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardOptionView;
+import com.example.clashroyaleapi.web.view.CardStatsView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
 import com.example.clashroyaleapi.web.view.ClanRankingRowView;
@@ -50,6 +52,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Arrays;
@@ -817,6 +820,50 @@ class ViewMapperTest {
 
         assertEquals(List.of(60, 50, 49, 40), views.stream().map(WinRateDeckView::winRatePercent).toList());
         assertEquals(List.of(false, false, true, false), views.stream().map(WinRateDeckView::firstBelowHalf).toList());
+    }
+
+    @Test
+    void カードのステータスの秒と言葉と小数点は表示言語に合わせる() {
+        // 秒と言葉はゲームの表記を messages に写してあるので、本番と同じ ICU のメッセージソースで組み立てる。
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+
+        assertEquals("1.8秒", mapper.statValue("{s:1.8}", Locale.JAPANESE));
+        assertEquals("1.8sec", mapper.statValue("{s:1.8}", Locale.ENGLISH));
+        assertEquals("1,8s", mapper.statValue("{s:1.8}", Locale.GERMAN));
+        assertEquals("4秒-22秒", mapper.statValue("{s:4}-{s:22}", Locale.JAPANESE));
+        assertEquals("1.1秒 x2", mapper.statValue("{s:1.1} x2", Locale.JAPANESE));
+        // ゲームの表記どおり全角の「／」
+        assertEquals("空中／地上", mapper.statValue("{t:stat.TID_TARGETS_AIR_AND_GROUND}", Locale.JAPANESE));
+        assertEquals("Air & Ground", mapper.statValue("{t:stat.TID_TARGETS_AIR_AND_GROUND}", Locale.ENGLISH));
+        assertEquals("6,5", mapper.statValue("6.5", Locale.GERMAN));
+        assertEquals("3,5-6", mapper.statValue("3.5-6", Locale.FRENCH));
+        // ゲームの画面どおり、大きな数に桁区切りは入れない
+        assertEquals("5743", mapper.statValue("5743", Locale.GERMAN));
+        assertEquals("102-490", mapper.statValue("102-490", Locale.ENGLISH));
+        assertNull(mapper.statValue(null, Locale.JAPANESE));
+    }
+
+    @Test
+    void カードのステータスは通常_スキル_限界突破_ヒーローの順に分け載っていないカードは欄ごと出さない() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        List<CardStats.Row> rows = List.of(
+                new CardStats.Row(CardStats.Form.HERO, "stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND", "408 x2", null),
+                new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_HEALTH", "1153", "721"),
+                new CardStats.Row(CardStats.Form.EVOLUTION, "stat.TID_SNIPER_AMMO", "3", "3"));
+
+        CardStatsView view = mapper.toCardStats(rows, LocalDate.of(2026, 10, 25), Locale.JAPANESE);
+
+        assertEquals(3, view.sections().size());
+        assertNull(view.sections().get(0).heading());
+        assertEquals(new CardStatsView.Row("ヒットポイント", "1153", "721"), view.sections().get(0).rows().get(0));
+        assertEquals("限界突破", view.sections().get(1).heading());
+        assertEquals("スキル(ヒーロー)", view.sections().get(2).heading());
+        assertNull(view.sections().get(2).rows().get(0).level11());
+        assertTrue(view.notice().startsWith("2026年10月25日にゲーム内の"), view.notice());
+        assertTrue(view.notice().contains("レベル11(チャレンジレベル)"), view.notice());
+        assertNull(mapper.toCardStats(List.of(), LocalDate.of(2026, 10, 25), Locale.JAPANESE));
     }
 
     private static DeckWinRates.DeckRecord winRateDeck(int wins, int battles) {

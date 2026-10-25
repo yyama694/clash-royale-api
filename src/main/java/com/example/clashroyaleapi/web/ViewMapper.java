@@ -17,6 +17,7 @@ import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
 import com.example.clashroyaleapi.domain.CardMatchups;
+import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanType;
 import com.example.clashroyaleapi.domain.ClanWarHistory;
@@ -60,6 +61,7 @@ import com.example.clashroyaleapi.web.view.CardDetailView;
 import com.example.clashroyaleapi.web.view.CardMatchupsView;
 import com.example.clashroyaleapi.web.view.CardOptionView;
 import com.example.clashroyaleapi.web.view.CardPerformanceView;
+import com.example.clashroyaleapi.web.view.CardStatsView;
 import com.example.clashroyaleapi.web.view.CardUsageView;
 import com.example.clashroyaleapi.web.view.CardView;
 import com.example.clashroyaleapi.web.view.ClanJoinView;
@@ -131,6 +133,8 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -143,6 +147,8 @@ public class ViewMapper {
     // 船のバトルは守備側を本人が操作せず、消費漏れも7割が0だった(2026-10-18に279戦で確認)ので、消費漏れを出さない。
     private static final String BOAT_BATTLE_TYPE = "boatBattle";
     private static final String TILES = "tiles";
+    private static final Pattern STAT_TOKEN = Pattern.compile("\\{([st]):([^}]+)}");
+    private static final Pattern DECIMAL = Pattern.compile("\\d+\\.\\d+");
 
     private final LabelResolver labels;
     private final CountryNames countryNames;
@@ -346,6 +352,75 @@ public class ViewMapper {
                 card.elixirCost(),
                 CardLevel.inGame(1, card.maxLevel()),
                 CardLevel.inGame(card.maxLevel(), card.maxLevel()));
+    }
+
+    /** 載っていないカード(タワーユニットなど)は null(欄ごと出さない)。 */
+    public CardStatsView toCardStats(List<CardStats.Row> rows, LocalDate asOf, Locale locale) {
+        if (rows.isEmpty()) {
+            return null;
+        }
+        Map<CardStats.Form, List<CardStatsView.Row>> byForm = new LinkedHashMap<>();
+        for (CardStats.Form form : CardStats.Form.values()) {
+            byForm.put(form, new ArrayList<>());
+        }
+        for (CardStats.Row row : rows) {
+            byForm.get(row.form()).add(new CardStatsView.Row(labels.message(row.labelKey(), locale),
+                    statValue(row.level16(), locale), statValue(row.level11(), locale)));
+        }
+        String ability = labels.message("stat.TID_ABILITY", locale);
+        List<CardStatsView.Section> sections = new ArrayList<>();
+        addStatsSection(sections, null, null, byForm.get(CardStats.Form.NORMAL));
+        addStatsSection(sections, ability, null, byForm.get(CardStats.Form.CHAMPION));
+        addStatsSection(sections, labels.message("card.evolution", locale),
+                labels.message("cardStats.evolution.lead", locale), byForm.get(CardStats.Form.EVOLUTION));
+        addStatsSection(sections, labels.message("cardStats.section.hero", locale, ability,
+                labels.message("card.hero", locale)), null, byForm.get(CardStats.Form.HERO));
+        return new CardStatsView(labels.message("cardStats.notice", locale, utcNoon(asOf),
+                labels.message("stat.TID_BUTTON_TOURNAMENT_LEVEL", locale)), sections);
+    }
+
+    private static void addStatsSection(List<CardStatsView.Section> sections, String heading, String lead,
+            List<CardStatsView.Row> rows) {
+        if (!rows.isEmpty()) {
+            sections.add(new CardStatsView.Section(heading, lead, rows));
+        }
+    }
+
+    /**
+     * cards/stats.tsv の値を表示言語に合わせる。{@code {s:1.8}} は秒(ゲームの表記 "1.8sec"・"1.8秒")、
+     * {@code {t:キー}} は言葉("空中/地上" など)。小数点も言語に合わせる(ドイツ語などは "6,5")。
+     */
+    String statValue(String raw, Locale locale) {
+        if (raw == null) {
+            return null;
+        }
+        Matcher m = STAT_TOKEN.matcher(raw);
+        StringBuilder out = new StringBuilder();
+        int last = 0;
+        while (m.find()) {
+            out.append(localizeDecimals(raw.substring(last, m.start()), locale));
+            out.append(m.group(1).equals("s")
+                    ? labels.message("stat.TID_VALUE_SECONDS", locale, decimal(m.group(2), locale))
+                    : labels.message(m.group(2), locale));
+            last = m.end();
+        }
+        return out.append(localizeDecimals(raw.substring(last), locale)).toString();
+    }
+
+    private static String localizeDecimals(String text, Locale locale) {
+        Matcher m = DECIMAL.matcher(text);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            m.appendReplacement(out, Matcher.quoteReplacement(decimal(m.group(), locale)));
+        }
+        return m.appendTail(out).toString();
+    }
+
+    private static String decimal(String number, Locale locale) {
+        NumberFormat format = NumberFormat.getNumberInstance(locale);
+        format.setGroupingUsed(false);
+        format.setMaximumFractionDigits(2);
+        return format.format(new BigDecimal(number));
     }
 
     /**

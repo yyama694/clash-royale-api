@@ -2721,6 +2721,42 @@ td.cell-action {
     flex: 1 1 260px;
 }
 
+/*
+  カード詳細画面のステータス。レベル16とレベル11をラジオボタン(見えない)で切り替え、選んだ方の値だけを出す。
+  切り替えはタブ(.tabs .tab)と同じ見た目にする。
+*/
+.stats-body .stats-level11,
+#stats-level11:checked ~ .stats-body .stats-level16 {
+    display: none;
+}
+
+#stats-level11:checked ~ .stats-body .stats-level11 {
+    display: inline;
+}
+
+#stats-level16:checked ~ .stats-level-switch label[for="stats-level16"],
+#stats-level11:checked ~ .stats-level-switch label[for="stats-level11"] {
+    color: var(--color-link);
+    border-bottom-color: var(--color-link);
+}
+
+/* ラジオボタン自体は見えないので、キーボードで選んでいるときは切り替えのタブに枠を出す */
+#stats-level16:focus-visible ~ .stats-level-switch label[for="stats-level16"],
+#stats-level11:focus-visible ~ .stats-level-switch label[for="stats-level11"] {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+.stats-body h3 {
+    margin: 1.25rem 0 0.5rem;
+}
+
+.stats-lead {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
 /* バランス調整。カードの画像と変更の内容を横に並べる。 */
 .balance-list {
     list-style: none;

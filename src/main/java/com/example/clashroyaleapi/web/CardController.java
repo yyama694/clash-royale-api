@@ -2,9 +2,11 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.domain.BalanceUpdate;
+import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.service.BalanceService;
 import com.example.clashroyaleapi.service.CardService;
+import com.example.clashroyaleapi.service.CardStatsService;
 import com.example.clashroyaleapi.service.CardUsageService;
 import com.example.clashroyaleapi.service.TopBattleService;
 import com.example.clashroyaleapi.service.TopPlayerDeckService;
@@ -40,10 +42,12 @@ public class CardController {
     private final TimeFormatter timeFormatter;
     private final BalanceService balanceService;
     private final TopBattleService topBattleService;
+    private final CardStatsService cardStatsService;
 
     public CardController(CardService cardService, CardUsageService cardUsageService,
             TopPlayerDeckService topPlayerDeckService, ViewMapper viewMapper, PageSummaries pageSummaries,
-            TimeFormatter timeFormatter, BalanceService balanceService, TopBattleService topBattleService) {
+            TimeFormatter timeFormatter, BalanceService balanceService, TopBattleService topBattleService,
+            CardStatsService cardStatsService) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.topPlayerDeckService = topPlayerDeckService;
@@ -52,6 +56,7 @@ public class CardController {
         this.timeFormatter = timeFormatter;
         this.balanceService = balanceService;
         this.topBattleService = topBattleService;
+        this.cardStatsService = cardStatsService;
     }
 
     @GetMapping("/cards")
@@ -88,6 +93,8 @@ public class CardController {
         Map<Integer, CardsResponse.Card> cardsById = cardService.allById();
         model.addAttribute("card", card);
         model.addAttribute("pageTitle", pageSummaries.cardTitle(card.name(), locale));
+        CardStats stats = cardStatsService.stats();
+        model.addAttribute("cardStats", viewMapper.toCardStats(stats.of(card.englishName()), stats.asOf(), locale));
         // 初回の集計が終わるまで(デプロイ直後の1時間ほど)は、使用率の欄ごと出さない。説明文もサイト共通のものになる。
         cardUsageService.current().ifPresent(usage -> {
             CardUsageView usageView = viewMapper.toCardUsage(usage, id, cardsById, locale);

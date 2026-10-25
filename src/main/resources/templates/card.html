@@ -41,6 +41,34 @@
             <p th:replace="~{fragments/layout :: notice(#{card.notice})}"></p>
         </div>
 
+        <!--/*
+          ステータス(ゲーム内のカード情報の画面から読み取ったもの)。レベル16とレベル11をラジオボタンで切り替える。
+          JSは使わず、表より前の兄弟に置いたラジオボタンの :checked から CSS で列を出し分ける。
+        */-->
+        <section class="card" id="stats" th:if="${cardStats}">
+            <h2 th:text="#{cardStats.heading}"></h2>
+            <input class="visually-hidden stats-level" type="radio" name="stats-level" id="stats-level16" checked>
+            <input class="visually-hidden stats-level" type="radio" name="stats-level" id="stats-level11">
+            <div class="tabs stats-level-switch" role="group" th:aria-label="#{cardStats.levelSwitch}">
+                <label class="tab" for="stats-level16" th:text="#{stat.TID_SPELL_ITEM_LEVEL(16)}"></label>
+                <label class="tab" for="stats-level11" th:text="#{stat.TID_SPELL_ITEM_LEVEL(11)}"></label>
+            </div>
+            <div class="stats-body">
+                <th:block th:each="s : ${cardStats.sections()}">
+                    <h3 th:if="${s.heading() != null}" th:text="${s.heading()}"></h3>
+                    <p th:if="${s.lead() != null}" class="stats-lead" th:text="${s.lead()}"></p>
+                    <ul class="stat-grid stat-grid-compact">
+                        <li th:each="r : ${s.rows()}">
+                            <span class="label" th:text="${r.label()}"></span>
+                            <span class="value stats-level16" th:text="${r.level16()}"></span>
+                            <span class="value stats-level11" th:text="${r.level11() ?: '—'}"></span>
+                        </li>
+                    </ul>
+                </th:block>
+            </div>
+            <p th:replace="~{fragments/layout :: notice(${cardStats.notice()})}"></p>
+        </section>
+
         <div th:if="${usage}" class="card">
             <h2 th:text="#{cardUsage.heading}"></h2>
             <ul class="stat-grid">

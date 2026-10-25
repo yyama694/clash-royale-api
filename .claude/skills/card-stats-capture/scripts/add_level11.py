@@ -87,6 +87,9 @@ def main(l16_path, read_path, out_path):
             and r['value16'].isdigit() and int(int(d['value16']) / float(sp['value16'][:-1])) == int(r['value16'])
         if ok:
             r['value11'], r['how11'] = str(int(int(d['value11']) / float(sp['value16'][:-1]))), 'damage / hit speed'
+        elif r['note'].startswith('derived'):
+            # the L15 "+n" already showed that this value does not follow the multipliers
+            r['value11'], r['how11'] = None, 'unknown (neither damage / hit speed nor the multipliers fit)'
         else:
             nums, suffix = parts(r['value16'])
             r['value11'] = join([scaled11(int(n)) for n in nums], suffix) if nums else None
@@ -113,9 +116,7 @@ def main(l16_path, read_path, out_path):
                 if s16 - s16 * p // 100 == t16:
                     answers.add(s11 - s11 * p // 100)
                     how.append(f'{p}%')
-        if r['level'] == '15' and r['plus']:
-            pass  # the L16 value already came from the screen; the scaled rule is checked below
-        b = base_from(t16)
+        b = None if r['note'].startswith('derived') else base_from(t16)
         if b is not None:
             answers.add(b * MULT[11] // 100)
             how.append('scaled')
