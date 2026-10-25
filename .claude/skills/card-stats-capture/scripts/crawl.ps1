@@ -91,9 +91,18 @@ function Fail($msg, $bmp) {
   if ($bmp) { $bmp.Save($f, [System.Drawing.Imaging.ImageFormat]::Png) }
   throw "STOP: $msg (screen saved to $f)"
 }
+# A hero's entrance animation dims the whole dialog, close button included, for a moment,
+# so look again for about 2.5 seconds before deciding the dialog is gone
+function GrabInDialog($what) {
+  for ($i = 0; $i -lt 8; $i++) {
+    $b = Grab
+    if (DialogKind $b) { return $b }
+    if ($i -eq 7) { Fail "info dialog is not open ($what)" $b }
+    $b.Dispose(); Start-Sleep -Milliseconds 300
+  }
+}
 function RequireDialog {
-  $b = Grab; $k = DialogKind $b
-  if (-not $k) { Fail "info dialog is not open" $b }
+  $b = GrabInDialog 'before an action'; $k = DialogKind $b
   $b.Dispose(); return $k
 }
 function Save($bmp, $name) { $bmp.Save((Join-Path $OutDir $name), [System.Drawing.Imaging.ImageFormat]::Png) }
@@ -106,7 +115,7 @@ function IsGreen($c) { $c.G -gt 170 -and $c.R -lt 120 -and $c.B -lt 120 }
 function FindMenu($bmp, $cx, $cy) {
   $bx = [Math]::Max(5, $cx - 35)
   $runTop = -1; $yTop = -1
-  for ($y = $cy + 60; $y -le [Math]::Min(990, $cy + 280); $y++) {
+  for ($y = [Math]::Max(0, $cy + 60); $y -le [Math]::Min(990, $cy + 280); $y++) {
     if (IsYellow ($bmp.GetPixel($bx, $y))) { if ($runTop -lt 0) { $runTop = $y } }
     elseif ($runTop -ge 0) {
       if (($y - 1 - $runTop) -ge 25) { $yTop = $runTop; break }
@@ -115,7 +124,7 @@ function FindMenu($bmp, $cx, $cy) {
   }
   if ($yTop -lt 0) { return @{ kind = 'none' } }
   $blue = 0; $green = 0; $bMin = 9999; $bMax = -1; $gMin = 9999; $gMax = -1
-  for ($y = $yTop - 70; $y -le $yTop - 8; $y += 2) { for ($x = [Math]::Max(0, $cx - 60); $x -le [Math]::Min(558, $cx + 60); $x += 3) {
+  for ($y = [Math]::Max(0, $yTop - 70); $y -le $yTop - 8; $y += 2) { for ($x = [Math]::Max(0, $cx - 60); $x -le [Math]::Min(558, $cx + 60); $x += 3) {
     $c = $bmp.GetPixel($x, $y)
     if (IsBlue $c) { $blue++; $bMin = [Math]::Min($bMin, $y); $bMax = [Math]::Max($bMax, $y) }
     elseif (IsGreen $c) { $green++; $gMin = [Math]::Min($gMin, $y); $gMax = [Math]::Max($gMax, $y) } } }
@@ -199,9 +208,7 @@ foreach ($pair in $Cards.Split(';')) {
 
   Click $cx $menu.y
   Start-Sleep -Milliseconds 1300
-  $b = Grab
-  $kind = DialogKind $b
-  if (-not $kind) { Fail "info dialog did not open for card $tag" $b }
+  $b = GrabInDialog "opening card $tag"
   Save $b "${tag}_opened.png"
   $tabs = Tabs $b
   $b.Dispose()
@@ -223,8 +230,7 @@ foreach ($pair in $Cards.Split(';')) {
     }
     for ($p = 1; $p -le 8; $p++) {
       Start-Sleep -Milliseconds 350
-      $b = Grab
-      if (-not (DialogKind $b)) { Fail "dialog closed while paging card $tag tab $t" $b }
+      $b = GrabInDialog "paging card $tag tab $t"
       Save $b "${tag}_${t}_p$p.png"
       $dot = ActiveDotX $b
       if ($dot -lt 0) { "warning: page dots not found on card $tag tab $t page $p" }
@@ -232,8 +238,7 @@ foreach ($pair in $Cards.Split(';')) {
         $before = Signature $b 60 500 520 800
         Drag 280 740 280 590 20 20 200
         Start-Sleep -Milliseconds 500
-        $b2 = Grab
-        if (-not (DialogKind $b2)) { Fail "dialog closed after scrolling card $tag tab $t" $b2 }
+        $b2 = GrabInDialog "scrolling card $tag tab $t"
         if ((SigDiff $before (Signature $b2 60 500 520 800)) -gt 4) { Save $b2 "${tag}_${t}_p${p}_scrolled.png" }
         $b2.Dispose()
       }
