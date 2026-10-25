@@ -109,14 +109,16 @@ function Save($bmp, $name) { $bmp.Save((Join-Path $OutDir $name), [System.Drawin
 
 function IsGreen($c) { $c.G -gt 170 -and $c.R -lt 120 -and $c.B -lt 120 }
 
-# The card's menu: the yellow "use" button, and above it either the blue "info" button or, for an
-# upgradable card, a green "upgrade" button (costs gold). Anchoring on the yellow button keeps the
-# green progress bar under an upgradable card from being taken for the upgrade button.
+# The card's menu: the yellow "use" button (red "remove" for a card in the deck), and above it either
+# the blue "info" button or, for an upgradable card, a green "upgrade" button that only opens the info
+# dialog. Anchoring on the lower button keeps the green progress bar under an upgradable card from
+# being taken for the upgrade button. The lower button itself is never pressed.
 function FindMenu($bmp, $cx, $cy) {
   $bx = [Math]::Max(5, $cx - 35)
   $runTop = -1; $yTop = -1
   for ($y = [Math]::Max(0, $cy + 60); $y -le [Math]::Min(990, $cy + 280); $y++) {
-    if (IsYellow ($bmp.GetPixel($bx, $y))) { if ($runTop -lt 0) { $runTop = $y } }
+    $c = $bmp.GetPixel($bx, $y)
+    if ((IsYellow $c) -or (IsRed $c)) { if ($runTop -lt 0) { $runTop = $y } }
     elseif ($runTop -ge 0) {
       if (($y - 1 - $runTop) -ge 25) { $yTop = $runTop; break }
       $runTop = -1
