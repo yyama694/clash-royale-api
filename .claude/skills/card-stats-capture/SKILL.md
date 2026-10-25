@@ -159,7 +159,8 @@ PIDは`(Get-Process crosvm | Where-Object { $_.MainWindowTitle -match 'Clash Roy
 - **2026-10-25 20:30ごろ: サイトに組み込んだ(worktree `card-stats`、ブランチ `worktree-card-stats`。まだmasterに入れていない)**。
   - データ: `src/main/resources/cards/stats.tsv`(929行・123枚)。項目名と言葉は`messages*.properties`の末尾の`stat.*`(147キー×10言語。ゲームの`texts.csv`の公式の表記)。どちらも`build_site_stats.py`→`install_site_stats.py`で作る(手で直さない)。
   - 画面: カード詳細画面の最初の枠の下に「ステータス」。レベル16/レベル11のタブ(CSSだけで切り替え)、通常→チャンピオンのスキル→限界突破(通常と違う・増える項目だけ)→ヒーローのスキル。レベル11が求められない項目は「—」。
-  - 公式の訳が無い項目(93行)は出していない。**ヒーローの能力は18枚中16枚、限界突破は43枚中17枚で一部の項目が欠ける**(マスケット銃士の砲台のHP・ダメージなど)。どう見せるかをユーザーに確認中。
+  - 公式の訳が無い項目(92行。ヒーローの能力は18枚中16枚、限界突破は43枚中17枚で一部の項目)は、**日本語の画面にだけ、日本語の画面の表記のまま出す**(2026-10-25にユーザーが決定)。`stats.tsv`の6列目が`ja`で、項目名は`=`の後ろにそのまま書く。ほかの言語は、ゲームの言語を切り替えてその項目を撮れば足せる(未着手)。
+  - ローカルでの確かめ: 起動は`CARD_USAGE_ENABLED=false RANKING_HISTORY_ENABLED=false mvn -q spring-boot:run`(`balance-update`スキルと同じ)。**素の`mvn spring-boot:run`だとデッキ集計(1000人分)が始まり、ローカルのAPIキーで公式APIを呼び続ける**(2026-10-25に一度やった。2分ほどで止めた)。
   - 生成の手順(読み取り直したとき):
     ```
     python -X utf8 -I scripts/to_level16.py <dir>/stats.tsv <dir>/stats_l16.tsv

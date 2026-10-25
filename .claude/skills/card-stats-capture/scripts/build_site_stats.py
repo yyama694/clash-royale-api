@@ -6,8 +6,8 @@ outputs: <out_dir>/stats.tsv            -> src/main/resources/cards/stats.tsv
          and a report of what was left out (no official wording, unknown card, ...)
 
 Only labels and words found in texts.csv are used, so every language shows the game's own wording
-(CLAUDE.md: translations are backed by the official text). Rows without such wording are left out
-and listed in the report.
+(CLAUDE.md: translations are backed by the official text). Rows without such wording are shown on the
+Japanese page only, as read from the Japanese screen, and listed in the report.
 
 usage: python -X utf8 -I build_site_stats.py <stats_l11_l16.tsv> <texts.csv> <messages_ja.properties> <out_dir> <as-of yyyy-mm-dd>
   as-of: the day the screens were read (shown on the site)
@@ -24,12 +24,13 @@ LANGS = {'en': 'EN', 'ja': 'JP', 'es': 'ES', 'pt': 'PT', 'de': 'DE', 'fr': 'FR',
 FORMS = {'n': 'normal', 'e': 'evolution', 'hs': 'hero', 'cs': 'champion'}
 LEVEL_TEMPLATE = 'TID_SPELL_ATTRIBUTE_SPAWN_CHARACTER_LEVEL'
 SECONDS = 'TID_VALUE_SECONDS'
+# Screen text that only points at another screen (the Wall Breakers evolution's "Runner (i)")
+NOT_A_VALUE = {'(詳細はiボタン)'}
 # Words the page uses around the table: "Ability" (champion/hero section), "Challenge Level" (level 11)
 # and "Level <n>" (the level switch)
 EXTRA = ['TID_ABILITY', 'TID_BUTTON_TOURNAMENT_LEVEL', 'TID_SPELL_ITEM_LEVEL']
 # Messages with a <placeholder>, which becomes the ICU argument {0}
 WITH_ARGUMENT = {SECONDS, 'TID_SPELL_ITEM_LEVEL'}
-SECONDS = 'TID_VALUE_SECONDS'
 # When one Japanese label matches several TIDs, the first prefix in this list wins
 PREFERRED = ['TID_SPELL_ATTRIBUTE_', 'TID_ABILITY_STAT_', 'TID_TYPE_', 'TID_TARGETS_', 'TID_SPEED_', 'TID_MELEE_',
              'TID_CHARACTER_']
@@ -195,20 +196,27 @@ def main(stats_path, texts_path, messages_ja, out_dir, as_of):
         if not card:
             b.problems['card: ' + r['card']] += 1
             continue
+        if r['value16'] in NOT_A_VALUE:
+            left_out.append(f"{card}\t{r['form']}\t{r['item']}\t{r['value16']}\tnot a value")
+            continue
         key = b.label(card, r['item'])
         v16, v11 = b.value(r['value16'], r['item']), b.value(r['value11'], r['item'])
         if key is None or v16 is None or (r['value11'] and v11 is None):
+            # The Japanese screen is itself the official wording, so the Japanese page shows the row as read
+            # (2026-10-25, the user's decision); other languages leave it out until it can be backed
             left_out.append(f"{card}\t{r['form']}\t{r['item']}\t{r['value16']}\t" +
                             ('no official label' if key is None else 'no official wording for the value'))
+            out.append((card, FORMS[r['form']], '=' + r['item'], r['value16'], r['value11'], 'ja'))
             continue
-        out.append((card, FORMS[r['form']], key, v16, v11))
+        out.append((card, FORMS[r['form']], key, v16, v11, ''))
 
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, 'stats.tsv'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('# カードのステータス。ゲーム内のカード情報の画面から読み取り、レベル16とレベル11の値にしたもの。\n')
         f.write('# 作り方は .claude/skills/card-stats-capture (このファイルは build_site_stats.py が書き出す。手で直さない)。\n')
-        f.write('# card<TAB>form(normal|evolution|hero|champion)<TAB>項目のメッセージキー<TAB>レベル16の値<TAB>レベル11の値(空=求められない)\n')
+        f.write('# card<TAB>form(normal|evolution|hero|champion)<TAB>項目のメッセージキー<TAB>レベル16の値<TAB>レベル11の値(空=求められない)<TAB>言語(空=全言語)\n')
         f.write('# 値の {s:1.8} は秒(stat.TID_VALUE_SECONDS)、{t:キー} はその言葉のメッセージ。並びはゲームの画面の順\n')
+        f.write('# 言語が ja の行は公式の訳が無い項目で、日本語の画面にだけ出す。項目名(=の後)と値はゲームの日本語の表記のまま\n')
         f.write(f'@asof\t{as_of}\n')
         for row in out:
             f.write('\t'.join(row) + '\n')
@@ -222,7 +230,8 @@ def main(stats_path, texts_path, messages_ja, out_dir, as_of):
     with open(os.path.join(out_dir, 'left_out.tsv'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(left_out) + '\n')
     empty = [k for k, v in b.messages.items() for lang in LANGS if not v[lang]]
-    print(f'rows: {len(out)}  left out: {len(left_out)}  message keys: {len(b.messages)}  cards: {len({r[0] for r in out})}')
+    print(f'rows: {len(out)} (Japanese only: {sum(1 for r in out if r[5])})  not in other languages: {len(left_out)}'
+          f'  message keys: {len(b.messages)}  cards: {len({r[0] for r in out})}')
     print('problems:', dict(b.problems))
     print('empty translations:', empty)
 

@@ -354,7 +354,10 @@ public class ViewMapper {
                 CardLevel.inGame(card.maxLevel(), card.maxLevel()));
     }
 
-    /** 載っていないカード(タワーユニットなど)は null(欄ごと出さない)。 */
+    /**
+     * 載っていないカード(タワーユニットなど)は null(欄ごと出さない)。公式の訳が無い項目は日本語の画面にだけ出す
+     * (項目名は日本語の画面の表記そのままなので、データに直接書いてある)。
+     */
     public CardStatsView toCardStats(List<CardStats.Row> rows, LocalDate asOf, Locale locale) {
         if (rows.isEmpty()) {
             return null;
@@ -364,8 +367,13 @@ public class ViewMapper {
             byForm.put(form, new ArrayList<>());
         }
         for (CardStats.Row row : rows) {
-            byForm.get(row.form()).add(new CardStatsView.Row(labels.message(row.labelKey(), locale),
-                    statValue(row.level16(), locale), statValue(row.level11(), locale)));
+            if (!row.shownIn(locale.getLanguage())) {
+                continue;
+            }
+            String label = row.labelKey().startsWith("=") ? row.labelKey().substring(1)
+                    : labels.message(row.labelKey(), locale);
+            byForm.get(row.form()).add(new CardStatsView.Row(label, statValue(row.level16(), locale),
+                    statValue(row.level11(), locale)));
         }
         String ability = labels.message("stat.TID_ABILITY", locale);
         List<CardStatsView.Section> sections = new ArrayList<>();

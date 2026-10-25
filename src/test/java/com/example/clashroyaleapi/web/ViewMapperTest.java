@@ -849,9 +849,10 @@ class ViewMapperTest {
         ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
                 mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
         List<CardStats.Row> rows = List.of(
-                new CardStats.Row(CardStats.Form.HERO, "stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND", "408 x2", null),
-                new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_HEALTH", "1153", "721"),
-                new CardStats.Row(CardStats.Form.EVOLUTION, "stat.TID_SNIPER_AMMO", "3", "3"));
+                new CardStats.Row(CardStats.Form.HERO, "stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND", "408 x2", null, null),
+                new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_HEALTH", "1153", "721", null),
+                new CardStats.Row(CardStats.Form.HERO, "=砲台のヒットポイント", "2454", "1536", "ja"),
+                new CardStats.Row(CardStats.Form.EVOLUTION, "stat.TID_SNIPER_AMMO", "3", "3", null));
 
         CardStatsView view = mapper.toCardStats(rows, LocalDate.of(2026, 10, 25), Locale.JAPANESE);
 
@@ -861,6 +862,9 @@ class ViewMapperTest {
         assertEquals("限界突破", view.sections().get(1).heading());
         assertEquals("スキル(ヒーロー)", view.sections().get(2).heading());
         assertNull(view.sections().get(2).rows().get(0).level11());
+        // 公式の訳が無い項目は日本語の画面にだけ、日本語の画面の表記のまま出す
+        assertEquals(new CardStatsView.Row("砲台のヒットポイント", "2454", "1536"), view.sections().get(2).rows().get(1));
+        assertEquals(1, mapper.toCardStats(rows, LocalDate.of(2026, 10, 25), Locale.ENGLISH).sections().get(2).rows().size());
         assertTrue(view.notice().startsWith("2026年10月25日にゲーム内の"), view.notice());
         assertTrue(view.notice().contains("レベル11(チャレンジレベル)"), view.notice());
         assertNull(mapper.toCardStats(List.of(), LocalDate.of(2026, 10, 25), Locale.JAPANESE));
