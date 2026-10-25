@@ -27,17 +27,17 @@ class CardMatchupsTest {
     }
 
     @Test
-    void そのカード入りのデッキに全体より勝率が高かったカードを出す() {
+    void そのカード入りのデッキの勝率が全体より高い相手を得意_低い相手を苦手に出す() {
         List<TopBattle> battles = new ArrayList<>();
-        // 11は両方のデッキにあるので、11と1の組は数えない。
-        add(battles, 150, List.of(10, 11), List.of(1, 11), 120);
-        add(battles, 150, List.of(20), List.of(1), 60);
-        // 100戦に満たない組み合わせは、勝率が高くても出さない。
-        add(battles, 99, List.of(30), List.of(1), 99);
+        // 11は両方のデッキにあるので、1と11の組は数えない。
+        add(battles, 150, List.of(1, 11), List.of(10, 11), 30);
+        add(battles, 150, List.of(1), List.of(20), 90);
+        // 100戦に満たない組み合わせは、勝率が高くても低くても出さない。
+        add(battles, 99, List.of(1), List.of(30), 0);
         // 引き分けは数えない。
         for (int i = 0; i < 10; i++) {
-            battles.add(new TopBattle(START.plusSeconds(10_000 + i), new TopBattle.Side("#D" + i, List.of(10), 1, 0),
-                    new TopBattle.Side("#E" + i, List.of(1), 1, 0)));
+            battles.add(new TopBattle(START.plusSeconds(10_000 + i), new TopBattle.Side("#D" + i, List.of(1), 1, 0),
+                    new TopBattle.Side("#E" + i, List.of(10), 1, 0)));
         }
 
         CardMatchups matchups = CardMatchups.of(battles);
@@ -45,13 +45,30 @@ class CardMatchupsTest {
         assertEquals(399, matchups.battles());
         assertEquals(START, matchups.from());
         assertEquals(START.plusSeconds(398), matchups.to());
-        CardMatchups.Against against = matchups.against(1).orElseThrow();
-        assertEquals(399, against.battles());
-        assertEquals(279, against.wins());
-        assertEquals(70, against.winRatePercent());
-        // 20(40%)は全体(70%)より低いので出さない。
-        assertEquals(List.of(new CardMatchups.Counter(10, 150, 120)), against.counters());
-        assertEquals(80, against.counters().get(0).winRatePercent());
+        CardMatchups.Stats stats = matchups.decksWith(1).orElseThrow();
+        assertEquals(399, stats.battles());
+        assertEquals(120, stats.wins());
+        assertEquals(30, stats.winRatePercent());
+        // 勝率はどちらも1入りのデッキの側から見たもの。
+        assertEquals(List.of(new CardMatchups.Opponent(20, 150, 90)), stats.favorable());
+        assertEquals(60, stats.favorable().get(0).winRatePercent());
+        assertEquals(List.of(new CardMatchups.Opponent(10, 150, 30)), stats.unfavorable());
+        assertEquals(20, stats.unfavorable().get(0).winRatePercent());
+    }
+
+    @Test
+    void 相手の側から見ると得意と苦手が入れ替わる() {
+        List<TopBattle> battles = new ArrayList<>();
+        add(battles, 150, List.of(1), List.of(10), 30);
+        add(battles, 150, List.of(1), List.of(20), 90);
+        add(battles, 150, List.of(2), List.of(10), 120);
+
+        CardMatchups matchups = CardMatchups.of(battles);
+
+        // 10入りのデッキは、1入りに 120/150、2入りに 30/150 勝った(全体 150/300 = 50%)。
+        CardMatchups.Stats stats = matchups.decksWith(10).orElseThrow();
+        assertEquals(List.of(new CardMatchups.Opponent(1, 150, 120)), stats.favorable());
+        assertEquals(List.of(new CardMatchups.Opponent(2, 150, 30)), stats.unfavorable());
     }
 
     @Test
@@ -61,42 +78,66 @@ class CardMatchupsTest {
 
         CardMatchups matchups = CardMatchups.of(battles);
 
-        assertEquals(Optional.empty(), matchups.against(11));
-        assertEquals(Optional.empty(), matchups.against(99));
-        // 10入りのデッキに勝ったのは1入りのデッキだが、勝率(20%)は全体と同じなので出さない。
-        assertTrue(matchups.against(10).orElseThrow().counters().isEmpty());
+        assertEquals(Optional.empty(), matchups.decksWith(11));
+        assertEquals(Optional.empty(), matchups.decksWith(99));
+        // 10入りのデッキが当たったのは1入りのデッキだけで、その勝率(80%)は全体と同じなので、どちらにも出さない。
+        CardMatchups.Stats stats = matchups.decksWith(10).orElseThrow();
+        assertTrue(stats.favorable().isEmpty());
+        assertTrue(stats.unfavorable().isEmpty());
     }
 
     @Test
     void 整数の勝率で全体と同じになるカードは出さない() {
         List<TopBattle> battles = new ArrayList<>();
-        // 全体は (530 + 70 + 64) / (1000 + 129 + 100) = 664/1229 = 54.03%。
-        add(battles, 1000, List.of(90), List.of(1), 530);
-        // 70/129 = 54.26% はわずかに全体を上回るが、画面では同じ54%になる。
-        add(battles, 129, List.of(40), List.of(1), 70);
+        // 1入りの全体は (530 + 70 + 64 + 36 + 105) / (1000 + 129 + 100 + 100 + 200) = 805/1529 = 52.65%。
+        // 530/1000 = 53% はわずかに全体を上回るが、画面では同じ53%になる。
+        add(battles, 1000, List.of(1), List.of(90), 530);
+        // 70/129 = 54.26%
+        add(battles, 129, List.of(1), List.of(40), 70);
         // 64/100 = 64%
-        add(battles, 100, List.of(50), List.of(1), 64);
+        add(battles, 100, List.of(1), List.of(50), 64);
+        // 36/100 = 36%
+        add(battles, 100, List.of(1), List.of(60), 36);
+        // 105/200 = 52.5% はわずかに全体を下回るが、画面では同じ53%になる。
+        add(battles, 200, List.of(1), List.of(70), 105);
 
-        CardMatchups.Against against = CardMatchups.of(battles).against(1).orElseThrow();
+        CardMatchups.Stats stats = CardMatchups.of(battles).decksWith(1).orElseThrow();
 
-        assertEquals(List.of(50), against.counters().stream().map(CardMatchups.Counter::cardId).toList());
+        assertEquals(53, stats.winRatePercent());
+        assertEquals(List.of(50, 40), stats.favorable().stream().map(CardMatchups.Opponent::cardId).toList());
+        assertEquals(List.of(60), stats.unfavorable().stream().map(CardMatchups.Opponent::cardId).toList());
     }
 
     @Test
     void 対戦数も加味して並べ_5枚までにする() {
         List<TopBattle> battles = new ArrayList<>();
         // 全体の勝率を下げるための対戦。
-        add(battles, 1000, List.of(90), List.of(1), 300);
-        add(battles, 200, List.of(40), List.of(1), 150);
-        add(battles, 100, List.of(50), List.of(1), 76);
-        add(battles, 100, List.of(60), List.of(1), 70);
-        add(battles, 100, List.of(61), List.of(1), 69);
-        add(battles, 100, List.of(62), List.of(1), 68);
-        add(battles, 100, List.of(63), List.of(1), 67);
+        add(battles, 1000, List.of(1), List.of(90), 300);
+        add(battles, 200, List.of(1), List.of(40), 150);
+        add(battles, 100, List.of(1), List.of(50), 76);
+        add(battles, 100, List.of(1), List.of(60), 70);
+        add(battles, 100, List.of(1), List.of(61), 69);
+        add(battles, 100, List.of(1), List.of(62), 68);
+        add(battles, 100, List.of(1), List.of(63), 67);
 
-        List<CardMatchups.Counter> counters = CardMatchups.of(battles).against(1).orElseThrow().counters();
+        List<CardMatchups.Opponent> favorable = CardMatchups.of(battles).decksWith(1).orElseThrow().favorable();
 
         // 50は勝率76%で40(75%)より高いが、対戦数が半分なので後ろに来る。
-        assertEquals(List.of(40, 50, 60, 61, 62), counters.stream().map(CardMatchups.Counter::cardId).toList());
+        assertEquals(List.of(40, 50, 60, 61, 62), favorable.stream().map(CardMatchups.Opponent::cardId).toList());
+    }
+
+    @Test
+    void 苦手は勝率の低い方から対戦数も加味して並べる() {
+        List<TopBattle> battles = new ArrayList<>();
+        // 全体の勝率を上げるための対戦。
+        add(battles, 1000, List.of(1), List.of(90), 700);
+        add(battles, 200, List.of(1), List.of(40), 50);
+        add(battles, 100, List.of(1), List.of(50), 24);
+        add(battles, 100, List.of(1), List.of(60), 30);
+
+        List<CardMatchups.Opponent> unfavorable = CardMatchups.of(battles).decksWith(1).orElseThrow().unfavorable();
+
+        // 50は勝率24%で40(25%)より低いが、対戦数が半分なので後ろに来る。
+        assertEquals(List.of(40, 50, 60), unfavorable.stream().map(CardMatchups.Opponent::cardId).toList());
     }
 }

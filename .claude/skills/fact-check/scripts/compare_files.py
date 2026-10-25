@@ -104,11 +104,12 @@ def wilson_lower(wins, n, z=1.96):
 
 
 def matchups(work, cards):
-    """カード詳細画面の「〇〇入りのデッキが得意なカード」(1.179)を、CardMatchups と同じ規則で数え直す。
+    """カード詳細画面の「〇〇入りのデッキが得意なカード」「〇〇入りのデッキが苦手なカード」(1.179・1.195)を、
+    CardMatchups と同じ規則で数え直す。勝率はどちらも〇〇入りのデッキの側から見たもの。
     数えるのは画面の期間(最も古い〜最も新しい対戦)の、引き分けでない対戦。両方のデッキにあるカードは数えない。"""
     for card in cards:
         page = site(f"/card/{card}?lang=en")
-        section = page.split('id="counters"')
+        section = page.split('id="matchups"')
         if len(section) < 2:
             print(f"  {card}: 欄なし")
             continue
@@ -120,23 +121,34 @@ def matchups(work, cards):
             if a[1] == b[1]:
                 continue
             for side, other, won in ((a, b, a[1] > b[1]), (b, a, b[1] > a[1])):
-                if card in other[0] and card not in side[0]:
+                if card in side[0] and card not in other[0]:
                     total[0] += 1
                     total[1] += won
-                    for x in side[0] - other[0]:
-                        pairs[x][0] += 1
-                        pairs[x][1] += won
+                    for y in other[0] - side[0]:
+                        pairs[y][0] += 1
+                        pairs[y][1] += won
         rate = lambda w, n: int(100 * w / n + 0.5)
-        want = sorted(((x, n, w) for x, (n, w) in pairs.items() if n >= 100 and rate(w, n) > rate(total[1], total[0])),
-                      key=lambda t: (-wilson_lower(t[2], t[1]), -t[1], t[0]))[:5]
-        want = [(x, f"{rate(w, n)}% ({n:,} battles)") for x, n, w in want]
-        shown = list(zip([int(x) for x in re.findall(r'href="/card/(\d+)"', section)],
-                         [text(x) for x in re.findall(r'<div class="card-sub perf-rate">(.*?)</div>', section, re.S)]))
-        baseline = re.search(r"Across all ([\d,]+) battles against decks with .*? the win rate was (\d+)%", text(section))
-        want_baseline = (f"{total[0]:,}", str(rate(total[1], total[0])))
+        base = rate(total[1], total[0])
+        eligible = [(y, n, w) for y, (n, w) in pairs.items() if n >= 100]
+        want = {
+            "得意": sorted((t for t in eligible if rate(t[2], t[1]) > base),
+                         key=lambda t: (-wilson_lower(t[2], t[1]), -t[1], t[0]))[:5],
+            "苦手": sorted((t for t in eligible if rate(t[2], t[1]) < base),
+                         key=lambda t: (-wilson_lower(t[1] - t[2], t[1]), -t[1], t[0]))[:5],
+        }
+        want = {k: [(y, f"{rate(w, n)}% ({n:,} battles)") for y, n, w in v] for k, v in want.items()}
+        # 苦手の欄(id="counters")より前が得意の欄。どちらも無い欄は出ない。
+        parts = dict(zip(("得意", "苦手"), section.split('id="counters"'))) if 'id="counters"' in section \
+            else {"得意": section, "苦手": ""}
+        shown = {k: list(zip([int(x) for x in re.findall(r'href="/card/(\d+)"', part)],
+                             [text(x) for x in re.findall(r'<div class="card-sub perf-rate">(.*?)</div>', part, re.S)]))
+                 for k, part in parts.items()}
+        baseline = re.search(r"Overall, decks with .*? had a win rate of (\d+)% \(([\d,]+) battles?\)", text(section))
+        want_baseline = (str(base), f"{total[0]:,}")
         ok = shown == want and baseline and baseline.groups() == want_baseline
         print(f"  {card}: {'一致' if ok else '★不一致'} 画面 {shown} {baseline and baseline.groups()} / 計算 {want} {want_baseline}"
-              if not ok else f"  {card}: 一致({len(shown)}枚、全体 {want_baseline[0]}戦 {want_baseline[1]}%)")
+              if not ok else f"  {card}: 一致(得意{len(shown['得意'])}枚・苦手{len(shown['苦手'])}枚、"
+                             f"全体 {want_baseline[1]}戦 {want_baseline[0]}%)")
 
 
 if __name__ == "__main__":
