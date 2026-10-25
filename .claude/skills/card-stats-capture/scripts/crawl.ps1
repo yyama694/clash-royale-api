@@ -1,7 +1,8 @@
 param(
   [Parameter(Mandatory)][string]$Cards,   # "x:y;x:y;..." card centers in the collection grid (a comma would be split by powershell -File)
   [Parameter(Mandatory)][string]$OutDir,
-  [int]$StartIndex = 1
+  [int]$StartIndex = 1,
+  [string]$ProbeImage = ''   # only print what FindMenu sees at each card point in this saved image, then exit
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
@@ -97,30 +98,30 @@ function RequireDialog {
 }
 function Save($bmp, $name) { $bmp.Save((Join-Path $OutDir $name), [System.Drawing.Imaging.ImageFormat]::Png) }
 
-# Center y of the blue info button under the card, or -1. Requires the yellow use button below it,
-# so a stray blue area in card art is not mistaken for the menu.
-function FindInfoButton($bmp, $cx, $cy) {
+function IsGreen($c) { $c.G -gt 170 -and $c.R -lt 120 -and $c.B -lt 120 }
+
+# The card's menu: the yellow "use" button, and above it either the blue "info" button or, for an
+# upgradable card, a green "upgrade" button (costs gold). Anchoring on the yellow button keeps the
+# green progress bar under an upgradable card from being taken for the upgrade button.
+function FindMenu($bmp, $cx, $cy) {
   $bx = [Math]::Max(5, $cx - 35)
-  $runTop = -1; $top = -1; $bot = -1
-  for ($y = $cy + 40; $y -le [Math]::Min(990, $cy + 220); $y++) {
-    if (IsBlue ($bmp.GetPixel($bx, $y))) { if ($runTop -lt 0) { $runTop = $y } }
+  $runTop = -1; $yTop = -1
+  for ($y = $cy + 60; $y -le [Math]::Min(990, $cy + 280); $y++) {
+    if (IsYellow ($bmp.GetPixel($bx, $y))) { if ($runTop -lt 0) { $runTop = $y } }
     elseif ($runTop -ge 0) {
-      if (($y - 1 - $runTop) -ge 20) { $top = $runTop; $bot = $y - 1; break }
+      if (($y - 1 - $runTop) -ge 25) { $yTop = $runTop; break }
       $runTop = -1
     }
   }
-  if ($top -lt 0) { return -1 }
-  for ($y = $bot + 5; $y -le [Math]::Min(990, $bot + 120); $y++) { if (IsYellow ($bmp.GetPixel($bx, $y))) { return [int](($top + $bot) / 2) } }
-  return -1
-}
-
-function IsGreen($c) { $c.G -gt 170 -and $c.R -lt 120 -and $c.B -lt 120 }
-function HasUpgradeButton($bmp, $cx, $cy) {
-  $n = 0
-  foreach ($bx in @([Math]::Max(5, $cx - 35), [Math]::Max(5, $cx - 50))) {
-    for ($y = $cy + 40; $y -le [Math]::Min(990, $cy + 220); $y++) { if (IsGreen ($bmp.GetPixel($bx, $y))) { $n++ } }
-  }
-  return $n -ge 10
+  if ($yTop -lt 0) { return @{ kind = 'none' } }
+  $blue = 0; $green = 0; $bMin = 9999; $bMax = -1
+  for ($y = $yTop - 70; $y -le $yTop - 8; $y += 2) { for ($x = [Math]::Max(0, $cx - 60); $x -le [Math]::Min(558, $cx + 60); $x += 3) {
+    $c = $bmp.GetPixel($x, $y)
+    if (IsBlue $c) { $blue++; $bMin = [Math]::Min($bMin, $y); $bMax = [Math]::Max($bMax, $y) }
+    elseif (IsGreen $c) { $green++ } } }
+  if ($blue -ge 15 -and $blue -gt $green) { return @{ kind = 'info'; y = [int](($bMin + $bMax) / 2) } }
+  if ($green -ge 15 -and $green -gt $blue) { return @{ kind = 'upgrade' } }
+  return @{ kind = 'none' }
 }
 
 # x of the highlighted page dot (224,171,0). Page counts differ by card type (3, 5, champions more),
@@ -144,6 +145,27 @@ function LooksLikeList($bmp) {
   return ($light / $all) -gt 0.4
 }
 
+if ($ProbeImage) {
+  $img = [System.Drawing.Bitmap]::FromFile($ProbeImage)
+  foreach ($pair in $Cards.Split(';')) {
+    $px, $py = $pair.Split(":") | ForEach-Object { [int]$_ }
+    $m = FindMenu $img $px $py
+    "($px,$py): $($m.kind) $($m.y)"
+  }
+  $img.Dispose()
+  return
+}
+
+# The menu stays open after the dialog closes; tapping the selected card again closes it, so that the
+# next card never starts with a stray menu on screen
+function CloseMenu($cx, $cy, $tag) {
+  Click $cx $cy
+  Start-Sleep -Milliseconds 700
+  $b = Grab
+  if ((FindMenu $b $cx $cy).kind -ne 'none') { Fail "menu of card $tag did not close" $b }
+  $b.Dispose()
+}
+
 $idx = $StartIndex
 foreach ($pair in $Cards.Split(';')) {
   $cx, $cy = $pair.Split(":") | ForEach-Object { [int]$_ }
@@ -154,33 +176,33 @@ foreach ($pair in $Cards.Split(';')) {
   if (DialogKind $b) { Fail "dialog unexpectedly open before selecting card $tag" $b }
   $b.Dispose()
 
-  # The card's menu stays open after its dialog is closed, and tapping the card again would close it,
-  # so look for this card's menu before tapping
+  # A menu hangs about 230px below its card, so only the card above in the same column can cover this one
   $b = Grab
-  $infoY = FindInfoButton $b $cx $cy
-  $upgrade = HasUpgradeButton $b $cx $cy
-  if ($infoY -lt 0 -and -not $upgrade) {
-    $c = $b.GetPixel($cx, $cy)
-    if ((IsBlue $c) -or (IsYellow $c) -or (IsGreen $c)) { Fail "card point ($cx,$cy) is covered by a menu button" $b }
+  foreach ($dy in @(235, 117)) {
+    if ((FindMenu $b $cx ($cy - $dy)).kind -ne 'none') { Fail "a menu from the card above covers card $tag at ($cx,$cy)" $b }
+  }
+  # Tapping a selected card closes its menu, so tap only when this card's menu is not already open
+  $menu = FindMenu $b $cx $cy
+  if ($menu.kind -eq 'none') {
     $b.Dispose()
     Click $cx $cy
     Start-Sleep -Milliseconds 800
     $b = Grab
-    $infoY = FindInfoButton $b $cx $cy
-    $upgrade = HasUpgradeButton $b $cx $cy
+    $menu = FindMenu $b $cx $cy
   }
-  if ($infoY -lt 0 -and $upgrade) {
-    # Upgradable cards show a green upgrade button (costs gold) instead of info. Never press it.
+  if ($menu.kind -eq 'upgrade') {
+    # Never press the upgrade button
     Save $b "${tag}_skipped_upgrade.png"
     $b.Dispose()
+    CloseMenu $cx $cy $tag
     "skipped $tag ($cx,$cy): upgrade button instead of info"
     $idx++
     continue
   }
-  if ($infoY -lt 0) { Fail "info button (blue, with the yellow use button below it) not found under card $tag at ($cx,$cy)" $b }
+  if ($menu.kind -ne 'info') { Fail "menu (yellow use button with the blue info button above it) not found under card $tag at ($cx,$cy)" $b }
   $b.Dispose()
 
-  Click $cx $infoY
+  Click $cx $menu.y
   Start-Sleep -Milliseconds 1300
   $b = Grab
   $kind = DialogKind $b
@@ -235,6 +257,7 @@ foreach ($pair in $Cards.Split(';')) {
   $b = Grab
   if (DialogKind $b) { Fail "dialog did not close for card $tag" $b }
   $b.Dispose()
+  CloseMenu $cx $cy $tag
   "done $tag ($cx,$cy) tabs=$(($tabs | ForEach-Object { $_.t }) -join '')"
   $idx++
 }
