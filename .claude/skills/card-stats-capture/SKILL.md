@@ -156,6 +156,17 @@ PIDは`(Get-Process crosvm | Where-Object { $_.MainWindowTitle -match 'Clash Roy
   - レベル11の値は`scripts/add_level11.py`で出す(`stats_l11_l16.tsv`)。1,424行中、決まらないのが22行(インフェルノ系の毎秒ダメージ、ヒーローの能力の毎秒ダメージ、一部のタワーへのダメージなど)、ラベルから「レベルで変わる」と推測したのが31行。
   - タワーへのダメージは2通り: ダメージから決まった割合を引くもの(ライトニング75%・ファイアボール77%・ディガー80%・アースクエイク40%など。`ダメージ - floor(ダメージ × p / 100)`)と、それ自体が倍率で変わるもの(トルネード・フリーズ・レイジ・ゴブリンドリルなど)。
   - **ゲームで答え合わせした**: エレクトロジャイアント(ブースト中)の「レベル11」の札を押し続けて、通常・限界突破の10項目(ダメージ184・反射ダメージ192・反射タワーダメージ97・毎秒ダメージ102・HP 3952)が、すべて式の答えと一致した。
+- **2026-10-25 20:30ごろ: サイトに組み込んだ(worktree `card-stats`、ブランチ `worktree-card-stats`。まだmasterに入れていない)**。
+  - データ: `src/main/resources/cards/stats.tsv`(929行・123枚)。項目名と言葉は`messages*.properties`の末尾の`stat.*`(147キー×10言語。ゲームの`texts.csv`の公式の表記)。どちらも`build_site_stats.py`→`install_site_stats.py`で作る(手で直さない)。
+  - 画面: カード詳細画面の最初の枠の下に「ステータス」。レベル16/レベル11のタブ(CSSだけで切り替え)、通常→チャンピオンのスキル→限界突破(通常と違う・増える項目だけ)→ヒーローのスキル。レベル11が求められない項目は「—」。
+  - 公式の訳が無い項目(93行)は出していない。**ヒーローの能力は18枚中16枚、限界突破は43枚中17枚で一部の項目が欠ける**(マスケット銃士の砲台のHP・ダメージなど)。どう見せるかをユーザーに確認中。
+  - 生成の手順(読み取り直したとき):
+    ```
+    python -X utf8 -I scripts/to_level16.py <dir>/stats.tsv <dir>/stats_l16.tsv
+    python -X utf8 -I scripts/add_level11.py <dir>/stats_l16.tsv <dir>/stats.tsv <dir>/stats_l11_l16.tsv
+    python -X utf8 -I scripts/build_site_stats.py <dir>/stats_l11_l16.tsv %TEMP%/texts_new.csv src/main/resources/messages_ja.properties <dir>/site <読み取った日>
+    python -X utf8 -I scripts/install_site_stats.py <dir>/site <リポジトリ>
+    ```
   - 再開するときは、まず`capture.ps1`で撮って、どの行まで済んだかを`C:\dev\card-stats-shots\2026-10-25\`の最後の番号の`_opened.png`と見比べる。
 - サイトでどう見せるか(どのレベルの値・どの項目を出すか)はまだ決めていない。
 

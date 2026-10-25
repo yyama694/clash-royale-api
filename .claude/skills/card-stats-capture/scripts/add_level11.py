@@ -100,30 +100,37 @@ def main(l16_path, read_path, out_path):
         if r['item'] not in TOWER:
             continue
         g = groups[(r['no'], r['form'], r['ability'])]
-        src = g.get('毎秒ダメージ') if r['item'] == 'タワーへの毎秒ダメージ' else damage_row(g)
-        t16 = r['value16']
-        if not t16.isdigit():
-            r['value11'], r['how11'] = (t16, 'does not change') if not NUM.match(t16) else (None, 'unknown')
-            if NUM.match(t16):
-                nums, suffix = parts(t16)
-                r['value11'], r['how11'] = join([scaled11(int(n)) for n in nums], suffix), 'scaled'
-            continue
-        t16 = int(t16)
-        answers, how = set(), []
-        if src and src['value16'].isdigit() and src['value11'] and src['value11'].isdigit():
-            s16, s11 = int(src['value16']), int(src['value11'])
-            for p in range(100):
-                if s16 - s16 * p // 100 == t16:
-                    answers.add(s11 - s11 * p // 100)
-                    how.append(f'{p}%')
-        b = None if r['note'].startswith('derived') else base_from(t16)
-        if b is not None:
-            answers.add(b * MULT[11] // 100)
-            how.append('scaled')
-        if len(answers) == 1:
-            r['value11'], r['how11'] = str(answers.pop()), 'tower: ' + ' / '.join(how)
+        if r['item'] == 'タワーへの毎秒ダメージ':
+            src = g.get('毎秒ダメージ') or g.get('毒の毎秒ダメージ')
         else:
-            r['value11'], r['how11'] = None, f'tower: rules disagree {sorted(answers)} ({", ".join(how)})'
+            src = damage_row(g)
+        nums, suffix = parts(r['value16'])
+        if nums is None:
+            r['value11'], r['how11'] = r['value16'], 'does not change'
+            continue
+        snums, ssuffix = parts(src['value16']) if src else (None, None)
+        s11nums, _ = parts(src['value11']) if src and src['value11'] else (None, None)
+        usable_src = snums is not None and s11nums is not None and len(snums) == len(nums) == len(s11nums) \
+            and ssuffix == suffix
+        values, hows = [], []
+        for k, n in enumerate(nums):
+            t16 = int(n)
+            answers, how = set(), []
+            if usable_src:
+                s16, s11 = int(snums[k]), int(s11nums[k])
+                for p in range(100):
+                    if s16 - s16 * p // 100 == t16:
+                        answers.add(s11 - s11 * p // 100)
+                        how.append(f'{p}%')
+            b = None if r['note'].startswith('derived') else base_from(t16)
+            if b is not None:
+                answers.add(b * MULT[11] // 100)
+                how.append('scaled')
+            values.append(answers.pop() if len(answers) == 1 else None)
+            hows.append(' / '.join(how) if len(answers) == 0 and values[-1] is not None
+                        else f'rules disagree ({", ".join(how)})')
+        r['value11'] = join(values, suffix)
+        r['how11'] = 'tower: ' + '; '.join(sorted(set(hows)))
 
     with open(out_path, 'w', encoding='utf-8', newline='') as f:
         fields = list(rows[0].keys())
