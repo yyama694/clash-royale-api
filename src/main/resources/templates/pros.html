@@ -23,7 +23,7 @@
                       th:text="#{pros.trophies(${p.trophies()})}"></span>
             </div>
             <p class="pro-meta">
-                <span th:replace="~{fragments/layout :: proBadge(${p.badge()})}"></span>
+                <span th:replace="~{fragments/layout :: proBadge(${p.badge()}, false)}"></span>
                 <span class="pro-ingame" th:if="${p.inGameName() != null}"><span th:text="#{pros.inGameName}"></span>
                     <bdi th:text="${p.inGameName()}"></bdi></span>
                 <a th:if="${p.channelUrl() != null}" th:href="${p.channelUrl()}" rel="noopener"

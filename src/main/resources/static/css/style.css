@@ -1211,6 +1211,10 @@ td.cell-action {
     font-size: 0.82rem;
 }
 
+.pro-badge-name {
+    font-weight: 700;
+}
+
 .pro-kind {
     font-weight: 700;
     color: var(--color-hero);

@@ -1158,8 +1158,12 @@
     <div th:replace="~{fragments/layout :: deckMeta(${d.meta()})}"></div>
 </th:block>
 
-<!--/* プロ・クリエイターの肩書き(「プロ · SKCalalas · エジプト」)。一覧とプレイヤー情報画面で使う。 */-->
-<span th:fragment="proBadge(b)" class="pro-badge"><span class="pro-kind" th:text="${b.kindLabel()}"></span><th:block
+<!--/*
+  プロ・クリエイターの肩書き(「プロ · SKCalalas · エジプト」)。一覧とプレイヤー情報画面で使う。
+  プレイヤー情報画面の見出しはゲーム内の名前なので、活動名で検索して来た人のために showName で活動名を先頭に出す。
+*/-->
+<span th:fragment="proBadge(b, showName)" class="pro-badge"><th:block th:if="${showName}"><bdi class="pro-badge-name"
+      th:text="${b.name()}"></bdi> · </th:block><span class="pro-kind" th:text="${b.kindLabel()}"></span><th:block
       th:if="${b.team() != null}"> · <bdi th:text="${b.team()}"></bdi></th:block> · <span th:text="${b.countryName()}"></span></span>
 
 <!--/*
