@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,6 +38,40 @@ class CardStatsTest {
         assertTrue(dart.get(3).shownIn("ja"));
         assertFalse(dart.get(3).shownIn("en"));
         assertTrue(dart.get(0).shownIn("en"));
+    }
+
+    @Test
+    void タワーへのダメージは同じ欄のダメージから何パーセント減るかを求める() {
+        CardStats.Row area = row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "1100");
+        CardStats.Row tower = row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", "253");
+
+        assertEquals(OptionalInt.of(77), CardStats.towerDamageReduction(tower, List.of(area, tower)));
+        // ほかの項目には付けない
+        assertEquals(OptionalInt.empty(), CardStats.towerDamageReduction(area, List.of(area, tower)));
+    }
+
+    @Test
+    void 限界突破の欄に比べる相手が無ければ通常の欄のダメージと比べる() {
+        // 巨大雪玉の限界突破は範囲ダメージが通常と同じなので、限界突破の欄にはタワーへのダメージだけが載る
+        CardStats.Row area = row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "286");
+        CardStats.Row evoTower = row(CardStats.Form.EVOLUTION, "stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", "73");
+
+        assertEquals(OptionalInt.of(74), CardStats.towerDamageReduction(evoTower, List.of(area, evoTower)));
+    }
+
+    @Test
+    void 回数つきの値は回数がそろうときだけ比べ範囲の値には付けない() {
+        CardStats.Row arrows = row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "196 x3");
+        CardStats.Row arrowsTower = row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", "40 x3");
+        assertEquals(OptionalInt.of(80), CardStats.towerDamageReduction(arrowsTower, List.of(arrows, arrowsTower)));
+
+        CardStats.Row poison = row(CardStats.Form.EVOLUTION, "stat.TID_POISON_DPS", "102-490");
+        CardStats.Row poisonTower = row(CardStats.Form.EVOLUTION, "stat.TID_SPELL_ATTRIBUTE_TOWER_DPS", "24-122");
+        assertEquals(OptionalInt.empty(), CardStats.towerDamageReduction(poisonTower, List.of(poison, poisonTower)));
+    }
+
+    private static CardStats.Row row(CardStats.Form form, String key, String level16) {
+        return new CardStats.Row(form, key, level16, null, null);
     }
 
     @Test

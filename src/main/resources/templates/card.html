@@ -66,6 +66,9 @@
                     </ul>
                 </th:block>
             </div>
+            <th:block th:if="${cardStats.towerReductionNotice() != null}">
+                <p th:replace="~{fragments/layout :: notice(${cardStats.towerReductionNotice()})}"></p>
+            </th:block>
             <p th:replace="~{fragments/layout :: notice(${cardStats.notice()})}"></p>
         </section>
 

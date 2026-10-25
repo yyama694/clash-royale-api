@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalInt;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * カードのステータス(cards/stats.tsv)。公式APIは返さないので、ゲーム内のカード情報の画面から読み取り、
@@ -62,6 +66,56 @@ public record CardStats(LocalDate asOf, Map<String, List<Row>> byCard) {
 
     private static String emptyToNull(String value) {
         return value.isEmpty() ? null : value;
+    }
+
+    // タワーへのダメージと、比べる相手(同じ欄のユニットへのダメージ)。並びは探す順
+    private static final Map<String, List<String>> TOWER_DAMAGE_SOURCES = Map.of(
+            "stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", List.of("stat.TID_SPELL_ATTRIBUTE_DAMAGE",
+                    "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE"),
+            "stat.TID_SPELL_ATTRIBUTE_TOWER_DPS", List.of("stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND",
+                    "stat.TID_POISON_DPS"),
+            "stat.TID_TYPE_REFLECTED_TOWER_DAMAGE", List.of("stat.TID_TYPE_REFLECTED_DAMAGE"));
+    private static final Pattern WHOLE_NUMBER = Pattern.compile("(\\d+)( x\\d+)?");
+
+    /**
+     * タワーへのダメージが、同じ欄のユニットへのダメージから何％減っているか(レベル16の値で計算し、整数に丸める)。
+     * 割合は公式の数値ではなく、画面の2つの値から求めたもの。限界突破の欄は通常と同じ値を載せないので、
+     * 比べる相手が無ければ通常の欄から探す。範囲の値("24-122")や相手が見つからないときは empty。
+     */
+    public static OptionalInt towerDamageReduction(Row tower, List<Row> cardRows) {
+        List<String> sources = TOWER_DAMAGE_SOURCES.get(tower.labelKey());
+        if (sources == null) {
+            return OptionalInt.empty();
+        }
+        Row source = findSource(sources, tower.form(), cardRows);
+        if (source == null && tower.form() == Form.EVOLUTION) {
+            source = findSource(sources, Form.NORMAL, cardRows);
+        }
+        if (source == null) {
+            return OptionalInt.empty();
+        }
+        Matcher t = WHOLE_NUMBER.matcher(tower.level16());
+        Matcher s = WHOLE_NUMBER.matcher(source.level16());
+        if (!t.matches() || !s.matches() || !Objects.equals(t.group(2), s.group(2))) {
+            return OptionalInt.empty();
+        }
+        int towerDamage = Integer.parseInt(t.group(1));
+        int damage = Integer.parseInt(s.group(1));
+        if (damage == 0 || towerDamage >= damage) {
+            return OptionalInt.empty();
+        }
+        return OptionalInt.of(100 - (int) Math.round(100.0 * towerDamage / damage));
+    }
+
+    private static Row findSource(List<String> sources, Form form, List<Row> cardRows) {
+        for (String key : sources) {
+            for (Row row : cardRows) {
+                if (row.form() == form && row.labelKey().equals(key)) {
+                    return row;
+                }
+            }
+        }
+        return null;
     }
 
     /** 載っていないカード(タワーユニットなど)は空。 */

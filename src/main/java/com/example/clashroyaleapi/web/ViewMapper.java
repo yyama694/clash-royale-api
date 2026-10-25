@@ -366,14 +366,25 @@ public class ViewMapper {
         for (CardStats.Form form : CardStats.Form.values()) {
             byForm.put(form, new ArrayList<>());
         }
+        boolean anyReduction = false;
         for (CardStats.Row row : rows) {
             if (!row.shownIn(locale.getLanguage())) {
                 continue;
             }
             String label = row.labelKey().startsWith("=") ? row.labelKey().substring(1)
                     : labels.message(row.labelKey(), locale);
-            byForm.get(row.form()).add(new CardStatsView.Row(label, statValue(row.level16(), locale),
-                    statValue(row.level11(), locale)));
+            String level16 = statValue(row.level16(), locale);
+            String level11 = statValue(row.level11(), locale);
+            OptionalInt reduction = CardStats.towerDamageReduction(row, rows);
+            if (reduction.isPresent()) {
+                anyReduction = true;
+                // ゲームがヒーローの能力で使う「タワーへのダメージ -50%」と同じく、減る割合で添える
+                String percent = percentFormat(locale).format(-reduction.getAsInt() / 100.0);
+                level16 = labels.message("cardStats.towerReduction", locale, level16, percent);
+                level11 = level11 == null ? null
+                        : labels.message("cardStats.towerReduction", locale, level11, percent);
+            }
+            byForm.get(row.form()).add(new CardStatsView.Row(label, level16, level11));
         }
         String ability = labels.message("stat.TID_ABILITY", locale);
         List<CardStatsView.Section> sections = new ArrayList<>();
@@ -384,7 +395,10 @@ public class ViewMapper {
         addStatsSection(sections, labels.message("cardStats.section.hero", locale, ability,
                 labels.message("card.hero", locale)), null, byForm.get(CardStats.Form.HERO));
         return new CardStatsView(labels.message("cardStats.notice", locale, utcNoon(asOf),
-                labels.message("stat.TID_BUTTON_TOURNAMENT_LEVEL", locale)), sections);
+                labels.message("stat.TID_BUTTON_TOURNAMENT_LEVEL", locale)),
+                anyReduction ? labels.message("cardStats.towerReduction.notice", locale,
+                        labels.message("stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", locale)) : null,
+                sections);
     }
 
     private static void addStatsSection(List<CardStatsView.Section> sections, String heading, String lead,
@@ -422,6 +436,12 @@ public class ViewMapper {
             m.appendReplacement(out, Matcher.quoteReplacement(decimal(m.group(), locale)));
         }
         return m.appendTail(out).toString();
+    }
+
+    private static NumberFormat percentFormat(Locale locale) {
+        NumberFormat format = NumberFormat.getPercentInstance(locale);
+        format.setMaximumFractionDigits(0);
+        return format;
     }
 
     private static String decimal(String number, Locale locale) {

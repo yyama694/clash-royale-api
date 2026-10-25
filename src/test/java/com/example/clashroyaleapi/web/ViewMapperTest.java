@@ -870,6 +870,27 @@ class ViewMapperTest {
         assertNull(mapper.toCardStats(List.of(), LocalDate.of(2026, 10, 25), Locale.JAPANESE));
     }
 
+    @Test
+    void タワーへのダメージには減る割合を表示言語の書き方で添えその説明を出す() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        List<CardStats.Row> fireball = List.of(
+                new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "1100", "688", null),
+                new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", "253", null, null));
+
+        CardStatsView ja = mapper.toCardStats(fireball, LocalDate.of(2026, 10, 25), Locale.JAPANESE);
+        assertEquals(new CardStatsView.Row("タワーへのダメージ", "253(-77%)", null), ja.sections().get(0).rows().get(1));
+        assertEquals("1100", ja.sections().get(0).rows().get(0).level16());
+        assertTrue(ja.towerReductionNotice().startsWith("「タワーへのダメージ」の横の%は"), ja.towerReductionNotice());
+        // トルコ語は％を数字の前に書く
+        assertEquals("253 (-%77)", mapper.toCardStats(fireball, LocalDate.of(2026, 10, 25), Locale.forLanguageTag("tr"))
+                .sections().get(0).rows().get(1).level16());
+
+        List<CardStats.Row> knight = List.of(
+                new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_DAMAGE", "323", "202", null));
+        assertNull(mapper.toCardStats(knight, LocalDate.of(2026, 10, 25), Locale.JAPANESE).towerReductionNotice());
+    }
+
     private static DeckWinRates.DeckRecord winRateDeck(int wins, int battles) {
         return new DeckWinRates.DeckRecord(List.of(26000000), List.of(), null,
                 new DeckWinRates.TopPlayer("#ABC", "Miku", 1), battles, wins, 10, 10);
