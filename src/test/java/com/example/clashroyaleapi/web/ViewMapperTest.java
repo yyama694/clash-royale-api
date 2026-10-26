@@ -865,7 +865,7 @@ class ViewMapperTest {
         // 公式の訳が無い項目は日本語の画面にだけ、日本語の画面の表記のまま出す
         assertEquals(new CardStatsView.Row("砲台のヒットポイント", "2454", "1536"), view.sections().get(2).rows().get(1));
         assertEquals(1, mapper.toCardStats(rows, LocalDate.of(2026, 10, 25), Locale.ENGLISH).sections().get(2).rows().size());
-        assertTrue(view.notice().startsWith("2026年10月25日にゲーム内の"), view.notice());
+        assertTrue(view.notice().startsWith("2026年10月25日時点のゲーム内の値"), view.notice());
         assertTrue(view.notice().contains("レベル11(チャレンジレベル)"), view.notice());
         assertNull(mapper.toCardStats(List.of(), LocalDate.of(2026, 10, 25), Locale.JAPANESE));
     }
