@@ -138,6 +138,10 @@ public class SitemapController {
         return indexNowKey;
     }
 
+    /**
+     * ShapBotは1日200万件を超えて取りに来るので、間隔を空けさせ、noindexの対戦詳細を外す。
+     * 名指しのグループがあると「*」のグループは読まれないため、共通の禁止もそちらに書き直している。
+     */
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
     public String robots(HttpServletRequest request) {
         String base = modelAttributes.siteBaseUrl(request);
@@ -145,6 +149,12 @@ public class SitemapController {
                 User-agent: *
                 Disallow: /favorites
                 Disallow: /beacon
+
+                User-agent: ShapBot
+                Crawl-delay: 5
+                Disallow: /favorites
+                Disallow: /beacon
+                Disallow: /player/*/battles/
 
                 Sitemap: %s/sitemap.xml
                 Sitemap: %s/sitemap-players.xml
