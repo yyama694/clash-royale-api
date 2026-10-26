@@ -4,7 +4,9 @@ import com.example.clashroyaleapi.client.Tags;
 import com.example.clashroyaleapi.service.FavoriteService;
 import com.example.clashroyaleapi.service.PlayerService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -16,9 +18,11 @@ import org.springframework.web.util.UriUtils;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
- * プレイヤー情報画面の「これは自分」の登録・解除。どちらも元のプレイヤー情報画面へ303で戻す
+ * プレイヤー情報画面の「これは自分」の登録・解除。画面のJSからのfetch(Accept: application/json)にはJSONを返し、
+ * フォームの送信(JSが動かない環境)には元のプレイヤー情報画面へ303で戻す
  * (戻り先はタグから組み立てるので、任意のURLへ飛ばすオープンリダイレクトにはならない)。
  * 他サイトからの登録・解除(CSRF)は CrossSiteRequestGuard がここに届く前に拒否する。
  */
@@ -38,18 +42,26 @@ public class MeController {
 
     /** タグは公式APIで実在を確かめてから保存する(直前にプレイヤー情報画面を開いているので、ほぼキャッシュに当たる)。 */
     @PostMapping("/{tag}")
-    public ResponseEntity<Void> set(@PathVariable String tag, @RequestParam(required = false) String lang,
-            HttpServletResponse response) {
+    public ResponseEntity<?> set(@PathVariable String tag, @RequestParam(required = false) String lang,
+            HttpServletRequest request, HttpServletResponse response) {
         String pathTag = Tags.toPathSegment(playerService.findPlayer(tag).tag());
         meCookie.write(response, pathTag);
-        return redirectToPlayer(pathTag, lang);
+        return result(request, pathTag, lang, true);
     }
 
     @PostMapping("/{tag}/remove")
-    public ResponseEntity<Void> remove(@PathVariable String tag, @RequestParam(required = false) String lang,
-            HttpServletResponse response) {
+    public ResponseEntity<?> remove(@PathVariable String tag, @RequestParam(required = false) String lang,
+            HttpServletRequest request, HttpServletResponse response) {
         String pathTag = favoriteService.tagToRemove(tag);
         meCookie.clear(response);
+        return result(request, pathTag, lang, false);
+    }
+
+    private static ResponseEntity<?> result(HttpServletRequest request, String pathTag, String lang, boolean me) {
+        String accept = request.getHeader(HttpHeaders.ACCEPT);
+        if (accept != null && accept.contains("application/json")) {
+            return ResponseEntity.ok(Map.of("me", me));
+        }
         return redirectToPlayer(pathTag, lang);
     }
 
