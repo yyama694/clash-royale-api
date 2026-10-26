@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -72,10 +73,39 @@ class RankingRecorderTest {
     }
 
     @Test
-    void 終わったシーズンの一覧が空なら記録しない() throws IOException {
+    void 終わったシーズンの一覧が空なら同じシーズンの直前の記録のシーズンで記録する() throws IOException {
         when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(
                 new PlayerRankingResponse.RankedPlayer("#ABC", "Miku", 3001, 1, null)));
         when(apiClient.getLatestFinishedSeasonId()).thenReturn(null);
+        when(historyService.latestSnapshot()).thenReturn(Optional.of(
+                new RankingSnapshot(Instant.parse("2026-10-06T09:01:00Z"), "2026-09", List.of())));
+
+        recorder.record();
+
+        ArgumentCaptor<RankingSnapshot> captor = ArgumentCaptor.forClass(RankingSnapshot.class);
+        verify(historyService).record(captor.capture());
+        assertEquals("2026-09", captor.getValue().finishedSeason());
+    }
+
+    @Test
+    void 終わったシーズンの一覧が空で直前の記録が切り替え前なら記録しない() throws IOException {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(
+                new PlayerRankingResponse.RankedPlayer("#ABC", "Miku", 3001, 1, null)));
+        when(apiClient.getLatestFinishedSeasonId()).thenReturn(null);
+        when(historyService.latestSnapshot()).thenReturn(Optional.of(
+                new RankingSnapshot(Instant.parse("2026-10-05T08:46:00Z"), "2026-08", List.of())));
+
+        recorder.record();
+
+        verify(historyService, never()).record(any());
+    }
+
+    @Test
+    void 終わったシーズンの一覧が空でまだ記録が無ければ記録しない() throws IOException {
+        when(apiClient.getPathOfLegendRankings("global", 1000)).thenReturn(List.of(
+                new PlayerRankingResponse.RankedPlayer("#ABC", "Miku", 3001, 1, null)));
+        when(apiClient.getLatestFinishedSeasonId()).thenReturn(null);
+        when(historyService.latestSnapshot()).thenReturn(Optional.empty());
 
         recorder.record();
 

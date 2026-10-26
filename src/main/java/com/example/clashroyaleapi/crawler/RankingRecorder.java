@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
+import com.example.clashroyaleapi.domain.SeasonCalendar;
 import com.example.clashroyaleapi.service.RankingHistoryService;
 import com.example.clashroyaleapi.service.RankingService;
 
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -48,10 +50,15 @@ class RankingRecorder {
             // シーズンの区別に使うので、取れなければ記録しない(どのシーズンか分からない記録は比べられない)。
             finishedSeason = apiClient.getLatestFinishedSeasonId();
             if (finishedSeason == null) {
-                // 終わったシーズンが無いことは実際には無い。空の一覧で記録すると別のシーズン扱いになり、
-                // ランキングの動き画面が前の記録と比べられなくなる(2026-10-17)。
-                log.warn("ranking recorder: skipped because the finished season list is empty");
-                return;
+                // 終わったシーズンが無いことは実際には無いのに、一覧が空で返ることが1日に数回ある(2026-10-24)。
+                // その回を飛ばすと後から埋められないので、同じシーズンの直前の記録のシーズンを使う。
+                finishedSeason = lastRecordedSeason();
+                if (finishedSeason == null) {
+                    log.warn("ranking recorder: skipped because the finished season list is empty");
+                    return;
+                }
+                log.info("ranking recorder: the finished season list is empty, so used {} from the last record",
+                        finishedSeason);
             }
         } catch (ClashRoyaleApiException e) {
             log.warn("ranking recorder: skipped: {}", e.toString());
@@ -68,5 +75,17 @@ class RankingRecorder {
         } catch (IOException e) {
             log.warn("ranking recorder: could not save the record: {}", e.toString());
         }
+    }
+
+    /**
+     * 直前の記録のシーズン。暦の上で今と同じシーズンに取った記録に限る
+     * (切り替えをまたいで使うと、新しいシーズンの記録を前のシーズンの記録と比べてしまう)。
+     */
+    private String lastRecordedSeason() {
+        Instant seasonStart = SeasonCalendar.currentSeasonStart(clock.instant());
+        return historyService.latestSnapshot()
+                .filter(last -> SeasonCalendar.currentSeasonStart(last.takenAt()).equals(seasonStart))
+                .map(RankingSnapshot::finishedSeason)
+                .orElse(null);
     }
 }
