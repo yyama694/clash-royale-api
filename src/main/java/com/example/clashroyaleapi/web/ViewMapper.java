@@ -24,6 +24,7 @@ import com.example.clashroyaleapi.domain.ClanWarHistory;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.CurrentDeck;
+import com.example.clashroyaleapi.domain.DailyQuiz;
 import com.example.clashroyaleapi.domain.Deck;
 import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.domain.ElixirLeak;
@@ -91,6 +92,7 @@ import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingRowView;
 import com.example.clashroyaleapi.web.view.PlayerRankingView;
 import com.example.clashroyaleapi.web.view.PopularDeckView;
+import com.example.clashroyaleapi.web.view.QuizView;
 import com.example.clashroyaleapi.web.view.RankChangeView;
 import com.example.clashroyaleapi.web.view.RankedLeagueView;
 import com.example.clashroyaleapi.web.view.RoundView;
@@ -329,6 +331,29 @@ public class ViewMapper {
                     new Measure(minutes[1], MeasureUnit.SECOND));
         }
         return japanese ? formatted.replaceAll("\\s", "") : formatted;
+    }
+
+    /** 画像は通常の姿だけを出す(限界突破・ヒーローの絵は使わない)。コストの水滴は答えになるので重ねない。 */
+    public QuizView toQuiz(DailyQuiz quiz, Map<Integer, CardsResponse.Card> cards, Locale locale) {
+        List<QuizView.Question> questions = quiz.questions().stream()
+                .map(question -> {
+                    CardsResponse.Card card = cards.get(question.cardId());
+                    String type = question.type().code();
+                    return new QuizView.Question(question.cardId(),
+                            labels.cardName(card == null ? null : card.name(), locale),
+                            card == null || card.iconUrls() == null ? null : card.iconUrls().medium(),
+                            type, labels.message("quiz." + type + ".prompt", locale),
+                            question.choices().stream().map(String::valueOf).toList(), question.answer());
+                })
+                .toList();
+        String lead = quiz.questions().stream()
+                .map(question -> question.type().code())
+                .distinct()
+                .map(type -> labels.message("quiz." + type + ".lead", locale))
+                .collect(Collectors.joining(" "));
+        List<Integer> sizes = DailyQuiz.SIZES.stream().filter(size -> size <= questions.size()).toList();
+        return new QuizView(quiz.date().toString(), quiz.number(),
+                labels.message("quiz.round", locale, quiz.number(), utcNoon(quiz.date())), lead, sizes, questions);
     }
 
     private static Date utcNoon(LocalDate day) {

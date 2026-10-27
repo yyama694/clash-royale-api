@@ -2839,3 +2839,277 @@ td.cell-action {
     background: var(--color-bg);
     border-radius: 8px;
 }
+
+/*
+  クラロワクイズ(/quiz)。はじめ・問題・結果の画面を hidden で切り替えるので、ボタンなどの display 指定に負けないよう強く効かせる。
+*/
+.quiz [hidden] {
+    display: none !important;
+}
+
+.quiz-round {
+    margin: -0.25rem 0 0.25rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.quiz-lead {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.quiz-sizes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.quiz-size {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.9rem 0.5rem;
+}
+
+.quiz-size-count {
+    font-size: 1.3rem;
+    font-weight: 800;
+}
+
+.quiz-size-status {
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .quiz-sizes {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .quiz-size {
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+    }
+}
+
+.quiz-play-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.quiz-practice {
+    display: inline-block;
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    background: var(--color-warn-bg);
+    color: var(--color-warn);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.quiz-progress {
+    height: 6px;
+    margin: 0.5rem 0 1rem;
+    border-radius: 999px;
+    background: var(--color-bg);
+    overflow: hidden;
+}
+
+.quiz-progress-bar {
+    height: 100%;
+    background: var(--color-primary);
+    transition: width 0.2s;
+}
+
+/* スマホでも、カード・選択肢・「次へ」が1画面に収まるよう、カードの画像は幅に合わせて小さくする。 */
+.quiz-card {
+    margin: 0;
+    text-align: center;
+}
+
+.quiz-card-image {
+    width: clamp(104px, 30vw, 140px);
+    height: auto;
+}
+
+.quiz-card-name {
+    margin-top: 0.4rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.quiz-prompt {
+    margin: 0.25rem 0 0.75rem;
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.quiz-choices {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+    max-width: 26rem;
+    margin: 0 auto;
+}
+
+.quiz-choice {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 4rem;
+    padding: 0.5rem 0;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.quiz-choice:hover {
+    background: var(--color-bg);
+}
+
+.quiz-choice:disabled {
+    cursor: default;
+}
+
+.quiz-choice.is-correct {
+    border-color: var(--color-win);
+    background: var(--color-win-bg);
+}
+
+.quiz-choice.is-wrong {
+    border-color: var(--color-lose);
+    background: var(--color-lose-bg);
+}
+
+/* エリクサーの選択肢は、カード画像の水滴バッジ(.elixir-badge・.elixir-value)を大きくした見た目にする。 */
+.quiz-choice-elixir .quiz-choice-value {
+    display: block;
+    width: 40px;
+    height: 46px;
+    padding-top: 14px;
+    background: url("../images/elixir-drop.svg") center / 100% 100% no-repeat;
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #ffffff;
+    text-align: center;
+    text-shadow:
+        1px 0 0 #3d0750, -1px 0 0 #3d0750, 0 1px 0 #3d0750, 0 -1px 0 #3d0750,
+        1px 1px 0 #3d0750, -1px 1px 0 #3d0750, 1px -1px 0 #3d0750, -1px -1px 0 #3d0750;
+}
+
+.quiz-feedback {
+    min-height: 1.6em;
+    margin: 0.75rem 0 0.25rem;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.quiz-feedback.is-correct {
+    color: var(--color-win);
+}
+
+.quiz-feedback.is-wrong {
+    color: var(--color-lose);
+}
+
+.quiz-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 0.5rem 0;
+}
+
+.quiz-next {
+    min-width: 10rem;
+}
+
+.quiz-quit {
+    display: block;
+    margin: 1rem auto 0;
+    padding: 0.25rem;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.quiz-quit:hover {
+    background: none;
+    color: var(--color-link);
+}
+
+.quiz-score {
+    margin: 0.5rem 0;
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.quiz-perfect {
+    text-align: center;
+    color: var(--color-win);
+    font-weight: 800;
+}
+
+.quiz-grid {
+    text-align: center;
+    white-space: pre-line;
+    line-height: 1.3;
+    font-size: 1.1rem;
+}
+
+.quiz-wrong-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 0.75rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+
+.quiz-wrong-list li {
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.quiz-wrong-list a {
+    display: block;
+    color: var(--color-link);
+    font-weight: 700;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.quiz-wrong-list a:hover {
+    text-decoration: underline;
+}
+
+.quiz-wrong-list img {
+    display: block;
+    width: 64px;
+    height: auto;
+    margin: 0 auto 0.25rem;
+}
+
+.quiz-wrong-detail {
+    display: block;
+    color: var(--color-text-muted);
+}
+
+/* 4列とも短いので、表の最小幅(横スクロールさせるためのもの)を外す。 */
+.quiz-stats-table {
+    min-width: 0;
+}

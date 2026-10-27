@@ -107,6 +107,12 @@ public class GlobalModelAttributes {
         return url + (url.contains("?") ? "&" : "?") + WebConstants.CARD_VERSION_PARAM + "=" + version;
     }
 
+    /** 1つの言語でしか作っていない画面(SupportedLanguages#fixedLanguage)。言語メニューとhreflangを出さない。 */
+    @ModelAttribute("fixedLanguage")
+    public boolean fixedLanguage(HttpServletRequest request) {
+        return SupportedLanguages.fixedLanguage(request.getRequestURI()).isPresent();
+    }
+
     @ModelAttribute("languageCodes")
     public List<String> languageCodes() {
         return SupportedLanguages.languageCodes();

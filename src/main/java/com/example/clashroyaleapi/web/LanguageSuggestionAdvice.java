@@ -29,6 +29,10 @@ public class LanguageSuggestionAdvice {
 
     @ModelAttribute("languageSuggestion")
     public LanguageSuggestionView languageSuggestion(HttpServletRequest request, Locale locale) {
+        // 1つの言語でしか作っていない画面は、他の言語で開き直しても同じ言語になるので勧めない。
+        if (SupportedLanguages.fixedLanguage(request.getRequestURI()).isPresent()) {
+            return null;
+        }
         return SupportedLanguages.suggestion(locale, request.getParameter(WebConstants.LANGUAGE_PARAM),
                         savedLanguage(request), request.getHeader(HttpHeaders.ACCEPT_LANGUAGE))
                 .map(suggested -> new LanguageSuggestionView(suggested.getLanguage(),
