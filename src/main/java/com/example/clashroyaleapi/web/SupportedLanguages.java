@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,6 +29,10 @@ public final class SupportedLanguages {
             Locale.forLanguageTag("fr"), Locale.forLanguageTag("it"), Locale.forLanguageTag("ru"),
             Locale.forLanguageTag("tr"), Locale.KOREAN);
 
+    // 1つの言語でしか作っていない画面。?lang=・Cookie・Accept-Languageに関係なくこの言語で出し、言語メニューとhreflangも出さない。
+    // クラロワクイズは日本語だけで作った隠し機能(2026-10-26)。多言語にするときはここから外す。
+    private static final Map<String, Locale> FIXED_LANGUAGE_PATHS = Map.of("/quiz", Locale.JAPANESE);
+
     // 文の区切りに空白を入れない文字の種類。漢字かな交じり(日本語)・簡体字・繁体字。
     private static final Set<String> SCRIPTS_WITHOUT_SENTENCE_SPACE = Set.of("Jpan", "Hans", "Hant");
 
@@ -37,6 +42,11 @@ public final class SupportedLanguages {
     }
 
     private SupportedLanguages() {
+    }
+
+    /** その画面が1つの言語でしか作っていなければ、その言語。 */
+    public static Optional<Locale> fixedLanguage(String path) {
+        return Optional.ofNullable(path).map(FIXED_LANGUAGE_PATHS::get);
     }
 
     /**

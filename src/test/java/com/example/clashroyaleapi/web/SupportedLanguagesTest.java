@@ -79,6 +79,14 @@ class SupportedLanguagesTest {
     }
 
     @Test
+    void クイズは日本語に固定しほかの画面は固定しない() {
+        assertEquals(Locale.JAPANESE, SupportedLanguages.fixedLanguage("/quiz").orElseThrow());
+        assertTrue(SupportedLanguages.fixedLanguage("/").isEmpty());
+        assertTrue(SupportedLanguages.fixedLanguage("/quiz/other").isEmpty());
+        assertTrue(SupportedLanguages.fixedLanguage(null).isEmpty());
+    }
+
+    @Test
     void OGPの言語は対応言語ごとに代表的な国を付ける() {
         assertEquals("en_US", SupportedLanguages.ogLocale(Locale.ENGLISH));
         assertEquals("es_ES", SupportedLanguages.ogLocale(Locale.forLanguageTag("es")));

@@ -34,13 +34,16 @@ class MessagesConsistencyTest {
 
     private static final String PRIVACY_PREFIX = "privacy.";
 
+    private static final String QUIZ_PREFIX = "quiz.";
+
     /**
      * 英語(基本ファイル)には無くてよいキー。カード名は公式APIの英語名をそのまま使い、
      * 国名・カード名の読み仮名は漢字の読みが要る言語に、カードの通称は通称が定着している言語にだけある。
      * プライバシーポリシーの本文は英語と日本語にだけあり、他の言語では英語版が出る(下のテストで英語と日本語をそろえる)。
+     * クラロワクイズは日本語だけで作った隠し機能で、日本語にだけある(多言語にするときにここから外す)。
      */
     private static final List<String> LANGUAGE_SPECIFIC_PREFIXES =
-            List.of("cardalias.", "cardreading.", "country.reading.", PRIVACY_PREFIX);
+            List.of("cardalias.", "cardreading.", "country.reading.", PRIVACY_PREFIX, QUIZ_PREFIX);
 
     private static Properties load(String name) throws IOException {
         try (InputStream in = MessagesConsistencyTest.class.getResourceAsStream("/" + name)) {
@@ -85,6 +88,14 @@ class MessagesConsistencyTest {
         return properties.stringPropertyNames().stream()
                 .filter(key -> key.startsWith(PRIVACY_PREFIX))
                 .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    @Test
+    void クイズの文言は日本語にだけある() throws IOException {
+        for (String file : bundleFiles()) {
+            boolean hasQuiz = load(file).stringPropertyNames().stream().anyMatch(key -> key.startsWith(QUIZ_PREFIX));
+            assertEquals(file.equals("messages_ja.properties"), hasQuiz, file);
+        }
     }
 
     @Test

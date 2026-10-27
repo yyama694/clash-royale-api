@@ -13,8 +13,10 @@ import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.domain.ClanWarParticipation;
+import com.example.clashroyaleapi.domain.DailyQuiz;
 import com.example.clashroyaleapi.domain.DeckWinRates;
 import com.example.clashroyaleapi.domain.FavoriteFetch;
+import com.example.clashroyaleapi.domain.QuizQuestion;
 import com.example.clashroyaleapi.domain.RankingSnapshot;
 import com.example.clashroyaleapi.domain.SeasonRankLog;
 import com.example.clashroyaleapi.domain.SimilarDecks;
@@ -43,6 +45,7 @@ import com.example.clashroyaleapi.web.view.ParticipantView;
 import com.example.clashroyaleapi.web.view.PlayerLinkView;
 import com.example.clashroyaleapi.web.view.PlayerProgressView;
 import com.example.clashroyaleapi.web.view.PlayerRankingView;
+import com.example.clashroyaleapi.web.view.QuizView;
 import com.example.clashroyaleapi.web.view.RankChangeView;
 import com.example.clashroyaleapi.web.view.TopPlayerDeckView;
 import com.example.clashroyaleapi.web.view.TrophyChangeView;
@@ -894,5 +897,25 @@ class ViewMapperTest {
     private static DeckWinRates.DeckRecord winRateDeck(int wins, int battles) {
         return new DeckWinRates.DeckRecord(List.of(26000000), List.of(), null,
                 new DeckWinRates.TopPlayer("#ABC", "Miku", 1), battles, wins, 10, 10);
+    }
+
+    @Test
+    void クイズは通常の姿の画像を使い選択肢を文字にする() {
+        CardsResponse.Card knight = new CardsResponse.Card(26000000, "Knight", 16, 1, 3, "common",
+                new CardsResponse.Card.IconUrls("knight.png", "knight-evolution.png", "knight-hero.png"));
+        DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 26), 1,
+                List.of(new QuizQuestion(QuizQuestion.Type.ELIXIR, 26000000, List.of(1, 2, 3, 4), 2)));
+
+        QuizView view = viewMapper.toQuiz(quiz, Map.of(26000000, knight), Locale.JAPANESE);
+
+        assertEquals("2026-10-26", view.date());
+        QuizView.Question question = view.questions().get(0);
+        assertEquals("Knight", question.name());
+        assertEquals("knight.png", question.iconUrl());
+        assertEquals("elixir", question.type());
+        assertEquals("1,2,3,4", question.choicesText());
+        assertEquals(2, question.answer());
+        // 30問に満たない日は、選べる問題数もあるだけにする。
+        assertEquals(List.of(), view.sizes());
     }
 }

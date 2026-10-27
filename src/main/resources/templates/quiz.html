@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(#{quiz.title})}"></head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <!--/*
+      クラロワクイズ(設計_クイズ.md)。はじめ・問題・結果の3つの画面を、ページを読み直さずにJSで切り替える。
+      その日の30問はすべて #quiz-questions に埋めてあり、採点と成績の保存(localStorage の quiz)はブラウザだけで行う。
+      数字の入る文言は {0} を文字のまま渡して受け取り、JSで置き換える。
+    */-->
+    <main class="container quiz" id="quiz" th:data-date="${quiz.date()}"
+          th:data-msg-new="#{quiz.size.new}"
+          th:data-msg-resume="#{quiz.size.resume('{0}', '{1}')}"
+          th:data-msg-done="#{quiz.size.done('{0}', '{1}')}"
+          th:data-msg-countdown="#{quiz.countdown('{0}')}"
+          th:data-msg-new-day="#{quiz.newDay}"
+          th:data-msg-progress="#{quiz.progress('{0}', '{1}')}"
+          th:data-msg-correct="#{quiz.correct}"
+          th:data-msg-wrong="#{quiz.wrong('{0}')}"
+          th:data-msg-next="#{quiz.next}"
+          th:data-msg-to-result="#{quiz.toResult}"
+          th:data-msg-quit="#{quiz.quit}"
+          th:data-msg-quit-practice="#{quiz.quit.practice}"
+          th:data-msg-score="#{quiz.result.score('{0}', '{1}')}"
+          th:data-msg-wrong-item="#{quiz.result.wrong.item('{0}', '{1}')}"
+          th:data-msg-streak="#{quiz.stats.streak.value('{0}', '{1}')}">
+        <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
+
+        <section class="card quiz-start" id="quiz-start">
+            <h1 th:text="#{quiz.title}"></h1>
+            <p class="quiz-round" th:text="${quiz.roundLabel()}"></p>
+            <p class="quiz-lead" th:text="${quiz.lead()}"></p>
+            <div class="quiz-sizes">
+                <button type="button" class="quiz-size" th:each="size : ${quiz.sizes()}" th:data-size="${size}">
+                    <span class="quiz-size-count" th:text="#{quiz.size(${size})}"></span>
+                    <span class="quiz-size-status"></span>
+                </button>
+            </div>
+            <p class="notice" th:text="#{quiz.note}"></p>
+            <p class="notice quiz-countdown"></p>
+        </section>
+
+        <section class="card quiz-play" id="quiz-play" hidden>
+            <div class="quiz-play-head">
+                <span class="quiz-progress-text"></span>
+                <span class="quiz-practice" hidden th:text="#{quiz.practice}"></span>
+            </div>
+            <div class="quiz-progress" aria-hidden="true"><div class="quiz-progress-bar"></div></div>
+            <figure class="quiz-card">
+                <img class="quiz-card-image" width="285" height="420" alt="">
+                <figcaption class="quiz-card-name"></figcaption>
+            </figure>
+            <p class="quiz-prompt"></p>
+            <div class="quiz-choices"></div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+            <div class="quiz-actions">
+                <button type="button" class="quiz-next" hidden></button>
+            </div>
+            <button type="button" class="quiz-quit"></button>
+        </section>
+
+        <section class="card quiz-result" id="quiz-result" hidden>
+            <h2 th:text="#{quiz.result.heading}"></h2>
+            <p class="quiz-practice" hidden th:text="#{quiz.practice}"></p>
+            <p class="quiz-score"></p>
+            <p class="quiz-perfect" hidden th:text="#{quiz.result.perfect}"></p>
+            <!--/* 正誤の並びは点数の文で伝わるので、読み上げでは飛ばす。 */-->
+            <p class="quiz-grid" aria-hidden="true"></p>
+            <div class="quiz-wrong">
+                <h3 th:text="#{quiz.result.wrong.heading}"></h3>
+                <ul class="quiz-wrong-list"></ul>
+            </div>
+            <div class="quiz-actions">
+                <button type="button" class="btn-secondary quiz-retry" th:text="#{quiz.result.retry}"></button>
+                <button type="button" class="quiz-back" th:text="#{quiz.result.back}"></button>
+            </div>
+        </section>
+
+        <section class="card quiz-stats" id="quiz-stats">
+            <h2 th:text="#{quiz.stats.heading}"></h2>
+            <p><span th:text="#{quiz.stats.streak}"></span>: <strong class="quiz-streak"></strong></p>
+            <table class="quiz-stats-table">
+                <thead>
+                <tr>
+                    <th scope="col" th:text="#{quiz.stats.size}"></th>
+                    <th scope="col" class="num" th:text="#{quiz.stats.plays}"></th>
+                    <th scope="col" class="num" th:text="#{quiz.stats.average}"></th>
+                    <th scope="col" class="num" th:text="#{quiz.stats.perfect}"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="size : ${quiz.sizes()}" th:data-size="${size}">
+                    <th scope="row" th:text="#{quiz.size(${size})}"></th>
+                    <td class="num quiz-plays" th:data-label="#{quiz.stats.plays}"></td>
+                    <td class="num quiz-average" th:data-label="#{quiz.stats.average}"></td>
+                    <td class="num quiz-perfect-count" th:data-label="#{quiz.stats.perfect}"></td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="notice quiz-stats-empty" hidden th:text="#{quiz.stats.empty}"></p>
+            <p class="notice" th:text="#{quiz.stats.note}"></p>
+        </section>
+
+        <ol id="quiz-questions" hidden>
+            <li th:each="q : ${quiz.questions()}" th:data-card="${q.cardId()}" th:data-name="${q.name()}"
+                th:data-icon="${q.iconUrl()}" th:data-link="@{/card/{id}(id=${q.cardId()})}" th:data-type="${q.type()}"
+                th:data-prompt="${q.prompt()}" th:data-choices="${q.choicesText()}" th:data-answer="${q.answer()}"
+                th:data-choice-label="#{${'quiz.' + q.type() + '.choice'}('{0}')}"></li>
+        </ol>
+    </main>
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+
+    <!--/*
+      成績の保存(localStorage の quiz)。形は {v: 1, maxStreak, days: {"2026-10-26": {"10": 回}}}。
+      回は問題数ごとの、その日の最初の1回(公式の成績)で、ids(出題したカード)・answers(選んだ位置)・終わったら marks("oox…")。
+      前の日以前の回は marks だけ残し、終わっていない回と400日より前の日は消す。
+      2回目以降(練習)は保存しない。日付はページに埋めたUTCの日付で決め、端末の時計は使わない。
+      別のタブが書いた分を消さないよう、書くたびに読み直してから書く。
+    */-->
+    <script>
+        (function () {
+            var root = document.getElementById('quiz');
+            var today = root.dataset.date;
+            var msg = root.dataset;
+            var STORAGE_KEY = 'quiz';
+            var KEEP_DAYS = 400;
+            var DAY_MS = 24 * 60 * 60 * 1000;
+            var GRID_COLUMNS = 10;
+            var questions = Array.prototype.map.call(document.querySelectorAll('#quiz-questions li'), function (li) {
+                return {
+                    id: Number(li.dataset.card),
+                    name: li.dataset.name,
+                    icon: li.dataset.icon,
+                    link: li.dataset.link,
+                    type: li.dataset.type,
+                    prompt: li.dataset.prompt,
+                    choices: li.dataset.choices.split(','),
+                    answer: Number(li.dataset.answer),
+                    choiceLabel: li.dataset.choiceLabel
+                };
+            });
+            var screens = {
+                start: document.getElementById('quiz-start'),
+                play: document.getElementById('quiz-play'),
+                result: document.getElementById('quiz-result')
+            };
+            var stats = document.getElementById('quiz-stats');
+            var current = 'start';
+            var play = null;
+            var store = load();
+
+            function format(template, values) {
+                return template.replace(/\{(\d)\}/g, function (all, index) {
+                    return values[Number(index)];
+                });
+            }
+
+            function dayNumber(day) {
+                var parts = day.split('-');
+                return Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) / DAY_MS;
+            }
+
+            function dayString(number) {
+                return new Date(number * DAY_MS).toISOString().slice(0, 10);
+            }
+
+            function load() {
+                var data;
+                try {
+                    data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                } catch (e) {
+                    data = null;
+                }
+                if (!data || data.v !== 1 || typeof data.days !== 'object' || data.days === null) {
+                    data = {v: 1, maxStreak: 0, days: {}};
+                }
+                prune(data);
+                return data;
+            }
+
+            function prune(data) {
+                var oldest = dayString(dayNumber(today) - KEEP_DAYS);
+                Object.keys(data.days).forEach(function (day) {
+                    var attempts = data.days[day];
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < oldest || typeof attempts !== 'object' || attempts === null) {
+                        delete data.days[day];
+                        return;
+                    }
+                    if (day === today) {
+                        return;
+                    }
+                    Object.keys(attempts).forEach(function (size) {
+                        if (attempts[size] && typeof attempts[size].marks === 'string') {
+                            attempts[size] = {marks: attempts[size].marks};
+                        } else {
+                            delete attempts[size];
+                        }
+                    });
+                    if (Object.keys(attempts).length === 0) {
+                        delete data.days[day];
+                    }
+                });
+            }
+
+            function update(change) {
+                store = load();
+                change(store);
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+                } catch (e) {
+                    // プライベートモードなどで保存できなくても、遊ぶことはできるようにする。
+                }
+            }
+
+            function idsOf(size) {
+                return questions.slice(0, size).map(function (q) { return q.id; });
+            }
+
+            function sameIds(ids, size) {
+                return Array.isArray(ids) && ids.join(',') === idsOf(size).join(',');
+            }
+
+            function marksOf(answers) {
+                return answers.map(function (answer, i) {
+                    return answer === questions[i].answer ? 'o' : 'x';
+                }).join('');
+            }
+
+            function scoreOf(marks) {
+                return marks.split('').filter(function (mark) { return mark === 'o'; }).length;
+            }
+
+            // その日の公式の成績。途中の回は、その日の途中で問題が変わっていたら(新しいカードの追加など)無かったことにする。
+            function official(size) {
+                var attempt = store.days[today] && store.days[today][size];
+                if (!attempt) {
+                    return null;
+                }
+                if (typeof attempt.marks === 'string') {
+                    return attempt;
+                }
+                return sameIds(attempt.ids, size) && Array.isArray(attempt.answers) ? attempt : null;
+            }
+
+            function show(name) {
+                var changed = name !== current;
+                current = name;
+                Object.keys(screens).forEach(function (key) {
+                    screens[key].hidden = key !== name;
+                });
+                stats.hidden = name === 'play';
+                // 結果の下の方から最初の画面に戻ったときも、見出しから見えるようにする。開いた直後は動かさない。
+                if (changed || name !== 'start') {
+                    root.scrollIntoView({block: 'start'});
+                }
+            }
+
+            function renderStart() {
+                Array.prototype.forEach.call(document.querySelectorAll('.quiz-size'), function (button) {
+                    var size = Number(button.dataset.size);
+                    var attempt = official(size);
+                    var status;
+                    if (attempt && typeof attempt.marks === 'string') {
+                        status = format(msg.msgDone, [scoreOf(attempt.marks), size]);
+                    } else if (attempt && attempt.answers.length > 0) {
+                        status = format(msg.msgResume, [attempt.answers.length, size]);
+                    } else {
+                        status = msg.msgNew;
+                    }
+                    button.querySelector('.quiz-size-status').textContent = status;
+                });
+                renderStats();
+                show('start');
+            }
+
+            function start(size) {
+                var attempt = official(size);
+                if (attempt && typeof attempt.marks === 'string') {
+                    showResult(size, true, sameIds(attempt.ids, size) ? attempt.answers : null, attempt.marks);
+                    return;
+                }
+                if (!attempt) {
+                    attempt = {ids: idsOf(size), answers: []};
+                    update(function (data) {
+                        data.days[today] = data.days[today] || {};
+                        data.days[today][size] = attempt;
+                    });
+                }
+                play = {size: size, official: true, answers: attempt.answers.slice(), answered: false};
+                showQuestion();
+            }
+
+            function practice(size) {
+                play = {size: size, official: false, answers: [], answered: false};
+                showQuestion();
+            }
+
+            function showQuestion() {
+                var index = play.answers.length;
+                var q = questions[index];
+                var screen = screens.play;
+                screen.querySelector('.quiz-progress-text').textContent = format(msg.msgProgress, [index + 1, play.size]);
+                screen.querySelector('.quiz-practice').hidden = play.official;
+                // 練習は保存しないので、やめると続きから再開できない。
+                screen.querySelector('.quiz-quit').textContent = play.official ? msg.msgQuit : msg.msgQuitPractice;
+                screen.querySelector('.quiz-progress-bar').style.width = (index / play.size * 100) + '%';
+                var image = screen.querySelector('.quiz-card-image');
+                image.hidden = !q.icon;
+                if (q.icon) {
+                    image.src = q.icon;
+                }
+                screen.querySelector('.quiz-card-name').textContent = q.name;
+                screen.querySelector('.quiz-prompt').textContent = q.prompt;
+                var choices = screen.querySelector('.quiz-choices');
+                choices.textContent = '';
+                q.choices.forEach(function (label, choice) {
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'quiz-choice quiz-choice-' + q.type;
+                    button.setAttribute('aria-label', format(q.choiceLabel, [label]));
+                    var value = document.createElement('span');
+                    value.className = 'quiz-choice-value';
+                    value.textContent = label;
+                    button.appendChild(value);
+                    button.addEventListener('click', function () {
+                        answer(choice);
+                    });
+                    choices.appendChild(button);
+                });
+                screen.querySelector('.quiz-feedback').textContent = '';
+                screen.querySelector('.quiz-feedback').className = 'quiz-feedback';
+                screen.querySelector('.quiz-next').hidden = true;
+                play.answered = false;
+                // 次の問題の画像を先に読んでおき、テンポよく進めるようにする。
+                if (index + 1 < play.size && questions[index + 1].icon) {
+                    new Image().src = questions[index + 1].icon;
+                }
+                show('play');
+            }
+
+            function answer(choice) {
+                if (play.answered) {
+                    return;
+                }
+                play.answered = true;
+                var index = play.answers.length;
+                var q = questions[index];
+                play.answers.push(choice);
+                var finished = play.answers.length === play.size;
+                if (play.official) {
+                    var answers = play.answers.slice();
+                    var size = play.size;
+                    update(function (data) {
+                        data.days[today] = data.days[today] || {};
+                        var attempt = {ids: idsOf(size), answers: answers};
+                        if (finished) {
+                            attempt.marks = marksOf(answers);
+                        }
+                        data.days[today][size] = attempt;
+                        if (finished) {
+                            data.maxStreak = Math.max(data.maxStreak || 0, streaks(data).longest);
+                        }
+                    });
+                }
+                var screen = screens.play;
+                Array.prototype.forEach.call(screen.querySelectorAll('.quiz-choice'), function (button, i) {
+                    button.disabled = true;
+                    if (i === q.answer) {
+                        button.classList.add('is-correct');
+                    } else if (i === choice) {
+                        button.classList.add('is-wrong');
+                    }
+                });
+                var correct = choice === q.answer;
+                var feedback = screen.querySelector('.quiz-feedback');
+                feedback.textContent = correct ? msg.msgCorrect : format(msg.msgWrong, [q.choices[q.answer]]);
+                feedback.className = 'quiz-feedback ' + (correct ? 'is-correct' : 'is-wrong');
+                var next = screen.querySelector('.quiz-next');
+                next.textContent = finished ? msg.msgToResult : msg.msgNext;
+                next.hidden = false;
+                next.focus({preventScroll: true});
+            }
+
+            function next() {
+                if (play.answers.length < play.size) {
+                    showQuestion();
+                } else {
+                    showResult(play.size, play.official, play.answers, marksOf(play.answers));
+                }
+            }
+
+            // answers が無いのは、終えた後にその日の問題が変わった回。点数と正誤だけ出す。
+            function showResult(size, isOfficial, answers, marks) {
+                var screen = screens.result;
+                var score = scoreOf(marks);
+                screen.querySelector('.quiz-practice').hidden = isOfficial;
+                screen.querySelector('.quiz-score').textContent = format(msg.msgScore, [score, size]);
+                screen.querySelector('.quiz-perfect').hidden = score !== size;
+                var rows = [];
+                for (var i = 0; i < marks.length; i += GRID_COLUMNS) {
+                    rows.push(marks.slice(i, i + GRID_COLUMNS).replace(/o/g, '🟩').replace(/x/g, '🟥'));
+                }
+                screen.querySelector('.quiz-grid').textContent = rows.join('\n');
+                var list = screen.querySelector('.quiz-wrong-list');
+                list.textContent = '';
+                (answers || []).forEach(function (choice, i) {
+                    var q = questions[i];
+                    if (choice === q.answer) {
+                        return;
+                    }
+                    var item = document.createElement('li');
+                    var link = document.createElement('a');
+                    link.href = q.link;
+                    if (q.icon) {
+                        var image = document.createElement('img');
+                        image.src = q.icon;
+                        image.alt = '';
+                        image.width = 285;
+                        image.height = 420;
+                        image.loading = 'lazy';
+                        link.appendChild(image);
+                    }
+                    var name = document.createElement('span');
+                    name.className = 'quiz-wrong-name';
+                    name.textContent = q.name;
+                    link.appendChild(name);
+                    item.appendChild(link);
+                    var detail = document.createElement('span');
+                    detail.className = 'quiz-wrong-detail';
+                    detail.textContent = format(msg.msgWrongItem, [q.choices[q.answer], q.choices[choice]]);
+                    item.appendChild(detail);
+                    list.appendChild(item);
+                });
+                screen.querySelector('.quiz-wrong').hidden = list.children.length === 0;
+                screen.querySelector('.quiz-retry').onclick = function () {
+                    practice(size);
+                };
+                renderStats();
+                show('result');
+            }
+
+            // 公式の成績を終えた日が続いた数。今日まだなら昨日までで数える。
+            function streaks(data) {
+                var days = Object.keys(data.days).filter(function (day) {
+                    var attempts = data.days[day];
+                    return Object.keys(attempts).some(function (size) {
+                        return attempts[size] && typeof attempts[size].marks === 'string';
+                    });
+                }).map(dayNumber).sort(function (a, b) { return a - b; });
+                var played = {};
+                var longest = 0;
+                var run = 0;
+                days.forEach(function (day, i) {
+                    played[day] = true;
+                    run = i > 0 && days[i - 1] === day - 1 ? run + 1 : 1;
+                    longest = Math.max(longest, run);
+                });
+                var day = dayNumber(today);
+                if (!played[day]) {
+                    day -= 1;
+                }
+                var currentRun = 0;
+                while (played[day]) {
+                    currentRun += 1;
+                    day -= 1;
+                }
+                return {current: currentRun, longest: Math.max(longest, data.maxStreak || 0)};
+            }
+
+            function renderStats() {
+                var streak = streaks(store);
+                stats.querySelector('.quiz-streak').textContent = format(msg.msgStreak, [streak.current, streak.longest]);
+                var any = false;
+                Array.prototype.forEach.call(stats.querySelectorAll('tbody tr'), function (row) {
+                    var size = row.dataset.size;
+                    var plays = 0;
+                    var correct = 0;
+                    var perfect = 0;
+                    Object.keys(store.days).forEach(function (day) {
+                        var attempt = store.days[day][size];
+                        if (attempt && typeof attempt.marks === 'string') {
+                            var score = scoreOf(attempt.marks);
+                            plays += 1;
+                            correct += score;
+                            perfect += score === Number(size) ? 1 : 0;
+                        }
+                    });
+                    any = any || plays > 0;
+                    row.querySelector('.quiz-plays').textContent = plays;
+                    row.querySelector('.quiz-average').textContent = plays > 0
+                        ? Math.round(correct / (plays * Number(size)) * 100) + '%' : '-';
+                    row.querySelector('.quiz-perfect-count').textContent = perfect;
+                });
+                stats.querySelector('.quiz-stats-table').hidden = !any;
+                stats.querySelector('.quiz-stats-empty').hidden = any;
+            }
+
+            function renderCountdown() {
+                var remaining = (dayNumber(today) + 1) * DAY_MS - Date.now();
+                var text;
+                if (remaining <= 0) {
+                    text = msg.msgNewDay;
+                } else {
+                    var seconds = Math.floor(remaining / 1000);
+                    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+                    text = format(msg.msgCountdown, [Math.floor(seconds / 3600) + ':' + pad(Math.floor(seconds / 60) % 60)
+                        + ':' + pad(seconds % 60)]);
+                }
+                screens.start.querySelector('.quiz-countdown').textContent = text;
+            }
+
+            Array.prototype.forEach.call(document.querySelectorAll('.quiz-size'), function (button) {
+                button.addEventListener('click', function () {
+                    start(Number(button.dataset.size));
+                });
+            });
+            screens.play.querySelector('.quiz-next').addEventListener('click', next);
+            screens.play.querySelector('.quiz-quit').addEventListener('click', function () {
+                store = load();
+                renderStart();
+            });
+            screens.result.querySelector('.quiz-back').addEventListener('click', function () {
+                store = load();
+                renderStart();
+            });
+            // PCでは数字キーで選べるようにする。
+            document.addEventListener('keydown', function (event) {
+                if (current !== 'play' || play.answered || event.ctrlKey || event.metaKey || event.altKey) {
+                    return;
+                }
+                var choice = Number(event.key) - 1;
+                if (choice >= 0 && choice < questions[play.answers.length].choices.length) {
+                    answer(choice);
+                }
+            });
+            // 「戻る」で保存されていた画面が出たとき、別のタブで遊んだ分を反映する。
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted && current === 'start') {
+                    store = load();
+                    renderStart();
+                }
+            });
+
+            renderStart();
+            renderCountdown();
+            setInterval(renderCountdown, 1000);
+        })();
+    </script>
+</body>
+</html>

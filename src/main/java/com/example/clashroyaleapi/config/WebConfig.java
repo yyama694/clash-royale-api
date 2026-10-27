@@ -72,8 +72,10 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     // 対応外の言語・壊れた値は指定が無かったものとして扱う(Cookie・Accept-Languageで決まる)。
+    // 1つの言語でしか作っていない画面は、何が指定されてもその言語にする。
     private static Optional<Locale> requestedLanguage(HttpServletRequest request) {
-        return SupportedLanguages.fromParameter(request.getParameter(WebConstants.LANGUAGE_PARAM));
+        return SupportedLanguages.fixedLanguage(request.getRequestURI())
+                .or(() -> SupportedLanguages.fromParameter(request.getParameter(WebConstants.LANGUAGE_PARAM)));
     }
 
     @Override
