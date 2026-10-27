@@ -20,6 +20,8 @@
           th:data-msg-wrong="#{quiz.wrong('{0}')}"
           th:data-msg-next="#{quiz.next}"
           th:data-msg-to-result="#{quiz.toResult}"
+          th:data-msg-quit="#{quiz.quit}"
+          th:data-msg-quit-practice="#{quiz.quit.practice}"
           th:data-msg-score="#{quiz.result.score('{0}', '{1}')}"
           th:data-msg-wrong-item="#{quiz.result.wrong.item('{0}', '{1}')}"
           th:data-msg-streak="#{quiz.stats.streak.value('{0}', '{1}')}">
@@ -55,7 +57,7 @@
             <div class="quiz-actions">
                 <button type="button" class="quiz-next" hidden></button>
             </div>
-            <button type="button" class="quiz-quit" th:text="#{quiz.quit}"></button>
+            <button type="button" class="quiz-quit"></button>
         </section>
 
         <section class="card quiz-result" id="quiz-result" hidden>
@@ -90,9 +92,9 @@
                 <tbody>
                 <tr th:each="size : ${quiz.sizes()}" th:data-size="${size}">
                     <th scope="row" th:text="#{quiz.size(${size})}"></th>
-                    <td class="num quiz-plays"></td>
-                    <td class="num quiz-average"></td>
-                    <td class="num quiz-perfect-count"></td>
+                    <td class="num quiz-plays" th:data-label="#{quiz.stats.plays}"></td>
+                    <td class="num quiz-average" th:data-label="#{quiz.stats.average}"></td>
+                    <td class="num quiz-perfect-count" th:data-label="#{quiz.stats.perfect}"></td>
                 </tr>
                 </tbody>
             </table>
@@ -242,12 +244,14 @@
             }
 
             function show(name) {
+                var changed = name !== current;
                 current = name;
                 Object.keys(screens).forEach(function (key) {
                     screens[key].hidden = key !== name;
                 });
                 stats.hidden = name === 'play';
-                if (name !== 'start') {
+                // 結果の下の方から最初の画面に戻ったときも、見出しから見えるようにする。開いた直後は動かさない。
+                if (changed || name !== 'start') {
                     root.scrollIntoView({block: 'start'});
                 }
             }
@@ -298,6 +302,8 @@
                 var screen = screens.play;
                 screen.querySelector('.quiz-progress-text').textContent = format(msg.msgProgress, [index + 1, play.size]);
                 screen.querySelector('.quiz-practice').hidden = play.official;
+                // 練習は保存しないので、やめると続きから再開できない。
+                screen.querySelector('.quiz-quit').textContent = play.official ? msg.msgQuit : msg.msgQuitPractice;
                 screen.querySelector('.quiz-progress-bar').style.width = (index / play.size * 100) + '%';
                 var image = screen.querySelector('.quiz-card-image');
                 image.hidden = !q.icon;

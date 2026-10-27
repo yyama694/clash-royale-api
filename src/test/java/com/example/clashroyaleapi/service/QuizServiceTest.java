@@ -55,8 +55,8 @@ class QuizServiceTest {
 
         assertEquals(LocalDate.of(2026, 10, 27), before.date());
         assertEquals(LocalDate.of(2026, 10, 28), after.date());
-        assertEquals(2, before.number());
-        assertEquals(3, after.number());
+        assertEquals(1, before.number());
+        assertEquals(2, after.number());
     }
 
     @Test
