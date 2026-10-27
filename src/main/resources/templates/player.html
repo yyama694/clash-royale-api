@@ -291,6 +291,39 @@
             }
         })();
     </script>
+    <!--/*
+      「これは自分」はJSが動けばfetchで送り、終わったら画面を読み直して表示を切り替える。フォームで画面ごと送ると、
+      一部の環境(常連のChromebook)ではブラウザが他サイトからの送信として扱い、CrossSiteRequestGuardに拒否されていた
+      (2026-10-14。同じ人のお気に入りの☆はfetchで通っていた。`大問題点.md`)。JSが動かない場合はフォーム送信のまま。
+    */-->
+    <script>
+        document.addEventListener('submit', function (event) {
+            var form = event.target;
+            if (!form.classList.contains('me-form')) {
+                return;
+            }
+            event.preventDefault();
+            var button = form.querySelector('button');
+            button.disabled = true;
+            fetch(form.action, {method: 'POST', headers: {'Accept': 'application/json'}})
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(String(response.status));
+                    }
+                    // トップページの「自分の成績」がbfcacheから古いまま戻ってこないよう、お気に入りと同じ印を残す。
+                    try {
+                        sessionStorage.setItem('favoritesChangedAt', String(Date.now()));
+                    } catch (e) {
+                        // ストレージが使えない環境ではあきらめる(トップページはブラウザの更新で最新になる)。
+                    }
+                    location.reload();
+                })
+                .catch(function () {
+                    // fetchで失敗したときは今までどおりフォームで送る(拒否ならエラー画面が出て、押しても何も起きないよりは分かる)。
+                    form.submit();
+                });
+        });
+    </script>
     <!--/* 「これは自分」の人はトップページの「自分の成績」に出るので、「最近見たもの」には残さない(10人の枠を使わないため) */-->
     <th:block th:unless="${isMe}">
         <script th:replace="~{fragments/layout :: recentViewsScript('player', ${playerPathTag}, ${playerName})}"></script>
