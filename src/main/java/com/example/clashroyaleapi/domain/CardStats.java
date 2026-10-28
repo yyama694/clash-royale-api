@@ -122,4 +122,23 @@ public record CardStats(LocalDate asOf, Map<String, List<Row>> byCard) {
     public List<Row> of(String card) {
         return byCard.getOrDefault(card, List.of());
     }
+
+    /** ゲームの画面の「エリクサー（地上）」。地上に出すと別のコストになるカード(スピリットエンプレス)にだけある。 */
+    public static final String GROUND_ELIXIR = "stat.TID_SPELL_ATTRIBUTE_ALTERNATE_CARD";
+
+    /** 地上に出したときのエリクサー。地上に出せる別の形が無いカードは empty。 */
+    public OptionalInt groundElixir(String card) {
+        return of(card).stream()
+                .filter(row -> row.labelKey().equals(GROUND_ELIXIR))
+                .mapToInt(row -> Integer.parseInt(row.level16()))
+                .findFirst();
+    }
+
+    /**
+     * 地上に出したときの形の英語名。ゲームはこれを別のカードとして持っている(公式の表記は "Spirit Empress (Ground)"・
+     * 「スピリットエンプレス（地上）」)。公式APIのカード一覧には無いので、名前の訳とステータスはこの名前で引く。
+     */
+    public static String groundCard(String card) {
+        return card + " (Ground)";
+    }
 }

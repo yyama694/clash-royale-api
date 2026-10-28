@@ -54,6 +54,7 @@
             <p class="quiz-prompt"></p>
             <div class="quiz-choices"></div>
             <p class="quiz-feedback" aria-live="polite"></p>
+            <p class="quiz-note" aria-live="polite" hidden></p>
             <div class="quiz-actions">
                 <button type="button" class="quiz-next" hidden></button>
             </div>
@@ -105,7 +106,7 @@
         <ol id="quiz-questions" hidden>
             <li th:each="q : ${quiz.questions()}" th:data-card="${q.cardId()}" th:data-name="${q.name()}"
                 th:data-icon="${q.iconUrl()}" th:data-link="@{/card/{id}(id=${q.cardId()})}" th:data-type="${q.type()}"
-                th:data-prompt="${q.prompt()}" th:data-choices="${q.choicesText()}" th:data-answer="${q.answer()}"
+                th:data-prompt="${q.prompt()}" th:data-note="${q.note()}" th:data-choices="${q.choicesText()}" th:data-answer="${q.answer()}"
                 th:data-choice-label="#{${'quiz.' + q.type() + '.choice'}('{0}')}"></li>
         </ol>
     </main>
@@ -135,6 +136,7 @@
                     link: li.dataset.link,
                     type: li.dataset.type,
                     prompt: li.dataset.prompt,
+                    note: li.dataset.note,
                     choices: li.dataset.choices.split(','),
                     answer: Number(li.dataset.answer),
                     choiceLabel: li.dataset.choiceLabel
@@ -330,6 +332,7 @@
                 });
                 screen.querySelector('.quiz-feedback').textContent = '';
                 screen.querySelector('.quiz-feedback').className = 'quiz-feedback';
+                screen.querySelector('.quiz-note').hidden = true;
                 screen.querySelector('.quiz-next').hidden = true;
                 play.answered = false;
                 // 次の問題の画像を先に読んでおき、テンポよく進めるようにする。
@@ -376,6 +379,9 @@
                 var feedback = screen.querySelector('.quiz-feedback');
                 feedback.textContent = correct ? msg.msgCorrect : format(msg.msgWrong, [q.choices[q.answer]]);
                 feedback.className = 'quiz-feedback ' + (correct ? 'is-correct' : 'is-wrong');
+                var note = screen.querySelector('.quiz-note');
+                note.textContent = q.note || '';
+                note.hidden = !q.note;
                 var next = screen.querySelector('.quiz-next');
                 next.textContent = finished ? msg.msgToResult : msg.msgNext;
                 next.hidden = false;

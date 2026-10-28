@@ -40,6 +40,9 @@ public class CardImageService {
             "https://api-assets.clashroyale.com/cardheroes/300/RsFaHgB3w6vXsTjXdPr3x8l_GbV9TbOUCvIx07prbrQ.png",
             "/images/cards/electro-wizard-hero.png");
 
+    private static final Map<String, String> GROUND_ICONS = Map.of(
+            "Spirit Empress", "/images/cards/spirit-empress-ground.png");
+
     private final ClashRoyaleApiClient apiClient;
     private final CardImageClient imageClient;
     private final Map<String, String> substitutes;
@@ -91,6 +94,15 @@ public class CardImageService {
             log.info("card images: missing on the image host: {}", found);
         }
         missing = Set.copyOf(found);
+    }
+
+    /**
+     * 地上に出したときの形(スピリットエンプレス（地上）)のカード画像。ゲームでは別のカードだが公式APIには無いので、
+     * ファンWikiのカード画像を公式と同じ285x420に収めて手元に置いた。無いカードは null。
+     */
+    public String groundIconUrl(String card) {
+        String path = GROUND_ICONS.get(card);
+        return path == null ? null : staticUrl.apply(path);
     }
 
     /** 置き場所に無いと分かっている画像なら、代わりの画像のURLを返す。代わりも無ければ null。 */

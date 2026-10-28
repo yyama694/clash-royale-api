@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.CardImageClient;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
+import com.example.clashroyaleapi.domain.CardStats;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -46,6 +49,24 @@ class CardImageServiceTest {
         assertEquals("knight-evo.png", service.usable("knight-evo.png"));
         assertEquals("knight-hero.png", service.usable("knight-hero.png"));
         assertNull(service.usable(null));
+    }
+
+    @Test
+    void 地上のエリクサーがあるカードにはすべて地上の形の画像を置いてある() {
+        CardImageService real = new CardImageService(apiClient, imageClient, Map.of(), path -> path);
+        CardStats stats = new CardStatsService().stats();
+
+        List<String> cards = stats.byCard().keySet().stream()
+                .filter(card -> stats.groundElixir(card).isPresent())
+                .toList();
+
+        assertFalse(cards.isEmpty());
+        for (String card : cards) {
+            String url = real.groundIconUrl(card);
+            assertNotNull(url, card);
+            assertNotNull(getClass().getResource("/static" + url), url);
+        }
+        assertNull(real.groundIconUrl("Knight"));
     }
 
     @Test

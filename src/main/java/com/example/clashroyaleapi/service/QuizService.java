@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
+import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.DailyQuiz;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.OptionalInt;
+import java.util.stream.Stream;
 
 /**
  * クラロワクイズの今日の問題。1日はUTCで区切る(日本時間 9:00に替わる)。世界で同じ瞬間に替わり、「第〇回」が全員でそろうため。
@@ -24,22 +27,35 @@ public class QuizService {
     static final LocalDate FIRST_DAY = LocalDate.of(2026, 10, 27);
 
     private final ClashRoyaleApiClient apiClient;
+    private final CardStatsService cardStatsService;
     private final Clock clock;
 
     @Autowired
-    public QuizService(ClashRoyaleApiClient apiClient) {
-        this(apiClient, Clock.systemUTC());
+    public QuizService(ClashRoyaleApiClient apiClient, CardStatsService cardStatsService) {
+        this(apiClient, cardStatsService, Clock.systemUTC());
     }
 
-    QuizService(ClashRoyaleApiClient apiClient, Clock clock) {
+    QuizService(ClashRoyaleApiClient apiClient, CardStatsService cardStatsService, Clock clock) {
         this.apiClient = apiClient;
+        this.cardStatsService = cardStatsService;
         this.clock = clock;
     }
 
+    /**
+     * 地上に出すと別のコストになるカード(スピリットエンプレス)は、地上の形も別のカードとして出す。
+     * 地上のコストは公式APIに無いので、ゲームの画面から読み取ったステータスの「エリクサー（地上）」を使う。
+     */
     public DailyQuiz today() {
+        CardStats stats = cardStatsService.stats();
         List<DailyQuiz.Card> cards = apiClient.getCards().items().stream()
                 .filter(card -> card.elixirCost() != null)
-                .map(card -> new DailyQuiz.Card(card.id(), card.elixirCost()))
+                .flatMap(card -> {
+                    DailyQuiz.Card normal = new DailyQuiz.Card(card.id(), false, card.elixirCost());
+                    OptionalInt ground = stats.groundElixir(card.name());
+                    return ground.isPresent()
+                            ? Stream.of(normal, new DailyQuiz.Card(card.id(), true, ground.getAsInt()))
+                            : Stream.of(normal);
+                })
                 .toList();
         return DailyQuiz.of(LocalDate.now(clock.withZone(ZoneOffset.UTC)), FIRST_DAY, cards);
     }

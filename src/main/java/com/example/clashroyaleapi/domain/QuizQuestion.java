@@ -5,8 +5,9 @@ import java.util.List;
 /**
  * クイズの1問。選択肢の値の意味は問題の種類で決まる(エリクサーならコスト)。
  * 画面・保存・共有は種類を知らず、選択肢の並びと正解の位置(answer)だけで動く。
+ * ground はカードの地上の形(スピリットエンプレス（地上）)の問題。
  */
-public record QuizQuestion(Type type, int cardId, List<Integer> choices, int answer) {
+public record QuizQuestion(Type type, int cardId, boolean ground, List<Integer> choices, int answer) {
 
     public enum Type {
         ELIXIR("elixir");

@@ -29,11 +29,17 @@
                         <img th:src="${card.heroIconUrl()}" alt="" width="285" height="420">
                         <figcaption th:text="#{card.hero}"></figcaption>
                     </figure>
+                    <figure th:if="${card.ground() != null and card.ground().iconUrl() != null}">
+                        <img th:src="${card.ground().iconUrl()}" alt="" width="285" height="420">
+                        <figcaption th:text="${card.ground().name()}"></figcaption>
+                    </figure>
                 </div>
 
+                <!--/* 地上に出すと別のコストになるカード(スピリットエンプレス)は、地上のコストをゲームの項目名で並べる */-->
                 <ul class="stat-grid">
                     <li><span class="label" th:text="#{card.rarity}"></span><span class="value" th:text="${card.rarity()}"></span></li>
                     <li th:if="${card.elixirCost() != null}"><span class="label" th:text="#{card.elixirCost}"></span><span class="value" th:text="${card.elixirCost()}"></span></li>
+                    <li th:if="${card.ground() != null}"><span class="label" th:text="#{stat.TID_SPELL_ATTRIBUTE_ALTERNATE_CARD}"></span><span class="value" th:text="${card.ground().elixirCost()}"></span></li>
                     <li><span class="label" th:text="#{card.levelRange}"></span><span class="value" th:text="#{card.levelRange.value(${card.minLevel()}, ${card.maxLevel()})}"></span></li>
                 </ul>
             </div>

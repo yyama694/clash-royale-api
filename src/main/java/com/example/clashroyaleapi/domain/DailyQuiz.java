@@ -24,15 +24,18 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
 
     static final int CHOICES = 4;
 
-    /** 出題できるカード。エリクサーが決まっていないカード(鏡)は渡さない。 */
-    public record Card(int id, int elixirCost) {
+    /**
+     * 出題できるカード。エリクサーが決まっていないカード(鏡)は渡さない。
+     * 地上に出すと別のコストになるカード(スピリットエンプレス)は、ゲームと同じく地上の形(ground)を別のカードとして渡す。
+     */
+    public record Card(int id, boolean ground, int elixirCost) {
     }
 
     /** firstDay は第1回の日。 */
     public static DailyQuiz of(LocalDate date, LocalDate firstDay, List<Card> cards) {
         // 公式APIの並び順が変わっても同じ問題になるよう、IDの順にそろえてから並べ替える。
         List<Card> deck = new ArrayList<>(cards);
-        deck.sort(Comparator.comparingInt(Card::id));
+        deck.sort(Comparator.comparingInt(Card::id).thenComparing(Card::ground));
         Random random = new Random(seed(date));
         int count = Math.min(QUESTIONS_PER_DAY, deck.size());
         // Collections.shuffle は中身が仕様で決まっておらず、Javaの版で並びが変わりうるので、Fisher-Yatesを自分で書く。
@@ -59,7 +62,7 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
         int start = lastStart < firstStart ? lowest : firstStart + random.nextInt(lastStart - firstStart + 1);
         int end = Math.min(highest, start + CHOICES - 1);
         List<Integer> choices = IntStream.rangeClosed(start, end).boxed().toList();
-        return new QuizQuestion(QuizQuestion.Type.ELIXIR, card.id(), choices, cost - start);
+        return new QuizQuestion(QuizQuestion.Type.ELIXIR, card.id(), card.ground(), choices, cost - start);
     }
 
     /**
