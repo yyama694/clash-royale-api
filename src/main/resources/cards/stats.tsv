@@ -1025,3 +1025,10 @@ Electro Spirit	normal	=気絶効果時間	0.5秒	0.5秒	ja
 Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_AIR_AND_GROUND}	{t:stat.TID_TARGETS_AIR_AND_GROUND}	
 Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}	
 Electro Spirit	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	2.5	2.5	
+Spirit Empress (Ground)	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE	511	320	
+Spirit Empress (Ground)	normal	stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND	425	266	
+Spirit Empress (Ground)	normal	stat.TID_SPELL_ATTRIBUTE_HEALTH	1791	1121	
+Spirit Empress (Ground)	normal	stat.TID_SPELL_ATTRIBUTE_HIT_SPEED	{s:1.2}	{s:1.2}	
+Spirit Empress (Ground)	normal	stat.TID_SPELL_ATTRIBUTE_TARGET	{t:stat.TID_TARGETS_GROUND}	{t:stat.TID_TARGETS_GROUND}	
+Spirit Empress (Ground)	normal	stat.TID_SPELL_ATTRIBUTE_SPEED	{t:stat.TID_SPEED_4}	{t:stat.TID_SPEED_4}	
+Spirit Empress (Ground)	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	{t:stat.TID_MELEE_MEDIUM}	{t:stat.TID_MELEE_MEDIUM}	

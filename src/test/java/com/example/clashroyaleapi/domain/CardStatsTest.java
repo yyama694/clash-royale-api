@@ -80,6 +80,20 @@ class CardStatsTest {
     }
 
     @Test
+    void 地上のエリクサーはゲームの画面の項目から読み地上の形は別のカードの名前で引く() {
+        CardStats stats = CardStats.parse(List.of(
+                "@asof\t2026-10-25",
+                "Spirit Empress\tnormal\tstat.TID_SPELL_ATTRIBUTE_HEALTH\t1791\t1121\t",
+                "Spirit Empress\tnormal\t" + CardStats.GROUND_ELIXIR + "\t3\t3\t",
+                "Spirit Empress (Ground)\tnormal\tstat.TID_SPELL_ATTRIBUTE_HIT_SPEED\t{s:1.2}\t{s:1.2}\t"));
+
+        assertEquals(OptionalInt.of(3), stats.groundElixir("Spirit Empress"));
+        assertEquals(OptionalInt.empty(), stats.groundElixir("Knight"));
+        assertEquals("Spirit Empress (Ground)", CardStats.groundCard("Spirit Empress"));
+        assertEquals(1, stats.of(CardStats.groundCard("Spirit Empress")).size());
+    }
+
+    @Test
     void 読み取った日が無いファイルは読まない() {
         assertThrows(IllegalArgumentException.class,
                 () -> CardStats.parse(List.of("Knight\tnormal\tstat.TID_SPELL_ATTRIBUTE_HEALTH\t2822\t1766\t")));

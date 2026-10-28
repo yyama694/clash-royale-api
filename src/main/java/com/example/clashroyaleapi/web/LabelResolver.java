@@ -111,6 +111,11 @@ public class LabelResolver {
         return messageSource.getMessage(key, args, key, locale);
     }
 
+    /** 一部のものにだけある文言(カードごとの問題文など)。無ければ null。 */
+    public String optionalMessage(String key, Locale locale, Object... args) {
+        return messageSource.getMessage(key, args, null, locale);
+    }
+
     /** "Challenge_AllCards_EventDeck_NoSet" → "gamemodeprefix.Challenge"。区切りが無い名前は名前全体を接頭辞とみなす。 */
     private String prefixKey(String name) {
         int separator = name.indexOf('_');

@@ -69,7 +69,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** 2v2で「自分」と「味方」を取り違えない並べ方を中心に検証する。ラベル解決はモックで素通しにする。 */
@@ -593,7 +596,7 @@ class ViewMapperTest {
                 new CardsResponse.Card.IconUrls("normal.png", "evolution.png", "hero.png"));
 
         CardView inDeck = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0).cards().get(0);
-        CardDetailView detail = viewMapper.toCardDetail(card, Locale.JAPANESE);
+        CardDetailView detail = viewMapper.toCardDetail(card, stats(), Locale.JAPANESE);
 
         assertEquals("normal.png", inDeck.iconUrl());
         assertEquals(CardForm.EVOLUTION, inDeck.form());
@@ -857,7 +860,7 @@ class ViewMapperTest {
                 new CardStats.Row(CardStats.Form.HERO, "=砲台のヒットポイント", "2454", "1536", "ja"),
                 new CardStats.Row(CardStats.Form.EVOLUTION, "stat.TID_SNIPER_AMMO", "3", "3", null));
 
-        CardStatsView view = mapper.toCardStats(rows, LocalDate.of(2026, 10, 25), Locale.JAPANESE);
+        CardStatsView view = mapper.toCardStats(stats("Musketeer", rows), "Musketeer", Locale.JAPANESE);
 
         assertEquals(3, view.sections().size());
         assertNull(view.sections().get(0).heading());
@@ -867,10 +870,71 @@ class ViewMapperTest {
         assertNull(view.sections().get(2).rows().get(0).level11());
         // 公式の訳が無い項目は日本語の画面にだけ、日本語の画面の表記のまま出す
         assertEquals(new CardStatsView.Row("砲台のヒットポイント", "2454", "1536"), view.sections().get(2).rows().get(1));
-        assertEquals(1, mapper.toCardStats(rows, LocalDate.of(2026, 10, 25), Locale.ENGLISH).sections().get(2).rows().size());
+        assertEquals(1, mapper.toCardStats(stats("Musketeer", rows), "Musketeer", Locale.ENGLISH)
+                .sections().get(2).rows().size());
         assertTrue(view.notice().startsWith("2026年10月25日時点のゲーム内の値"), view.notice());
         assertTrue(view.notice().contains("レベル11(チャレンジレベル)"), view.notice());
-        assertNull(mapper.toCardStats(List.of(), LocalDate.of(2026, 10, 25), Locale.JAPANESE));
+        assertNull(mapper.toCardStats(stats("Musketeer", rows), "Tower Princess", Locale.JAPANESE));
+    }
+
+    @Test
+    void 地上の形は別のカードの名前を見出しにして通常の次に並べ地上のエリクサーはステータスに出さない() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        CardStats stats = new CardStats(LocalDate.of(2026, 10, 25), Map.of(
+                "Spirit Empress", List.of(
+                        new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_HEALTH", "1791", "1121", null),
+                        new CardStats.Row(CardStats.Form.NORMAL, CardStats.GROUND_ELIXIR, "3", "3", null)),
+                "Spirit Empress (Ground)", List.of(
+                        new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_HIT_SPEED", "{s:1.2}", "{s:1.2}",
+                                null))));
+
+        CardStatsView view = mapper.toCardStats(stats, "Spirit Empress", Locale.JAPANESE);
+
+        assertEquals(2, view.sections().size());
+        assertEquals(List.of(new CardStatsView.Row("ヒットポイント", "1791", "1121")), view.sections().get(0).rows());
+        assertEquals("スピリットエンプレス（地上）", view.sections().get(1).heading());
+        assertEquals(List.of(new CardStatsView.Row("攻撃速度", "1.2秒", "1.2秒")), view.sections().get(1).rows());
+        assertEquals("Spirit Empress (Ground)",
+                mapper.toCardStats(stats, "Spirit Empress", Locale.ENGLISH).sections().get(1).heading());
+    }
+
+    @Test
+    void 地上の形が無いカードでは地上の形の名前を引かない() {
+        CardStats stats = stats("Knight",
+                List.of(new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_HEALTH", "2822", "1766", null)));
+
+        viewMapper.toCardStats(stats, "Knight", Locale.JAPANESE);
+
+        // 引くと、訳が無いという警告がカードの数だけログに出る
+        verify(labels, never()).cardName(eq("Knight (Ground)"), any());
+    }
+
+    @Test
+    void 地上に出すと別のコストになるカードはカード詳細に地上の形のコストと画像を出す() {
+        when(cardImages.groundIconUrl("Spirit Empress")).thenReturn("/images/cards/spirit-empress-ground.png");
+        CardsResponse.Card empress = new CardsResponse.Card(28000025, "Spirit Empress", 8, 3, 6, "legendary",
+                new CardsResponse.Card.IconUrls("empress.png", null, null));
+        CardsResponse.Card knight = new CardsResponse.Card(26000000, "Knight", 16, 1, 3, "common",
+                new CardsResponse.Card.IconUrls("knight.png", null, null));
+        CardStats stats = stats("Spirit Empress",
+                List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.GROUND_ELIXIR, "3", "3", null)));
+
+        CardDetailView detail = viewMapper.toCardDetail(empress, stats, Locale.JAPANESE);
+
+        assertEquals(6, detail.elixirCost());
+        assertEquals(new CardDetailView.Ground("Spirit Empress (Ground)", "/images/cards/spirit-empress-ground.png", 3),
+                detail.ground());
+        assertTrue(detail.hasOtherForms());
+        assertNull(viewMapper.toCardDetail(knight, stats, Locale.JAPANESE).ground());
+    }
+
+    private static CardStats stats() {
+        return new CardStats(LocalDate.of(2026, 10, 25), Map.of());
+    }
+
+    private static CardStats stats(String card, List<CardStats.Row> rows) {
+        return new CardStats(LocalDate.of(2026, 10, 25), Map.of(card, rows));
     }
 
     @Test
@@ -881,17 +945,17 @@ class ViewMapperTest {
                 new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "1100", "688", null),
                 new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", "253", null, null));
 
-        CardStatsView ja = mapper.toCardStats(fireball, LocalDate.of(2026, 10, 25), Locale.JAPANESE);
+        CardStatsView ja = mapper.toCardStats(stats("Fireball", fireball), "Fireball", Locale.JAPANESE);
         assertEquals(new CardStatsView.Row("タワーへのダメージ", "253(-77%)", null), ja.sections().get(0).rows().get(1));
         assertEquals("1100", ja.sections().get(0).rows().get(0).level16());
         assertTrue(ja.towerReductionNotice().startsWith("「タワーへのダメージ」の横の%は"), ja.towerReductionNotice());
         // トルコ語は％を数字の前に書く
-        assertEquals("253 (-%77)", mapper.toCardStats(fireball, LocalDate.of(2026, 10, 25), Locale.forLanguageTag("tr"))
+        assertEquals("253 (-%77)", mapper.toCardStats(stats("Fireball", fireball), "Fireball", Locale.forLanguageTag("tr"))
                 .sections().get(0).rows().get(1).level16());
 
         List<CardStats.Row> knight = List.of(
                 new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_DAMAGE", "323", "202", null));
-        assertNull(mapper.toCardStats(knight, LocalDate.of(2026, 10, 25), Locale.JAPANESE).towerReductionNotice());
+        assertNull(mapper.toCardStats(stats("Knight", knight), "Knight", Locale.JAPANESE).towerReductionNotice());
     }
 
     private static DeckWinRates.DeckRecord winRateDeck(int wins, int battles) {
@@ -904,9 +968,9 @@ class ViewMapperTest {
         CardsResponse.Card knight = new CardsResponse.Card(26000000, "Knight", 16, 1, 3, "common",
                 new CardsResponse.Card.IconUrls("knight.png", "knight-evolution.png", "knight-hero.png"));
         DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 26), 1,
-                List.of(new QuizQuestion(QuizQuestion.Type.ELIXIR, 26000000, List.of(1, 2, 3, 4), 2)));
+                List.of(new QuizQuestion(QuizQuestion.Type.ELIXIR, 26000000, false, List.of(1, 2, 3, 4), 2)));
 
-        QuizView view = viewMapper.toQuiz(quiz, Map.of(26000000, knight), Locale.JAPANESE);
+        QuizView view = viewMapper.toQuiz(quiz, Map.of(26000000, knight), stats(), Locale.JAPANESE);
 
         assertEquals("2026-10-26", view.date());
         QuizView.Question question = view.questions().get(0);
@@ -915,7 +979,42 @@ class ViewMapperTest {
         assertEquals("elixir", question.type());
         assertEquals("1,2,3,4", question.choicesText());
         assertEquals(2, question.answer());
+        assertNull(question.note());
         // 30問に満たない日は、選べる問題数もあるだけにする。
         assertEquals(List.of(), view.sizes());
+    }
+
+    @Test
+    void クイズの地上の形は地上の画像と名前で出しどちらの形かを問題文で言いもう一方のコストを添える() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
+        when(cardImages.groundIconUrl("Spirit Empress")).thenReturn("/images/cards/spirit-empress-ground.png");
+        CardsResponse.Card empress = new CardsResponse.Card(28000025, "Spirit Empress", 8, 3, 6, "legendary",
+                new CardsResponse.Card.IconUrls("empress.png", null, null));
+        CardsResponse.Card knight = new CardsResponse.Card(26000000, "Knight", 16, 1, 3, "common",
+                new CardsResponse.Card.IconUrls("knight.png", null, null));
+        CardStats stats = stats("Spirit Empress",
+                List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.GROUND_ELIXIR, "3", "3", null)));
+        DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 26), 1, List.of(
+                new QuizQuestion(QuizQuestion.Type.ELIXIR, 28000025, true, List.of(2, 3, 4, 5), 1),
+                new QuizQuestion(QuizQuestion.Type.ELIXIR, 28000025, false, List.of(3, 4, 5, 6), 3),
+                new QuizQuestion(QuizQuestion.Type.ELIXIR, 26000000, false, List.of(1, 2, 3, 4), 2)));
+
+        List<QuizView.Question> questions = mapper.toQuiz(quiz, Map.of(28000025, empress, 26000000, knight), stats,
+                Locale.JAPANESE).questions();
+
+        QuizView.Question ground = questions.get(0);
+        assertEquals("スピリットエンプレス（地上）", ground.name());
+        assertEquals("/images/cards/spirit-empress-ground.png", ground.iconUrl());
+        assertEquals("地上に出すときのエリクサーは?", ground.prompt());
+        assertEquals("霊龍にまたがって出すと6エリクサーです", ground.note());
+        QuizView.Question mounted = questions.get(1);
+        assertEquals("スピリットエンプレス", mounted.name());
+        assertEquals("empress.png", mounted.iconUrl());
+        assertEquals("霊龍にまたがって出すときのエリクサーは?", mounted.prompt());
+        assertEquals("地上に出すと3エリクサーです", mounted.note());
+        QuizView.Question other = questions.get(2);
+        assertEquals("このカードのエリクサーは?", other.prompt());
+        assertNull(other.note());
     }
 }

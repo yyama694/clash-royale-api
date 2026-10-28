@@ -20,7 +20,7 @@ class DailyQuizTest {
 
     // 2026-10の実際の分布に近い122枚(1〜9エリクサー)。
     private static final List<DailyQuiz.Card> CARDS = IntStream.range(0, 122)
-            .mapToObj(i -> new DailyQuiz.Card(26_000_000 + i, cost(i)))
+            .mapToObj(i -> new DailyQuiz.Card(26_000_000 + i, false, cost(i)))
             .toList();
 
     private static int cost(int i) {
@@ -42,6 +42,32 @@ class DailyQuizTest {
         Collections.reverse(shuffled);
 
         assertEquals(DailyQuiz.of(date, FIRST_DAY, CARDS), DailyQuiz.of(date, FIRST_DAY, shuffled));
+    }
+
+    @Test
+    void 地上の形は同じカードの別の問題になり並び順が変わっても同じ問題になる() {
+        DailyQuiz.Card mounted = new DailyQuiz.Card(28_000_025, false, 6);
+        DailyQuiz.Card ground = new DailyQuiz.Card(28_000_025, true, 3);
+        List<DailyQuiz.Card> cards = new ArrayList<>(CARDS);
+        cards.add(mounted);
+        cards.add(ground);
+        List<DailyQuiz.Card> reversed = new ArrayList<>(cards);
+        Collections.reverse(reversed);
+
+        boolean bothSeen = false;
+        for (int day = 0; day < 200; day++) {
+            LocalDate date = FIRST_DAY.plusDays(day);
+            DailyQuiz quiz = DailyQuiz.of(date, FIRST_DAY, cards);
+            assertEquals(quiz, DailyQuiz.of(date, FIRST_DAY, reversed));
+            for (QuizQuestion question : quiz.questions()) {
+                if (question.cardId() == 28_000_025) {
+                    assertEquals(question.ground() ? 3 : 6, question.correctChoice());
+                }
+            }
+            bothSeen |= quiz.questions().stream().filter(q -> q.cardId() == 28_000_025).count() == 2;
+        }
+        // 2つの形は別のカードなので、同じ日に両方出ることもある
+        assertTrue(bothSeen);
     }
 
     @Test
@@ -86,8 +112,8 @@ class DailyQuizTest {
 
     @Test
     void 端のコストは選択肢の位置が決まる() {
-        List<DailyQuiz.Card> cards = List.of(new DailyQuiz.Card(1, 1), new DailyQuiz.Card(2, 9),
-                new DailyQuiz.Card(3, 5));
+        List<DailyQuiz.Card> cards = List.of(new DailyQuiz.Card(1, false, 1), new DailyQuiz.Card(2, false, 9),
+                new DailyQuiz.Card(3, false, 5));
 
         for (QuizQuestion question : DailyQuiz.of(FIRST_DAY, FIRST_DAY, cards).questions()) {
             switch (costOf(cards, question.cardId())) {
@@ -102,8 +128,9 @@ class DailyQuizTest {
     void 正解の位置は偏らない() {
         int[] positions = new int[4];
         // 範囲を1〜9にするための2枚と、4エリクサーの38枚。
-        List<DailyQuiz.Card> fours = new ArrayList<>(List.of(new DailyQuiz.Card(0, 1), new DailyQuiz.Card(1, 9)));
-        IntStream.range(2, 40).forEach(i -> fours.add(new DailyQuiz.Card(i, 4)));
+        List<DailyQuiz.Card> fours = new ArrayList<>(
+                List.of(new DailyQuiz.Card(0, false, 1), new DailyQuiz.Card(1, false, 9)));
+        IntStream.range(2, 40).forEach(i -> fours.add(new DailyQuiz.Card(i, false, 4)));
         for (int day = 0; day < 200; day++) {
             DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, fours).questions().stream()
                     .filter(question -> question.correctChoice() == 4)
@@ -119,14 +146,14 @@ class DailyQuizTest {
 
     @Test
     void カードが30枚に満たなければあるだけ出す() {
-        List<DailyQuiz.Card> cards = List.of(new DailyQuiz.Card(1, 3), new DailyQuiz.Card(2, 4));
+        List<DailyQuiz.Card> cards = List.of(new DailyQuiz.Card(1, false, 3), new DailyQuiz.Card(2, false, 4));
 
         assertEquals(2, DailyQuiz.of(FIRST_DAY, FIRST_DAY, cards).questions().size());
     }
 
     @Test
     void コストの幅が4つに満たなければあるだけを選択肢にする() {
-        List<DailyQuiz.Card> cards = List.of(new DailyQuiz.Card(1, 3), new DailyQuiz.Card(2, 4));
+        List<DailyQuiz.Card> cards = List.of(new DailyQuiz.Card(1, false, 3), new DailyQuiz.Card(2, false, 4));
 
         for (QuizQuestion question : DailyQuiz.of(FIRST_DAY, FIRST_DAY, cards).questions()) {
             assertEquals(List.of(3, 4), question.choices());

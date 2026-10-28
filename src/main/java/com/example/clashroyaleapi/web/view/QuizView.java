@@ -13,8 +13,9 @@ public record QuizView(String date, int number, String roundLabel, String lead, 
     /**
      * 1問分。type は選択肢の見せ方(エリクサーなら水滴)の切り替えに使う。answer は正解の choices での位置。
      * 正解がページのソースに入るが、成績はその人のブラウザにしか残らないので、調べて答えられても実害は小さい。
+     * note は答えた後に添える一言(地上に出すと別のコストになるカードの、もう一方の形のコスト)。無ければ null。
      */
-    public record Question(int cardId, String name, String iconUrl, String type, String prompt,
+    public record Question(int cardId, String name, String iconUrl, String type, String prompt, String note,
             List<String> choices, int answer) {
 
         public String choicesText() {

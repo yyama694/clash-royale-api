@@ -35,6 +35,7 @@ import com.example.clashroyaleapi.domain.PlayerBattleStats;
 import com.example.clashroyaleapi.domain.PlayerNameMatch;
 import com.example.clashroyaleapi.domain.PopularDeck;
 import com.example.clashroyaleapi.domain.ProPlayer;
+import com.example.clashroyaleapi.domain.QuizQuestion;
 import com.example.clashroyaleapi.domain.RankChange;
 import com.example.clashroyaleapi.domain.RankedLeague;
 import com.example.clashroyaleapi.domain.RankingMovements;
@@ -135,6 +136,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -334,17 +336,9 @@ public class ViewMapper {
     }
 
     /** 画像は通常の姿だけを出す(限界突破・ヒーローの絵は使わない)。コストの水滴は答えになるので重ねない。 */
-    public QuizView toQuiz(DailyQuiz quiz, Map<Integer, CardsResponse.Card> cards, Locale locale) {
+    public QuizView toQuiz(DailyQuiz quiz, Map<Integer, CardsResponse.Card> cards, CardStats stats, Locale locale) {
         List<QuizView.Question> questions = quiz.questions().stream()
-                .map(question -> {
-                    CardsResponse.Card card = cards.get(question.cardId());
-                    String type = question.type().code();
-                    return new QuizView.Question(question.cardId(),
-                            labels.cardName(card == null ? null : card.name(), locale),
-                            card == null || card.iconUrls() == null ? null : card.iconUrls().medium(),
-                            type, labels.message("quiz." + type + ".prompt", locale),
-                            question.choices().stream().map(String::valueOf).toList(), question.answer());
-                })
+                .map(question -> toQuizQuestion(question, cards.get(question.cardId()), stats, locale))
                 .toList();
         String lead = quiz.questions().stream()
                 .map(question -> question.type().code())
@@ -356,6 +350,33 @@ public class ViewMapper {
                 labels.message("quiz.round", locale, quiz.number(), utcNoon(quiz.date())), lead, sizes, questions);
     }
 
+    /**
+     * 地上に出すと別のコストになるカード(スピリットエンプレス)は、2つの形を別のカードとして出す。問題文でどちらの形かを
+     * 言い、答えた後にもう一方の形のコストを添える。文言は形ごとの英語名で引き、無ければ共通の問題文にして何も添えない。
+     */
+    private QuizView.Question toQuizQuestion(QuizQuestion question, CardsResponse.Card card, CardStats stats,
+            Locale locale) {
+        String type = question.type().code();
+        String name = card == null ? null : card.name();
+        String iconUrl = card == null || card.iconUrls() == null ? null : card.iconUrls().medium();
+        String prompt = null;
+        String note = null;
+        if (name != null) {
+            OptionalInt groundElixir = stats.groundElixir(name);
+            Integer otherCost = question.ground() ? card.elixirCost()
+                    : groundElixir.isPresent() ? Integer.valueOf(groundElixir.getAsInt()) : null;
+            if (question.ground()) {
+                iconUrl = cardImages.groundIconUrl(name);
+                name = CardStats.groundCard(name);
+            }
+            prompt = labels.optionalMessage("quiz." + type + ".prompt." + name, locale);
+            note = otherCost == null ? null : labels.optionalMessage("quiz." + type + ".note." + name, locale, otherCost);
+        }
+        return new QuizView.Question(question.cardId(), labels.cardName(name, locale), iconUrl, type,
+                prompt != null ? prompt : labels.message("quiz." + type + ".prompt", locale), note,
+                question.choices().stream().map(String::valueOf).toList(), question.answer());
+    }
+
     private static Date utcNoon(LocalDate day) {
         return Date.from(day.atTime(12, 0).toInstant(ZoneOffset.UTC));
     }
@@ -364,8 +385,13 @@ public class ViewMapper {
         return Math.round(value * 10) / 10.0;
     }
 
-    public CardDetailView toCardDetail(CardsResponse.Card card, Locale locale) {
+    /** 地上のコストは公式APIに無いので、ゲームの画面から読み取ったステータス(stats)から出す。 */
+    public CardDetailView toCardDetail(CardsResponse.Card card, CardStats stats, Locale locale) {
         CardsResponse.Card.IconUrls icons = card.iconUrls();
+        OptionalInt groundElixir = stats.groundElixir(card.name());
+        CardDetailView.Ground ground = groundElixir.isEmpty() ? null
+                : new CardDetailView.Ground(labels.cardName(CardStats.groundCard(card.name()), locale),
+                        cardImages.groundIconUrl(card.name()), groundElixir.getAsInt());
         return new CardDetailView(
                 card.id(),
                 labels.cardName(card.name(), locale),
@@ -373,6 +399,7 @@ public class ViewMapper {
                 icons == null ? null : icons.medium(),
                 icons == null ? null : cardImages.usable(icons.evolutionMedium()),
                 icons == null ? null : cardImages.usable(icons.heroMedium()),
+                ground,
                 labels.rarity(card.rarity(), locale),
                 card.elixirCost(),
                 CardLevel.inGame(1, card.maxLevel()),
@@ -382,8 +409,10 @@ public class ViewMapper {
     /**
      * 載っていないカード(タワーユニットなど)は null(欄ごと出さない)。公式の訳が無い項目は日本語の画面にだけ出す
      * (項目名は日本語の画面の表記そのままなので、データに直接書いてある)。
+     * 地上の形(スピリットエンプレス（地上）)はゲームでは別のカードなので、その名前を見出しにして通常の次に並べる。
      */
-    public CardStatsView toCardStats(List<CardStats.Row> rows, LocalDate asOf, Locale locale) {
+    public CardStatsView toCardStats(CardStats stats, String card, Locale locale) {
+        List<CardStats.Row> rows = stats.of(card);
         if (rows.isEmpty()) {
             return null;
         }
@@ -391,9 +420,36 @@ public class ViewMapper {
         for (CardStats.Form form : CardStats.Form.values()) {
             byForm.put(form, new ArrayList<>());
         }
+        List<CardStatsView.Row> ground = new ArrayList<>();
+        boolean anyReduction = addStatsRows(rows, row -> byForm.get(row.form()), locale);
+        anyReduction |= addStatsRows(stats.of(CardStats.groundCard(card)), row -> ground, locale);
+        String ability = labels.message("stat.TID_ABILITY", locale);
+        List<CardStatsView.Section> sections = new ArrayList<>();
+        addStatsSection(sections, null, null, byForm.get(CardStats.Form.NORMAL));
+        // 名前は地上の形があるときだけ引く(無いカードの名前を引くと、訳が無いという警告がログに出る)
+        addStatsSection(sections, ground.isEmpty() ? null : labels.cardName(CardStats.groundCard(card), locale), null,
+                ground);
+        addStatsSection(sections, ability, null, byForm.get(CardStats.Form.CHAMPION));
+        addStatsSection(sections, labels.message("card.evolution", locale),
+                labels.message("cardStats.evolution.lead", locale), byForm.get(CardStats.Form.EVOLUTION));
+        addStatsSection(sections, labels.message("cardStats.section.hero", locale, ability,
+                labels.message("card.hero", locale)), null, byForm.get(CardStats.Form.HERO));
+        return new CardStatsView(labels.message("cardStats.notice", locale, utcNoon(stats.asOf()),
+                labels.message("stat.TID_BUTTON_TOURNAMENT_LEVEL", locale)),
+                anyReduction ? labels.message("cardStats.towerReduction.notice", locale,
+                        labels.message("stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", locale)) : null,
+                sections);
+    }
+
+    /**
+     * 1枚のカードの行を、target が返す欄に足す。タワーへのダメージに減る割合を添えた行があれば true。
+     * 地上のエリクサーは画面の上の欄でカードのコストと並べるので、ここには出さない。
+     */
+    private boolean addStatsRows(List<CardStats.Row> rows, Function<CardStats.Row, List<CardStatsView.Row>> target,
+            Locale locale) {
         boolean anyReduction = false;
         for (CardStats.Row row : rows) {
-            if (!row.shownIn(locale.getLanguage())) {
+            if (!row.shownIn(locale.getLanguage()) || row.labelKey().equals(CardStats.GROUND_ELIXIR)) {
                 continue;
             }
             String label = row.labelKey().startsWith("=") ? row.labelKey().substring(1)
@@ -409,21 +465,9 @@ public class ViewMapper {
                 level11 = level11 == null ? null
                         : labels.message("cardStats.towerReduction", locale, level11, percent);
             }
-            byForm.get(row.form()).add(new CardStatsView.Row(label, level16, level11));
+            target.apply(row).add(new CardStatsView.Row(label, level16, level11));
         }
-        String ability = labels.message("stat.TID_ABILITY", locale);
-        List<CardStatsView.Section> sections = new ArrayList<>();
-        addStatsSection(sections, null, null, byForm.get(CardStats.Form.NORMAL));
-        addStatsSection(sections, ability, null, byForm.get(CardStats.Form.CHAMPION));
-        addStatsSection(sections, labels.message("card.evolution", locale),
-                labels.message("cardStats.evolution.lead", locale), byForm.get(CardStats.Form.EVOLUTION));
-        addStatsSection(sections, labels.message("cardStats.section.hero", locale, ability,
-                labels.message("card.hero", locale)), null, byForm.get(CardStats.Form.HERO));
-        return new CardStatsView(labels.message("cardStats.notice", locale, utcNoon(asOf),
-                labels.message("stat.TID_BUTTON_TOURNAMENT_LEVEL", locale)),
-                anyReduction ? labels.message("cardStats.towerReduction.notice", locale,
-                        labels.message("stat.TID_SPELL_ATTRIBUTE_TOWER_DAMAGE", locale)) : null,
-                sections);
+        return anyReduction;
     }
 
     private static void addStatsSection(List<CardStatsView.Section> sections, String heading, String lead,
