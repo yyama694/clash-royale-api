@@ -9,7 +9,7 @@
       card-usage(デッキ集計とその履歴)。ranking-history と card-usage の履歴は、公式APIが今のランキングと
       直近約30戦しか返さないため作り直せない。by-name は PlayerIndexCompactor が無ければ起動後に自動で
       作り直すため、inbox は毎時の整理バッチで消える一時ファイルのため除く。
-    - vm-config-*.tar.gz: systemd・Apache・logrotate・cron・firewalld の設定、自作スクリプト、日次アクセス数のログ。
+    - vm-config-*.tar.gz: systemd(journaldを含む)・Apache・logrotate・cron・firewalld の設定、自作スクリプト、日次アクセス数のログ。
 
     成否は $BackupDir\backup.log に1行ずつ追記する(タスクスケジューラからの無人実行用)。
     定期実行の登録は scripts\register-backup-task.ps1 で行う。
@@ -33,7 +33,7 @@ $RemoteIndexDir = '/var/lib/clash-royale-api/player-index'
 $Targets        = 'by-tag crawler ranking-history card-usage'
 # APIトークン(/etc/clash-royale-api/env)と証明書の秘密鍵は含めない。トークンは開発者サイトで、証明書は
 # certbotで作り直せるので、秘密情報をPCに置く場所を増やさない。
-$VmConfigPaths  = 'etc/systemd/system/clash-royale-api.service ' +
+$VmConfigPaths  = 'etc/systemd/system/clash-royale-api.service etc/systemd/journald.conf.d ' +
                   'etc/httpd/conf.d/princess-tower-proxy.conf etc/httpd/conf.d/princess-tower-proxy-le-ssl.conf ' +
                   'etc/httpd/conf.d/block-scrapers.conf var/www/princess-tower/server-unavailable.html ' +
                   'etc/logrotate.d/httpd etc/firewalld/zones ' +
