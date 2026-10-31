@@ -59,7 +59,10 @@ public sealed interface QuizQuestion {
         }
     }
 
-    /** health はレベル16のヒットポイント。並び順はレベルに関係なく同じ(2026-10-31に全カードで確かめた)。 */
-    record HpCard(int id, int health) {
+    /**
+     * health はレベル16のヒットポイント。並び順はレベルに関係なく同じ(2026-10-31に全カードで確かめた)。
+     * unit はカードとは別に出すユニット(ゴブリンシュタインのモンスターなど。CardUnit)で、カード自体なら null。
+     */
+    record HpCard(int id, String unit, int health) {
     }
 }
