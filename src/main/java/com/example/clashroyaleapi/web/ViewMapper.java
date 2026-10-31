@@ -392,11 +392,12 @@ public class ViewMapper {
                     String name = card == null ? null : card.name();
                     String iconUrl = card == null || card.iconUrls() == null ? null : card.iconUrls().medium();
                     return new QuizView.Card(hpCard.id(), labels.cardName(name, locale), iconUrl,
-                            String.valueOf(hpCard.health()), name == null ? null : hpCondition(name, stats, locale));
+                            String.valueOf(hpCard.health()),
+                            name == null ? null : hpCondition(name, hpCard.unit(), stats, locale));
                 })
                 .toList();
         String key = type + ":" + question.cards().stream()
-                .map(hpCard -> String.valueOf(hpCard.id()))
+                .map(hpCard -> hpCard.id() + (hpCard.unit() == null ? "" : "." + hpCard.unit()))
                 .collect(Collectors.joining("-"));
         String answer = question.answer().stream().map(String::valueOf).collect(Collectors.joining());
         return new QuizView.Question(key, type, labels.message("quiz." + type + ".prompt", locale),
@@ -407,8 +408,13 @@ public class ViewMapper {
      * ヒットポイントがどの姿の値かの注釈。別のユニットや姿が出るカード(ステルスブッシュの草とステルスゴブリンなど)は
      * カードごとの文言(quiz.hp.condition.<英語名>)で言う。何体も出る・シールドがあるだけのカードは、ステータスの
      * 「同時出撃数」「シールドのヒットポイント」の行から共通の文言にする。どれも当てはまらなければ null。
+     * カードとは別に出すユニット(unit。ゴブリンシュタインのモンスターなど)は、カードの名前で出すので、どのユニットかを
+     * 必ず注釈で言う(quiz.hp.condition.<英語名>.<unit>)。
      */
-    private String hpCondition(String card, CardStats stats, Locale locale) {
+    private String hpCondition(String card, String unit, CardStats stats, Locale locale) {
+        if (unit != null) {
+            return labels.message("quiz.hp.condition." + card + "." + unit, locale);
+        }
         String special = labels.optionalMessage("quiz.hp.condition." + card, locale);
         if (special != null) {
             return special;

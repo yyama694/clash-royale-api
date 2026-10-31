@@ -1034,9 +1034,9 @@ class ViewMapperTest {
                 26000021, new CardsResponse.Card(26000021, "Hog Rider", 16, 1, 4, "rare",
                         new CardsResponse.Card.IconUrls("hog.png", null, null)));
         DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 31), 5, List.of(
-                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(26000014, 1153),
-                        new QuizQuestion.HpCard(26000003, 6339), new QuizQuestion.HpCard(26000000, 2822),
-                        new QuizQuestion.HpCard(26000021, 2711))),
+                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(26000014, null, 1153),
+                        new QuizQuestion.HpCard(26000003, null, 6339), new QuizQuestion.HpCard(26000000, null, 2822),
+                        new QuizQuestion.HpCard(26000021, null, 2711))),
                 new QuizQuestion.Elixir(26000000, false, List.of(1, 2, 3, 4), 2)));
 
         QuizView view = mapper.toQuiz(quiz, cards, stats(), Locale.JAPANESE);
@@ -1072,18 +1072,40 @@ class ViewMapperTest {
                 "Guards", List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.COUNT, "3", "3", null),
                         new CardStats.Row(CardStats.Form.NORMAL, CardStats.SHIELD_HEALTH, "409", "256", null))));
         DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 31), 5, List.of(
-                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(1, 130), new QuizQuestion.HpCard(2, 1145),
-                        new QuizQuestion.HpCard(3, 1918), new QuizQuestion.HpCard(4, 130))),
-                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(5, 2822), new QuizQuestion.HpCard(2, 1145),
-                        new QuizQuestion.HpCard(3, 1918), new QuizQuestion.HpCard(1, 130)))));
+                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(1, null, 130), new QuizQuestion.HpCard(2, null, 1145),
+                        new QuizQuestion.HpCard(3, null, 1918), new QuizQuestion.HpCard(4, null, 130))),
+                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(5, null, 2822), new QuizQuestion.HpCard(2, null, 1145),
+                        new QuizQuestion.HpCard(3, null, 1918), new QuizQuestion.HpCard(1, null, 130)))));
 
         List<QuizView.Card> shown = mapper.toQuiz(quiz, cards, stats, Locale.JAPANESE).questions().get(0).cards();
 
         // 別のユニットが出るカードはカードごとの文言、何体も出る・シールドがあるだけのカードはステータスの行から
-        assertEquals("草のヒットポイント(飛び出すステルスゴブリンは含まない)", shown.get(0).condition());
+        assertEquals("草のヒットポイント", shown.get(0).condition());
         assertEquals("1体あたり", shown.get(1).condition());
         assertEquals("シールドを除く", shown.get(2).condition());
         assertEquals("1体あたり・シールドを除く", shown.get(3).condition());
         assertNull(mapper.toQuiz(quiz, cards, stats, Locale.JAPANESE).questions().get(1).cards().get(0).condition());
+    }
+
+    @Test
+    void クイズの並べ替えでカードとは別のユニットはカードの名前と画像で出しどのユニットかを注釈で言う() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
+        Map<Integer, CardsResponse.Card> cards = Map.of(
+                1, new CardsResponse.Card(1, "Goblinstein", 6, null, 5, "champion",
+                        new CardsResponse.Card.IconUrls("goblinstein.png", null, null)),
+                2, new CardsResponse.Card(2, "Knight", 16, null, 3, "common", null));
+        DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 31), 5, List.of(
+                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(1, "monster", 3578),
+                        new QuizQuestion.HpCard(2, null, 2822), new QuizQuestion.HpCard(1, null, 1153),
+                        new QuizQuestion.HpCard(2, null, 130)))));
+
+        QuizView.Question question = mapper.toQuiz(quiz, cards, stats(), Locale.JAPANESE).questions().get(0);
+
+        assertEquals("hp:1.monster-2-1-2", question.key());
+        assertEquals(new QuizView.Card(1, "ゴブリンシュタイン", "goblinstein.png", "3578", "モンスターのヒットポイント"),
+                question.cards().get(0));
+        assertEquals(new QuizView.Card(1, "ゴブリンシュタイン", "goblinstein.png", "1153", "博士のヒットポイント"),
+                question.cards().get(2));
     }
 }

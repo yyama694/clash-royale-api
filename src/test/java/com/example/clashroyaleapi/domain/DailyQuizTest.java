@@ -225,8 +225,8 @@ class DailyQuizTest {
 
     @Test
     void 並べ替えの正解はヒットポイントの多い順の位置の並び() {
-        QuizQuestion.HpOrder question = new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(1, 500),
-                new QuizQuestion.HpCard(2, 3000), new QuizQuestion.HpCard(3, 130), new QuizQuestion.HpCard(4, 1200)));
+        QuizQuestion.HpOrder question = new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(1, null, 500),
+                new QuizQuestion.HpCard(2, null, 3000), new QuizQuestion.HpCard(3, null, 130), new QuizQuestion.HpCard(4, null, 1200)));
 
         assertEquals(List.of(1, 3, 0, 2), question.answer());
     }
@@ -250,6 +250,45 @@ class DailyQuizTest {
 
         assertEquals(DailyQuiz.QUESTIONS_PER_DAY, quiz.questions().size());
         quiz.questions().forEach(question -> assertInstanceOf(QuizQuestion.Elixir.class, question));
+    }
+
+    @Test
+    void カードとは別のユニットも並べ替えに出て渡す順に関係なく同じ問題になる() {
+        // 元のカード(26000000)とは別のヒットポイントを持つユニット2つ(モンスターの役と、カードにヒットポイントが無いカードの役)
+        List<DailyQuiz.Unit> units = List.of(new DailyQuiz.Unit(26_000_000, "monster", 9000),
+                new DailyQuiz.Unit(26_000_100, "boy", 50));
+        List<DailyQuiz.Unit> reversed = new ArrayList<>(units);
+        Collections.reverse(reversed);
+
+        Set<String> seen = new HashSet<>();
+        for (int day = 0; day < 200; day++) {
+            LocalDate date = FIRST_DAY.plusDays(day);
+            DailyQuiz quiz = DailyQuiz.of(date, FIRST_DAY, CARDS_WITH_HEALTH, units);
+            assertEquals(quiz, DailyQuiz.of(date, FIRST_DAY, CARDS_WITH_HEALTH, reversed));
+            hpOrders(quiz).stream()
+                    .flatMap(question -> question.cards().stream())
+                    .filter(card -> card.unit() != null)
+                    .forEach(card -> {
+                        assertEquals(card.unit().equals("monster") ? 9000 : 50, card.health());
+                        seen.add(card.unit());
+                    });
+        }
+        assertEquals(Set.of("monster", "boy"), seen);
+    }
+
+    @Test
+    void ユニットだけが並べ替えに出た日も元のカードはエリクサーの問題に出せる() {
+        // カードは30枚ちょうどなので、ユニットの元のカード(0〜3)を除くとエリクサーの29問に足りなくなる
+        List<DailyQuiz.Card> cards = IntStream.range(0, 30)
+                .mapToObj(i -> new DailyQuiz.Card(i, false, cost(i)))
+                .toList();
+        List<DailyQuiz.Unit> units = List.of(new DailyQuiz.Unit(0, "a", 100), new DailyQuiz.Unit(1, "b", 200),
+                new DailyQuiz.Unit(2, "c", 400), new DailyQuiz.Unit(3, "d", 800));
+
+        DailyQuiz quiz = DailyQuiz.of(FIRST_DAY, FIRST_DAY, cards, units);
+
+        assertEquals(1, hpOrders(quiz).size());
+        assertEquals(DailyQuiz.QUESTIONS_PER_DAY - 1, elixirs(quiz).size());
     }
 
     private static List<QuizQuestion.Elixir> elixirs(DailyQuiz quiz) {

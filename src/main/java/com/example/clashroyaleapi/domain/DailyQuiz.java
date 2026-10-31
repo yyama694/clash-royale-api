@@ -21,6 +21,8 @@ import java.util.stream.IntStream;
  * 10問・20問・30問は、ここで作る30問の先頭から出す(設計_クイズ.md)。
  * エリクサーの4択に、10問ごとに2問ずつヒットポイントの並べ替えを混ぜる(どの問題数でも割合がそろうように)。
  * 1日の中で同じカードは出さない(並べ替えの4枚とエリクサーの問題のカードも重ならない)。
+ * 並べ替えには、カードとは別のユニット(ゴブリンシュタインのモンスターなど)も1枚分として出る。ユニットと元のカードは
+ * 別のものとして扱うので、同じ問題に並ぶこともある(スピリットエンプレスの2つの形と同じ考え方)。
  */
 public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions) {
 
@@ -57,22 +59,44 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
         }
     }
 
+    /**
+     * カードとは別にヒットポイントの並べ替えに出すユニット(ゴブリンシュタインのモンスターなど。CardUnit)。
+     * id は元のカードで、画像とカード詳細画面へのリンクに使う。エリクサーの問題には出さない。
+     */
+    public record Unit(int id, String unit, int health) {
+    }
+
     /** firstDay は第1回の日。 */
     public static DailyQuiz of(LocalDate date, LocalDate firstDay, List<Card> cards) {
+        return of(date, firstDay, cards, List.of());
+    }
+
+    public static DailyQuiz of(LocalDate date, LocalDate firstDay, List<Card> cards, List<Unit> units) {
         // 公式APIの並び順が変わっても同じ問題になるよう、IDの順にそろえてから並べ替える。
         List<Card> deck = new ArrayList<>(cards);
         deck.sort(Comparator.comparingInt(Card::id).thenComparing(Card::ground));
         Random random = new Random(seed(date));
         shuffle(deck, deck.size(), random);
         int count = Math.min(QUESTIONS_PER_DAY, deck.size());
-        Set<Card> used = new HashSet<>();
+        List<QuizQuestion.HpCard> hpPool = new ArrayList<>(deck.stream()
+                .filter(card -> card.health() != null)
+                .map(card -> new QuizQuestion.HpCard(card.id(), null, card.health()))
+                .toList());
+        units.stream()
+                .sorted(Comparator.comparingInt(Unit::id).thenComparing(Unit::unit))
+                .forEach(unit -> hpPool.add(new QuizQuestion.HpCard(unit.id(), unit.unit(), unit.health())));
+        Set<QuizQuestion.HpCard> used = new HashSet<>();
         Map<Integer, QuizQuestion> hpOrders = new HashMap<>();
         for (int slot : hpOrderSlots(count, random)) {
-            hpOrder(deck, used, random).ifPresent(question -> hpOrders.put(slot, question));
+            hpOrder(hpPool, used, random).ifPresent(question -> hpOrders.put(slot, question));
         }
         int lowest = deck.stream().mapToInt(Card::elixirCost).min().orElse(0);
         int highest = deck.stream().mapToInt(Card::elixirCost).max().orElse(0);
-        Iterator<Card> rest = deck.stream().filter(card -> !used.contains(card)).toList().iterator();
+        // 並べ替えに出したカードは、エリクサーの問題に出さない(ユニットだけ出たカードは出す)。
+        Iterator<Card> rest = deck.stream()
+                .filter(card -> card.health() == null
+                        || !used.contains(new QuizQuestion.HpCard(card.id(), null, card.health())))
+                .toList().iterator();
         List<QuizQuestion> questions = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             QuizQuestion hpOrder = hpOrders.get(i);
@@ -109,16 +133,17 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
     }
 
     /** ヒットポイントが十分に離れた4枚が見つからなければ empty(その位置はエリクサーの問題にする)。 */
-    private static Optional<QuizQuestion> hpOrder(List<Card> deck, Set<Card> used, Random random) {
-        List<Card> candidates = deck.stream()
-                .filter(card -> card.health() != null && !used.contains(card))
+    private static Optional<QuizQuestion> hpOrder(List<QuizQuestion.HpCard> pool, Set<QuizQuestion.HpCard> used,
+            Random random) {
+        List<QuizQuestion.HpCard> candidates = pool.stream()
+                .filter(card -> !used.contains(card))
                 .collect(Collectors.toCollection(ArrayList::new));
         if (candidates.size() < HP_ORDER_CARDS) {
             return Optional.empty();
         }
         for (int i = 0; i < HP_ORDER_TRIES; i++) {
             shuffle(candidates, HP_ORDER_CARDS, random);
-            List<Card> picked = List.copyOf(candidates.subList(0, HP_ORDER_CARDS));
+            List<QuizQuestion.HpCard> picked = List.copyOf(candidates.subList(0, HP_ORDER_CARDS));
             if (spreadOut(picked)) {
                 used.addAll(picked);
                 return Optional.of(new QuizQuestion.HpOrder(shown(picked, random)));
@@ -127,8 +152,11 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
         return Optional.empty();
     }
 
-    private static boolean spreadOut(List<Card> cards) {
-        List<Integer> healths = cards.stream().map(Card::health).sorted(Comparator.reverseOrder()).toList();
+    private static boolean spreadOut(List<QuizQuestion.HpCard> cards) {
+        List<Integer> healths = cards.stream()
+                .map(QuizQuestion.HpCard::health)
+                .sorted(Comparator.reverseOrder())
+                .toList();
         for (int i = 1; i < healths.size(); i++) {
             if ((long) healths.get(i - 1) * 100 < (long) healths.get(i) * (100 + HP_GAP_PERCENT)) {
                 return false;
@@ -138,10 +166,8 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
     }
 
     /** 最初に見せる並び。そのまま答えれば正解になる並び(多い順)にはしない。 */
-    private static List<QuizQuestion.HpCard> shown(List<Card> cards, Random random) {
-        List<QuizQuestion.HpCard> shown = cards.stream()
-                .map(card -> new QuizQuestion.HpCard(card.id(), card.health()))
-                .collect(Collectors.toCollection(ArrayList::new));
+    private static List<QuizQuestion.HpCard> shown(List<QuizQuestion.HpCard> cards, Random random) {
+        List<QuizQuestion.HpCard> shown = new ArrayList<>(cards);
         do {
             shuffle(shown, shown.size(), random);
         } while (IntStream.range(1, shown.size()).allMatch(i -> shown.get(i - 1).health() > shown.get(i).health()));

@@ -1,6 +1,7 @@
 package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
+import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.DailyQuiz;
 
@@ -11,7 +12,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -47,10 +50,18 @@ public class QuizService {
      * ヒットポイントの並べ替えも、ステータスのヒットポイントで出す(地上の形は霊龍の形と同じ値なので出さない)。
      * 何体も出るカード(1体あたりの値)やシールドのあるカード(シールドを含まない値)も出し、どの値かは画面で注釈を添える
      * (ViewMapper。2026-10-31にユーザーが決定)。
+     * カードとは別にヒットポイントを持つユニット(cards/units.tsv。ゴブリンシュタインのモンスターなど)も、並べ替えに別のものとして出す。
      */
     public DailyQuiz today() {
         CardStats stats = cardStatsService.stats();
-        List<DailyQuiz.Card> cards = apiClient.getCards().items().stream()
+        List<CardsResponse.Card> apiCards = apiClient.getCards().items();
+        Map<String, Integer> ids = apiCards.stream()
+                .collect(Collectors.toMap(CardsResponse.Card::name, CardsResponse.Card::id, (a, b) -> a));
+        List<DailyQuiz.Unit> units = cardStatsService.units().stream()
+                .filter(unit -> ids.containsKey(unit.card()))
+                .map(unit -> new DailyQuiz.Unit(ids.get(unit.card()), unit.unit(), unit.health()))
+                .toList();
+        List<DailyQuiz.Card> cards = apiCards.stream()
                 .filter(card -> card.elixirCost() != null)
                 .flatMap(card -> {
                     OptionalInt health = stats.health(card.name());
@@ -62,6 +73,6 @@ public class QuizService {
                             : Stream.of(normal);
                 })
                 .toList();
-        return DailyQuiz.of(LocalDate.now(clock.withZone(ZoneOffset.UTC)), FIRST_DAY, cards);
+        return DailyQuiz.of(LocalDate.now(clock.withZone(ZoneOffset.UTC)), FIRST_DAY, cards, units);
     }
 }

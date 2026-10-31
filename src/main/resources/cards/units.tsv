@@ -1,0 +1,16 @@
+# カードとは別に、クイズのヒットポイントの並べ替えに出すユニット。そのカードにしかいないユニットだけ(2026-10-31にユーザーが決定)。
+# 槍ゴブリン・バーバリアン・スケルトンのような、ほかのカードと同じユニットは入れない(そのカードとして出るため)。
+# 値はレベル16のヒットポイント。ゲームのカード情報の画面で、ステータスの「〇〇レベル」のⓘから読み取った(2026-10-31。card-stats-capture スキル)。
+# 読み取り直したら(バランス調整のあとなど)ここも直す。リトルプリンスのガーディアンは stats.tsv のスキルの値と同じ(QuizHpConditionTest で照らす)。
+# card(公式APIの英語名)<TAB>unit(どのユニットか。注釈の文言のキーは quiz.hp.condition.<card>.<unit>)<TAB>レベル16のヒットポイント
+Goblinstein	monster	3578
+Suspicious Bush	bushGoblin	539
+Golem	golemite	1660
+Elixir Golem	elixirGolemite	1218
+Elixir Golem	elixirBlob	576
+Lava Hound	lavaPup	343
+Phoenix	egg	507
+Goblin Cage	revengeGoblin	1791
+Rascals	boy	2928
+Rascals	girl	417
+Little Prince	guardian	2556

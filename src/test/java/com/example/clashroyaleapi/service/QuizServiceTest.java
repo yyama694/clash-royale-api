@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.service;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.domain.CardStats;
+import com.example.clashroyaleapi.domain.CardUnit;
 import com.example.clashroyaleapi.domain.DailyQuiz;
 import com.example.clashroyaleapi.domain.QuizQuestion;
 
@@ -60,6 +61,23 @@ class QuizServiceTest {
         rows.get("Card" + BARBARIANS).add(row(CardStats.COUNT, "5"));
         rows.get("Card" + DARK_PRINCE).add(row(CardStats.SHIELD_HEALTH, "384"));
         cardStatsService = new CardStatsService(new CardStats(LocalDate.of(2026, 10, 25), rows));
+    }
+
+    @Test
+    void カードとは別のユニットは元のカードのIDで並べ替えに出し公式APIに無いカードのユニットは出さない() {
+        // Card35 はヒットポイントの無いカード(アウトローの役)。ユニットだけが並べ替えに出る
+        CardStatsService withUnits = new CardStatsService(cardStatsService.stats(), List.of(
+                new CardUnit("Card35", "boy", 7000), new CardUnit("Removed Card", "x", 9000)));
+        Set<QuizQuestion.HpCard> units = new HashSet<>();
+        for (int day = 0; day < 60; day++) {
+            Clock clock = Clock.fixed(Instant.parse("2026-10-26T12:00:00Z").plusSeconds(day * 86_400L), ZoneId.of("UTC"));
+            new QuizService(apiClient, withUnits, clock).today().questions().stream()
+                    .filter(QuizQuestion.HpOrder.class::isInstance)
+                    .flatMap(question -> ((QuizQuestion.HpOrder) question).cards().stream())
+                    .filter(card -> card.unit() != null)
+                    .forEach(units::add);
+        }
+        assertEquals(Set.of(new QuizQuestion.HpCard(35, "boy", 7000)), units);
     }
 
     @Test
