@@ -338,23 +338,27 @@ public class ViewMapper {
     /** 画像は通常の姿だけを出す(限界突破・ヒーローの絵は使わない)。コストの水滴は答えになるので重ねない。 */
     public QuizView toQuiz(DailyQuiz quiz, Map<Integer, CardsResponse.Card> cards, CardStats stats, Locale locale) {
         List<QuizView.Question> questions = quiz.questions().stream()
-                .map(question -> toQuizQuestion(question, cards.get(question.cardId()), stats, locale))
+                .map(question -> switch (question) {
+                    case QuizQuestion.Elixir elixir -> toElixirQuestion(elixir, cards.get(elixir.cardId()), stats, locale);
+                    case QuizQuestion.HpOrder hpOrder -> toHpOrderQuestion(hpOrder, cards, locale);
+                })
                 .toList();
-        String lead = quiz.questions().stream()
-                .map(question -> question.type().code())
+        List<String> leads = quiz.questions().stream()
+                .map(QuizQuestion::type)
                 .distinct()
-                .map(type -> labels.message("quiz." + type + ".lead", locale))
-                .collect(Collectors.joining(" "));
+                .sorted()
+                .map(type -> labels.message("quiz." + type.code() + ".lead", locale))
+                .toList();
         List<Integer> sizes = DailyQuiz.SIZES.stream().filter(size -> size <= questions.size()).toList();
         return new QuizView(quiz.date().toString(), quiz.number(),
-                labels.message("quiz.round", locale, quiz.number(), utcNoon(quiz.date())), lead, sizes, questions);
+                labels.message("quiz.round", locale, quiz.number(), utcNoon(quiz.date())), leads, sizes, questions);
     }
 
     /**
      * 地上に出すと別のコストになるカード(スピリットエンプレス)は、2つの形を別のカードとして出す。問題文でどちらの形かを
      * 言い、答えた後にもう一方の形のコストを添える。文言は形ごとの英語名で引き、無ければ共通の問題文にして何も添えない。
      */
-    private QuizView.Question toQuizQuestion(QuizQuestion question, CardsResponse.Card card, CardStats stats,
+    private QuizView.Question toElixirQuestion(QuizQuestion.Elixir question, CardsResponse.Card card, CardStats stats,
             Locale locale) {
         String type = question.type().code();
         String name = card == null ? null : card.name();
@@ -372,9 +376,31 @@ public class ViewMapper {
             prompt = labels.optionalMessage("quiz." + type + ".prompt." + name, locale);
             note = otherCost == null ? null : labels.optionalMessage("quiz." + type + ".note." + name, locale, otherCost);
         }
-        return new QuizView.Question(question.cardId(), labels.cardName(name, locale), iconUrl, type,
+        String key = question.cardId() + (question.ground() ? "g" : "");
+        return new QuizView.Question(key, type,
                 prompt != null ? prompt : labels.message("quiz." + type + ".prompt", locale), note,
-                question.choices().stream().map(String::valueOf).toList(), question.answer());
+                List.of(new QuizView.Card(question.cardId(), labels.cardName(name, locale), iconUrl, null)),
+                question.choices().stream().map(String::valueOf).toList(), String.valueOf(question.answer()));
+    }
+
+    private QuizView.Question toHpOrderQuestion(QuizQuestion.HpOrder question, Map<Integer, CardsResponse.Card> cards,
+            Locale locale) {
+        String type = question.type().code();
+        List<QuizView.Card> shown = question.cards().stream()
+                .map(hpCard -> {
+                    CardsResponse.Card card = cards.get(hpCard.id());
+                    String name = card == null ? null : card.name();
+                    String iconUrl = card == null || card.iconUrls() == null ? null : card.iconUrls().medium();
+                    return new QuizView.Card(hpCard.id(), labels.cardName(name, locale), iconUrl,
+                            String.valueOf(hpCard.health()));
+                })
+                .toList();
+        String key = type + ":" + question.cards().stream()
+                .map(hpCard -> String.valueOf(hpCard.id()))
+                .collect(Collectors.joining("-"));
+        String answer = question.answer().stream().map(String::valueOf).collect(Collectors.joining());
+        return new QuizView.Question(key, type, labels.message("quiz." + type + ".prompt", locale),
+                labels.message("quiz." + type + ".note", locale), shown, List.of(), answer);
     }
 
     private static Date utcNoon(LocalDate day) {

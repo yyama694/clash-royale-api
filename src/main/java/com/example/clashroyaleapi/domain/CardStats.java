@@ -134,6 +134,29 @@ public record CardStats(LocalDate asOf, Map<String, List<Row>> byCard) {
                 .findFirst();
     }
 
+    public static final String HEALTH = "stat.TID_SPELL_ATTRIBUTE_HEALTH";
+
+    /** 同時出撃数。これがあるカードは何体も出て、ヒットポイントは1体あたり。 */
+    public static final String COUNT = "stat.TID_SPELL_ATTRIBUTE_COUNT";
+
+    /** シールドのヒットポイント。これがあるカードのヒットポイントはシールドを含まない。 */
+    public static final String SHIELD_HEALTH = "stat.TID_SPELL_ATTRIBUTE_SHIELD_HEALTH";
+
+    /** 通常の形にその項目があるか。 */
+    public boolean has(String card, String labelKey) {
+        return of(card).stream().anyMatch(row -> row.form() == Form.NORMAL && row.labelKey().equals(labelKey));
+    }
+
+    /** 通常の形のレベル16のヒットポイント。呪文など、ヒットポイントが無い(整数で書かれていない)カードは empty。 */
+    public OptionalInt health(String card) {
+        return of(card).stream()
+                .filter(row -> row.form() == Form.NORMAL && row.labelKey().equals(HEALTH))
+                .map(Row::level16)
+                .filter(value -> value.matches("\\d+"))
+                .mapToInt(Integer::parseInt)
+                .findFirst();
+    }
+
     /**
      * 地上に出したときの形の英語名。ゲームはこれを別のカードとして持っている(公式の表記は "Spirit Empress (Ground)"・
      * 「スピリットエンプレス（地上）」)。公式APIのカード一覧には無いので、名前の訳とステータスはこの名前で引く。
