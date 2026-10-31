@@ -968,17 +968,17 @@ class ViewMapperTest {
         CardsResponse.Card knight = new CardsResponse.Card(26000000, "Knight", 16, 1, 3, "common",
                 new CardsResponse.Card.IconUrls("knight.png", "knight-evolution.png", "knight-hero.png"));
         DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 26), 1,
-                List.of(new QuizQuestion(QuizQuestion.Type.ELIXIR, 26000000, false, List.of(1, 2, 3, 4), 2)));
+                List.of(new QuizQuestion.Elixir(26000000, false, List.of(1, 2, 3, 4), 2)));
 
         QuizView view = viewMapper.toQuiz(quiz, Map.of(26000000, knight), stats(), Locale.JAPANESE);
 
         assertEquals("2026-10-26", view.date());
         QuizView.Question question = view.questions().get(0);
-        assertEquals("Knight", question.name());
-        assertEquals("knight.png", question.iconUrl());
+        assertEquals("26000000", question.key());
+        assertEquals(List.of(new QuizView.Card(26000000, "Knight", "knight.png", null)), question.cards());
         assertEquals("elixir", question.type());
         assertEquals("1,2,3,4", question.choicesText());
-        assertEquals(2, question.answer());
+        assertEquals("2", question.answer());
         assertNull(question.note());
         // 30問に満たない日は、選べる問題数もあるだけにする。
         assertEquals(List.of(), view.sizes());
@@ -996,25 +996,63 @@ class ViewMapperTest {
         CardStats stats = stats("Spirit Empress",
                 List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.GROUND_ELIXIR, "3", "3", null)));
         DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 26), 1, List.of(
-                new QuizQuestion(QuizQuestion.Type.ELIXIR, 28000025, true, List.of(2, 3, 4, 5), 1),
-                new QuizQuestion(QuizQuestion.Type.ELIXIR, 28000025, false, List.of(3, 4, 5, 6), 3),
-                new QuizQuestion(QuizQuestion.Type.ELIXIR, 26000000, false, List.of(1, 2, 3, 4), 2)));
+                new QuizQuestion.Elixir(28000025, true, List.of(2, 3, 4, 5), 1),
+                new QuizQuestion.Elixir(28000025, false, List.of(3, 4, 5, 6), 3),
+                new QuizQuestion.Elixir(26000000, false, List.of(1, 2, 3, 4), 2)));
 
         List<QuizView.Question> questions = mapper.toQuiz(quiz, Map.of(28000025, empress, 26000000, knight), stats,
                 Locale.JAPANESE).questions();
 
         QuizView.Question ground = questions.get(0);
-        assertEquals("スピリットエンプレス（地上）", ground.name());
-        assertEquals("/images/cards/spirit-empress-ground.png", ground.iconUrl());
+        assertEquals("28000025g", ground.key());
+        assertEquals("スピリットエンプレス（地上）", ground.cards().get(0).name());
+        assertEquals("/images/cards/spirit-empress-ground.png", ground.cards().get(0).iconUrl());
         assertEquals("地上に出すときのエリクサーは?", ground.prompt());
         assertEquals("霊龍にまたがって出すと6エリクサーです", ground.note());
         QuizView.Question mounted = questions.get(1);
-        assertEquals("スピリットエンプレス", mounted.name());
-        assertEquals("empress.png", mounted.iconUrl());
+        assertEquals("28000025", mounted.key());
+        assertEquals("スピリットエンプレス", mounted.cards().get(0).name());
+        assertEquals("empress.png", mounted.cards().get(0).iconUrl());
         assertEquals("霊龍にまたがって出すときのエリクサーは?", mounted.prompt());
         assertEquals("地上に出すと3エリクサーです", mounted.note());
         QuizView.Question other = questions.get(2);
         assertEquals("このカードのエリクサーは?", other.prompt());
         assertNull(other.note());
+    }
+
+    @Test
+    void クイズの並べ替えは最初に見せる並びのカードとヒットポイントと正しい並びを出し問題の種類の説明を種類の順に並べる() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
+        Map<Integer, CardsResponse.Card> cards = Map.of(
+                26000000, new CardsResponse.Card(26000000, "Knight", 16, 1, 3, "common",
+                        new CardsResponse.Card.IconUrls("knight.png", null, null)),
+                26000003, new CardsResponse.Card(26000003, "Giant", 16, 1, 5, "rare",
+                        new CardsResponse.Card.IconUrls("giant.png", null, null)),
+                26000014, new CardsResponse.Card(26000014, "Musketeer", 16, 1, 4, "rare",
+                        new CardsResponse.Card.IconUrls("musketeer.png", null, null)),
+                26000021, new CardsResponse.Card(26000021, "Hog Rider", 16, 1, 4, "rare",
+                        new CardsResponse.Card.IconUrls("hog.png", null, null)));
+        DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 31), 5, List.of(
+                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(26000014, 1153),
+                        new QuizQuestion.HpCard(26000003, 6339), new QuizQuestion.HpCard(26000000, 2822),
+                        new QuizQuestion.HpCard(26000021, 2711))),
+                new QuizQuestion.Elixir(26000000, false, List.of(1, 2, 3, 4), 2)));
+
+        QuizView view = mapper.toQuiz(quiz, cards, stats(), Locale.JAPANESE);
+
+        // 並べ替えが先に出る日でも、説明はエリクサー → 並べ替えの順
+        assertEquals(List.of("カードのエリクサーコストを当てよう", "ヒットポイントの多い順に並べよう"), view.leads());
+        QuizView.Question question = view.questions().get(0);
+        assertEquals("hp", question.type());
+        assertEquals("hp:26000014-26000003-26000000-26000021", question.key());
+        assertEquals("ヒットポイントが多い順に並べよう", question.prompt());
+        assertEquals("ヒットポイントはレベル16の値です", question.note());
+        assertEquals(List.of(new QuizView.Card(26000014, "マスケット銃士", "musketeer.png", "1153"),
+                new QuizView.Card(26000003, "ジャイアント", "giant.png", "6339"),
+                new QuizView.Card(26000000, "ナイト", "knight.png", "2822"),
+                new QuizView.Card(26000021, "ホグライダー", "hog.png", "2711")), question.cards());
+        assertEquals("1230", question.answer());
+        assertEquals("", question.choicesText());
     }
 }

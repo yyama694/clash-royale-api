@@ -18,19 +18,21 @@
           th:data-msg-progress="#{quiz.progress('{0}', '{1}')}"
           th:data-msg-correct="#{quiz.correct}"
           th:data-msg-wrong="#{quiz.wrong('{0}')}"
+          th:data-msg-hp-wrong="#{quiz.hp.wrong('{0}')}"
           th:data-msg-next="#{quiz.next}"
           th:data-msg-to-result="#{quiz.toResult}"
           th:data-msg-quit="#{quiz.quit}"
           th:data-msg-quit-practice="#{quiz.quit.practice}"
           th:data-msg-score="#{quiz.result.score('{0}', '{1}')}"
           th:data-msg-wrong-item="#{quiz.result.wrong.item('{0}', '{1}')}"
+          th:data-msg-wrong-order="#{quiz.result.wrong.order('{0}')}"
           th:data-msg-streak="#{quiz.stats.streak.value('{0}', '{1}')}">
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
         <section class="card quiz-start" id="quiz-start">
             <h1 th:text="#{quiz.title}"></h1>
             <p class="quiz-round" th:text="${quiz.roundLabel()}"></p>
-            <p class="quiz-lead" th:text="${quiz.lead()}"></p>
+            <p class="quiz-lead" th:each="lead : ${quiz.leads()}" th:text="${lead}"></p>
             <div class="quiz-sizes">
                 <button type="button" class="quiz-size" th:each="size : ${quiz.sizes()}" th:data-size="${size}">
                     <span class="quiz-size-count" th:text="#{quiz.size(${size})}"></span>
@@ -53,9 +55,17 @@
             </figure>
             <p class="quiz-prompt"></p>
             <div class="quiz-choices"></div>
+            <!--/* 並べ替え。並び順の番号(1〜4)はCSSのカウンターで振るので、行を動かしても位置の番号のまま。 */-->
+            <div class="quiz-order" hidden>
+                <p class="quiz-order-end" th:text="#{quiz.hp.more}"></p>
+                <ol class="quiz-order-list"></ol>
+                <p class="quiz-order-end" th:text="#{quiz.hp.less}"></p>
+                <p class="notice quiz-order-howto" th:text="#{quiz.hp.howto}"></p>
+            </div>
             <p class="quiz-feedback" aria-live="polite"></p>
             <p class="quiz-note" aria-live="polite" hidden></p>
             <div class="quiz-actions">
+                <button type="button" class="quiz-submit" hidden th:text="#{quiz.hp.submit}"></button>
                 <button type="button" class="quiz-next" hidden></button>
             </div>
             <button type="button" class="quiz-quit"></button>
@@ -103,18 +113,23 @@
             <p class="notice" th:text="#{quiz.stats.note}"></p>
         </section>
 
+        <!--/* 1問に1つの li。中の span がカード(エリクサーは1枚、並べ替えは最初に見せる並びの4枚)。 */-->
         <ol id="quiz-questions" hidden>
-            <li th:each="q : ${quiz.questions()}" th:data-card="${q.cardId()}" th:data-name="${q.name()}"
-                th:data-icon="${q.iconUrl()}" th:data-link="@{/card/{id}(id=${q.cardId()})}" th:data-type="${q.type()}"
-                th:data-prompt="${q.prompt()}" th:data-note="${q.note()}" th:data-choices="${q.choicesText()}" th:data-answer="${q.answer()}"
-                th:data-choice-label="#{${'quiz.' + q.type() + '.choice'}('{0}')}"></li>
+            <li th:each="q : ${quiz.questions()}" th:data-key="${q.key()}" th:data-type="${q.type()}"
+                th:data-prompt="${q.prompt()}" th:data-note="${q.note()}" th:data-choices="${q.choicesText()}"
+                th:data-answer="${q.answer()}"
+                th:data-choice-label="${!q.choices().isEmpty()} ? #{${'quiz.' + q.type() + '.choice'}('{0}')}"><span
+                    th:each="card : ${q.cards()}" th:data-card="${card.id()}" th:data-name="${card.name()}"
+                    th:data-icon="${card.iconUrl()}" th:data-link="@{/card/{id}(id=${card.id()})}"
+                    th:data-value="${card.value()}"></span></li>
         </ol>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
 
     <!--/*
       成績の保存(localStorage の quiz)。形は {v: 1, maxStreak, days: {"2026-10-26": {"10": 回}}}。
-      回は問題数ごとの、その日の最初の1回(公式の成績)で、ids(出題したカード)・answers(選んだ位置)・終わったら marks("oox…")。
+      回は問題数ごとの、その日の最初の1回(公式の成績)で、ids(出題した問題の key)・answers(答え)・終わったら marks("oox…")。
+      答えはエリクサーなら選んだ位置(数)、並べ替えなら並べたカードの最初の並びでの位置("2031")で、正解と文字にして比べる。
       前の日以前の回は marks だけ残し、終わっていない回と400日より前の日は消す。
       2回目以降(練習)は保存しない。日付はページに埋めたUTCの日付で決め、端末の時計は使わない。
       別のタブが書いた分を消さないよう、書くたびに読み直してから書く。
@@ -128,18 +143,26 @@
             var KEEP_DAYS = 400;
             var DAY_MS = 24 * 60 * 60 * 1000;
             var GRID_COLUMNS = 10;
-            var questions = Array.prototype.map.call(document.querySelectorAll('#quiz-questions li'), function (li) {
+            // 並べ替えで、押してからこれだけ(px)動いたらドラッグにする。動かなければタップ(2枚目のタップで入れ替え)。
+            var DRAG_THRESHOLD = 8;
+            var questions = Array.prototype.map.call(document.querySelectorAll('#quiz-questions > li'), function (li) {
                 return {
-                    id: Number(li.dataset.card),
-                    name: li.dataset.name,
-                    icon: li.dataset.icon,
-                    link: li.dataset.link,
+                    key: li.dataset.key,
                     type: li.dataset.type,
                     prompt: li.dataset.prompt,
                     note: li.dataset.note,
-                    choices: li.dataset.choices.split(','),
-                    answer: Number(li.dataset.answer),
-                    choiceLabel: li.dataset.choiceLabel
+                    choices: li.dataset.choices ? li.dataset.choices.split(',') : [],
+                    answer: li.dataset.answer,
+                    choiceLabel: li.dataset.choiceLabel,
+                    cards: Array.prototype.map.call(li.children, function (span) {
+                        return {
+                            id: Number(span.dataset.card),
+                            name: span.dataset.name,
+                            icon: span.dataset.icon,
+                            link: span.dataset.link,
+                            value: span.dataset.value
+                        };
+                    })
                 };
             });
             var screens = {
@@ -148,8 +171,10 @@
                 result: document.getElementById('quiz-result')
             };
             var stats = document.getElementById('quiz-stats');
+            var orderList = screens.play.querySelector('.quiz-order-list');
             var current = 'start';
             var play = null;
+            var drag = null;
             var store = load();
 
             function format(template, values) {
@@ -216,21 +241,31 @@
             }
 
             function idsOf(size) {
-                return questions.slice(0, size).map(function (q) { return q.id; });
+                return questions.slice(0, size).map(function (q) { return q.key; });
             }
 
             function sameIds(ids, size) {
                 return Array.isArray(ids) && ids.join(',') === idsOf(size).join(',');
             }
 
+            function isCorrect(q, answer) {
+                return String(answer) === q.answer;
+            }
+
             function marksOf(answers) {
                 return answers.map(function (answer, i) {
-                    return answer === questions[i].answer ? 'o' : 'x';
+                    return isCorrect(questions[i], answer) ? 'o' : 'x';
                 }).join('');
             }
 
             function scoreOf(marks) {
                 return marks.split('').filter(function (mark) { return mark === 'o'; }).length;
+            }
+
+            function orderNames(q, order) {
+                return order.split('').map(function (index) {
+                    return q.cards[Number(index)].name;
+                }).join(' → ');
             }
 
             // その日の公式の成績。途中の回は、その日の途中で問題が変わっていたら(新しいカードの追加など)無かったことにする。
@@ -302,18 +337,50 @@
                 var index = play.answers.length;
                 var q = questions[index];
                 var screen = screens.play;
+                var ordering = q.type === 'hp';
                 screen.querySelector('.quiz-progress-text').textContent = format(msg.msgProgress, [index + 1, play.size]);
                 screen.querySelector('.quiz-practice').hidden = play.official;
                 // 練習は保存しないので、やめると続きから再開できない。
                 screen.querySelector('.quiz-quit').textContent = play.official ? msg.msgQuit : msg.msgQuitPractice;
                 screen.querySelector('.quiz-progress-bar').style.width = (index / play.size * 100) + '%';
-                var image = screen.querySelector('.quiz-card-image');
-                image.hidden = !q.icon;
-                if (q.icon) {
-                    image.src = q.icon;
+                screen.querySelector('.quiz-card').hidden = ordering;
+                screen.querySelector('.quiz-choices').hidden = ordering;
+                screen.querySelector('.quiz-order').hidden = !ordering;
+                screen.querySelector('.quiz-order-howto').hidden = false;
+                screen.querySelector('.quiz-submit').hidden = !ordering;
+                var prompt = screen.querySelector('.quiz-prompt');
+                prompt.textContent = q.prompt;
+                prompt.classList.toggle('is-order', ordering);
+                if (ordering) {
+                    renderOrder(q);
+                } else {
+                    renderChoices(q);
                 }
-                screen.querySelector('.quiz-card-name').textContent = q.name;
-                screen.querySelector('.quiz-prompt').textContent = q.prompt;
+                screen.querySelector('.quiz-feedback').textContent = '';
+                screen.querySelector('.quiz-feedback').className = 'quiz-feedback';
+                screen.querySelector('.quiz-note').hidden = true;
+                screen.querySelector('.quiz-next').hidden = true;
+                play.answered = false;
+                // 次の問題の画像を先に読んでおき、テンポよく進めるようにする。
+                if (index + 1 < play.size) {
+                    questions[index + 1].cards.forEach(function (card) {
+                        if (card.icon) {
+                            new Image().src = card.icon;
+                        }
+                    });
+                }
+                show('play');
+            }
+
+            function renderChoices(q) {
+                var screen = screens.play;
+                var card = q.cards[0];
+                var image = screen.querySelector('.quiz-card-image');
+                image.hidden = !card.icon;
+                if (card.icon) {
+                    image.src = card.icon;
+                }
+                screen.querySelector('.quiz-card-name').textContent = card.name;
                 var choices = screen.querySelector('.quiz-choices');
                 choices.textContent = '';
                 q.choices.forEach(function (label, choice) {
@@ -326,30 +393,50 @@
                     value.textContent = label;
                     button.appendChild(value);
                     button.addEventListener('click', function () {
-                        answer(choice);
+                        answerChoice(choice);
                     });
                     choices.appendChild(button);
                 });
-                screen.querySelector('.quiz-feedback').textContent = '';
-                screen.querySelector('.quiz-feedback').className = 'quiz-feedback';
-                screen.querySelector('.quiz-note').hidden = true;
-                screen.querySelector('.quiz-next').hidden = true;
-                play.answered = false;
-                // 次の問題の画像を先に読んでおき、テンポよく進めるようにする。
-                if (index + 1 < play.size && questions[index + 1].icon) {
-                    new Image().src = questions[index + 1].icon;
-                }
-                show('play');
             }
 
-            function answer(choice) {
-                if (play.answered) {
-                    return;
-                }
+            function renderOrder(q) {
+                drag = null;
+                orderList.textContent = '';
+                orderList.classList.remove('is-answered');
+                q.cards.forEach(function (card, index) {
+                    var item = document.createElement('li');
+                    item.className = 'quiz-order-item';
+                    item.dataset.index = index;
+                    if (card.icon) {
+                        var image = document.createElement('img');
+                        image.src = card.icon;
+                        image.alt = '';
+                        image.width = 285;
+                        image.height = 420;
+                        image.draggable = false;
+                        item.appendChild(image);
+                    }
+                    var name = document.createElement('span');
+                    name.className = 'quiz-order-name';
+                    name.textContent = card.name;
+                    item.appendChild(name);
+                    var handle = document.createElement('span');
+                    handle.className = 'quiz-order-handle';
+                    handle.setAttribute('aria-hidden', 'true');
+                    handle.textContent = '≡';
+                    item.appendChild(handle);
+                    var value = document.createElement('span');
+                    value.className = 'quiz-order-value';
+                    value.hidden = true;
+                    item.appendChild(value);
+                    orderList.appendChild(item);
+                });
+            }
+
+            // 答えを記録する(公式の回は1問ごとに保存する)。最後の問題なら true。
+            function record(answer) {
                 play.answered = true;
-                var index = play.answers.length;
-                var q = questions[index];
-                play.answers.push(choice);
+                play.answers.push(answer);
                 var finished = play.answers.length === play.size;
                 if (play.official) {
                     var answers = play.answers.slice();
@@ -366,27 +453,164 @@
                         }
                     });
                 }
+                return finished;
+            }
+
+            function showFeedback(correct, wrongText, note, finished) {
                 var screen = screens.play;
-                Array.prototype.forEach.call(screen.querySelectorAll('.quiz-choice'), function (button, i) {
-                    button.disabled = true;
-                    if (i === q.answer) {
-                        button.classList.add('is-correct');
-                    } else if (i === choice) {
-                        button.classList.add('is-wrong');
-                    }
-                });
-                var correct = choice === q.answer;
                 var feedback = screen.querySelector('.quiz-feedback');
-                feedback.textContent = correct ? msg.msgCorrect : format(msg.msgWrong, [q.choices[q.answer]]);
+                feedback.textContent = correct ? msg.msgCorrect : wrongText;
                 feedback.className = 'quiz-feedback ' + (correct ? 'is-correct' : 'is-wrong');
-                var note = screen.querySelector('.quiz-note');
-                note.textContent = q.note || '';
-                note.hidden = !q.note;
+                var noteElement = screen.querySelector('.quiz-note');
+                noteElement.textContent = note || '';
+                noteElement.hidden = !note;
                 var next = screen.querySelector('.quiz-next');
                 next.textContent = finished ? msg.msgToResult : msg.msgNext;
                 next.hidden = false;
                 next.focus({preventScroll: true});
             }
+
+            function answerChoice(choice) {
+                if (play.answered) {
+                    return;
+                }
+                var q = questions[play.answers.length];
+                var finished = record(choice);
+                Array.prototype.forEach.call(screens.play.querySelectorAll('.quiz-choice'), function (button, i) {
+                    button.disabled = true;
+                    if (isCorrect(q, i)) {
+                        button.classList.add('is-correct');
+                    } else if (i === choice) {
+                        button.classList.add('is-wrong');
+                    }
+                });
+                showFeedback(isCorrect(q, choice), format(msg.msgWrong, [q.choices[Number(q.answer)]]), q.note, finished);
+            }
+
+            function answerOrder() {
+                if (play.answered) {
+                    return;
+                }
+                if (drag) {
+                    endDrag();
+                }
+                var q = questions[play.answers.length];
+                var items = Array.prototype.slice.call(orderList.children);
+                var order = items.map(function (item) { return item.dataset.index; }).join('');
+                var finished = record(order);
+                items.forEach(function (item, position) {
+                    item.classList.remove('is-selected');
+                    item.classList.add(q.answer.charAt(position) === item.dataset.index ? 'is-correct' : 'is-wrong');
+                    item.querySelector('.quiz-order-handle').hidden = true;
+                    var value = item.querySelector('.quiz-order-value');
+                    value.textContent = q.cards[Number(item.dataset.index)].value;
+                    value.hidden = false;
+                });
+                orderList.classList.add('is-answered');
+                screens.play.querySelector('.quiz-submit').hidden = true;
+                screens.play.querySelector('.quiz-order-howto').hidden = true;
+                showFeedback(isCorrect(q, order), format(msg.msgHpWrong, [orderNames(q, q.answer)]), q.note, finished);
+            }
+
+            // 並べ替えのタップ: 1枚目を選び、2枚目で入れ替える。同じカードをもう一度押すと選ぶのをやめる。
+            function select(item) {
+                var selected = orderList.querySelector('.is-selected');
+                if (!selected) {
+                    item.classList.add('is-selected');
+                    return;
+                }
+                selected.classList.remove('is-selected');
+                if (selected !== item) {
+                    var marker = document.createElement('li');
+                    orderList.replaceChild(marker, selected);
+                    orderList.replaceChild(selected, item);
+                    orderList.replaceChild(item, marker);
+                }
+            }
+
+            // 並べ替えのドラッグとタップ。HTML5のドラッグ&ドロップはスマホの指で動かないことがあるので、Pointer Eventsで動かす。
+            // 指で動かせるよう、行はCSSの touch-action: none で画面のスクロールを止めている。
+            // ポインターは一覧に捕まえる(動かしている行に捕まえると、行をDOMの中で動かしたときに外れるため)。
+            // そのため click は一覧に届き、どの行を押したか分からないので、タップは指を離したときに判定する。
+            orderList.addEventListener('pointerdown', function (event) {
+                var item = event.target.closest('.quiz-order-item');
+                if (!item || play.answered || drag || !event.isPrimary || event.button !== 0) {
+                    return;
+                }
+                var rect = item.getBoundingClientRect();
+                drag = {item: item, pointerId: event.pointerId, startY: event.clientY,
+                    center: rect.top + rect.height / 2, moved: false};
+                orderList.setPointerCapture(event.pointerId);
+            });
+
+            orderList.addEventListener('pointermove', function (event) {
+                if (!drag || event.pointerId !== drag.pointerId) {
+                    return;
+                }
+                var dy = event.clientY - drag.startY;
+                if (!drag.moved) {
+                    if (Math.abs(dy) < DRAG_THRESHOLD) {
+                        return;
+                    }
+                    drag.moved = true;
+                    drag.item.classList.add('is-dragging');
+                    var selected = orderList.querySelector('.is-selected');
+                    if (selected) {
+                        selected.classList.remove('is-selected');
+                    }
+                }
+                var item = drag.item;
+                // 動かしているカードの中心が、ほかのカードの中心を越えたら、その位置に入れる。
+                // 見た目は一覧からはみ出さないように止めるが、比べるのは止める前の位置(止めた位置だと端のカードの中心と同じになり、端に入れられない)。
+                var center = drag.center + dy;
+                var listRect = orderList.getBoundingClientRect();
+                var half = item.offsetHeight / 2;
+                var shown = Math.min(Math.max(center, listRect.top + half), listRect.bottom - half);
+                var before = null;
+                var others = Array.prototype.filter.call(orderList.children, function (other) {
+                    return other !== item;
+                });
+                for (var i = 0; i < others.length; i++) {
+                    var rect = others[i].getBoundingClientRect();
+                    if (center < rect.top + rect.height / 2) {
+                        before = others[i];
+                        break;
+                    }
+                }
+                if (item.nextElementSibling !== before) {
+                    orderList.insertBefore(item, before);
+                }
+                item.style.transform = '';
+                var placed = item.getBoundingClientRect();
+                item.style.transform = 'translateY(' + (shown - (placed.top + placed.height / 2)) + 'px)';
+            });
+
+            function endDrag() {
+                drag.item.classList.remove('is-dragging');
+                drag.item.style.transform = '';
+                drag = null;
+            }
+
+            orderList.addEventListener('pointerup', function (event) {
+                if (!drag || event.pointerId !== drag.pointerId) {
+                    return;
+                }
+                var item = drag.item;
+                var moved = drag.moved;
+                endDrag();
+                if (!moved) {
+                    select(item);
+                }
+            });
+
+            function cancelDrag(event) {
+                if (drag && event.pointerId === drag.pointerId) {
+                    endDrag();
+                }
+            }
+
+            orderList.addEventListener('pointercancel', cancelDrag);
+            orderList.addEventListener('lostpointercapture', cancelDrag);
 
             function next() {
                 if (play.answers.length < play.size) {
@@ -394,6 +618,54 @@
                 } else {
                     showResult(play.size, play.official, play.answers, marksOf(play.answers));
                 }
+            }
+
+            function cardLink(card, value) {
+                var link = document.createElement('a');
+                link.href = card.link;
+                if (card.icon) {
+                    var image = document.createElement('img');
+                    image.src = card.icon;
+                    image.alt = '';
+                    image.width = 285;
+                    image.height = 420;
+                    image.loading = 'lazy';
+                    link.appendChild(image);
+                }
+                var name = document.createElement('span');
+                name.className = 'quiz-wrong-name';
+                name.textContent = card.name;
+                link.appendChild(name);
+                if (value) {
+                    var valueElement = document.createElement('span');
+                    valueElement.className = 'quiz-wrong-value';
+                    valueElement.textContent = value;
+                    link.appendChild(valueElement);
+                }
+                return link;
+            }
+
+            function wrongItem(q, answer) {
+                var item = document.createElement('li');
+                var detail = document.createElement('span');
+                detail.className = 'quiz-wrong-detail';
+                if (q.type === 'hp') {
+                    // 正しい順(ヒットポイントの多い順)に4枚を並べ、あなたの並べた順を文で添える。
+                    item.className = 'quiz-wrong-order';
+                    var cards = document.createElement('div');
+                    cards.className = 'quiz-wrong-cards';
+                    q.answer.split('').forEach(function (index) {
+                        var card = q.cards[Number(index)];
+                        cards.appendChild(cardLink(card, card.value));
+                    });
+                    item.appendChild(cards);
+                    detail.textContent = format(msg.msgWrongOrder, [orderNames(q, String(answer))]);
+                } else {
+                    item.appendChild(cardLink(q.cards[0]));
+                    detail.textContent = format(msg.msgWrongItem, [q.choices[Number(q.answer)], q.choices[answer]]);
+                }
+                item.appendChild(detail);
+                return item;
             }
 
             // answers が無いのは、終えた後にその日の問題が変わった回。点数と正誤だけ出す。
@@ -410,33 +682,10 @@
                 screen.querySelector('.quiz-grid').textContent = rows.join('\n');
                 var list = screen.querySelector('.quiz-wrong-list');
                 list.textContent = '';
-                (answers || []).forEach(function (choice, i) {
-                    var q = questions[i];
-                    if (choice === q.answer) {
-                        return;
+                (answers || []).forEach(function (answer, i) {
+                    if (!isCorrect(questions[i], answer)) {
+                        list.appendChild(wrongItem(questions[i], answer));
                     }
-                    var item = document.createElement('li');
-                    var link = document.createElement('a');
-                    link.href = q.link;
-                    if (q.icon) {
-                        var image = document.createElement('img');
-                        image.src = q.icon;
-                        image.alt = '';
-                        image.width = 285;
-                        image.height = 420;
-                        image.loading = 'lazy';
-                        link.appendChild(image);
-                    }
-                    var name = document.createElement('span');
-                    name.className = 'quiz-wrong-name';
-                    name.textContent = q.name;
-                    link.appendChild(name);
-                    item.appendChild(link);
-                    var detail = document.createElement('span');
-                    detail.className = 'quiz-wrong-detail';
-                    detail.textContent = format(msg.msgWrongItem, [q.choices[q.answer], q.choices[choice]]);
-                    item.appendChild(detail);
-                    list.appendChild(item);
                 });
                 screen.querySelector('.quiz-wrong').hidden = list.children.length === 0;
                 screen.querySelector('.quiz-retry').onclick = function () {
@@ -521,6 +770,7 @@
                     start(Number(button.dataset.size));
                 });
             });
+            screens.play.querySelector('.quiz-submit').addEventListener('click', answerOrder);
             screens.play.querySelector('.quiz-next').addEventListener('click', next);
             screens.play.querySelector('.quiz-quit').addEventListener('click', function () {
                 store = load();
@@ -530,14 +780,25 @@
                 store = load();
                 renderStart();
             });
-            // PCでは数字キーで選べるようにする。
+            // PCでは数字キーで選べるようにする。並べ替えでは数字キーでカードを選んで入れ替え、Enterで答える
+            // (ボタンにフォーカスがあるときのEnterは、そのボタンを押したことになるので任せる)。
             document.addEventListener('keydown', function (event) {
                 if (current !== 'play' || play.answered || event.ctrlKey || event.metaKey || event.altKey) {
                     return;
                 }
-                var choice = Number(event.key) - 1;
-                if (choice >= 0 && choice < questions[play.answers.length].choices.length) {
-                    answer(choice);
+                var q = questions[play.answers.length];
+                var number = Number(event.key) - 1;
+                if (q.type === 'hp') {
+                    if (number >= 0 && number < orderList.children.length) {
+                        select(orderList.children[number]);
+                    } else if (event.key === 'Enter' && !event.target.closest('button, a')) {
+                        event.preventDefault();
+                        answerOrder();
+                    }
+                    return;
+                }
+                if (number >= 0 && number < q.choices.length) {
+                    answerChoice(number);
                 }
             });
             // 「戻る」で保存されていた画面が出たとき、別のタブで遊んだ分を反映する。

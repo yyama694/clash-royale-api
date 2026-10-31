@@ -2854,6 +2854,7 @@ td.cell-action {
 }
 
 .quiz-lead {
+    margin: 0.4rem 0;
     font-size: 1.05rem;
     font-weight: 600;
 }
@@ -2953,6 +2954,13 @@ td.cell-action {
     color: var(--color-text-muted);
 }
 
+/* 並べ替えにはカード名の大きな見出しが無いので、問題文を見出しの代わりにする。 */
+.quiz-prompt.is-order {
+    color: var(--color-text);
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
 .quiz-choices {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3005,6 +3013,108 @@ td.cell-action {
     text-shadow:
         1px 0 0 #3d0750, -1px 0 0 #3d0750, 0 1px 0 #3d0750, 0 -1px 0 #3d0750,
         1px 1px 0 #3d0750, -1px 1px 0 #3d0750, 1px -1px 0 #3d0750, -1px -1px 0 #3d0750;
+}
+
+/*
+  ヒットポイントの並べ替え。行を指で動かせるよう、行の上では画面のスクロールと文字の選択を止める(touch-action・user-select)。
+  位置の番号(1〜4)は行ではなく位置に付くよう、CSSのカウンターで振る。
+*/
+.quiz-order {
+    max-width: 26rem;
+    margin: 0 auto;
+}
+
+.quiz-order-end {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.quiz-order-list {
+    counter-reset: quiz-order;
+    margin: 0.25rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.quiz-order-item {
+    counter-increment: quiz-order;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0 0 0.4rem;
+    padding: 0.3rem 0.75rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.quiz-order-item::before {
+    content: counter(quiz-order);
+    min-width: 1.2em;
+    color: var(--color-text-muted);
+    font-weight: 800;
+    text-align: center;
+}
+
+.quiz-order-item img {
+    width: 40px;
+    height: auto;
+    pointer-events: none;
+}
+
+.quiz-order-name {
+    flex: 1;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.quiz-order-handle {
+    color: var(--color-text-muted);
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.quiz-order-value {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.quiz-order-item.is-selected {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.quiz-order-item.is-dragging {
+    position: relative;
+    z-index: 1;
+    cursor: grabbing;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.quiz-order-list.is-answered .quiz-order-item {
+    cursor: default;
+}
+
+.quiz-order-item.is-correct {
+    border-color: var(--color-win);
+    background: var(--color-win-bg);
+}
+
+.quiz-order-item.is-wrong {
+    border-color: var(--color-lose);
+    background: var(--color-lose-bg);
+}
+
+.quiz-order-howto {
+    margin: 0.4rem 0 0;
+    text-align: center;
 }
 
 .quiz-feedback {
@@ -3113,6 +3223,25 @@ td.cell-action {
 .quiz-wrong-detail {
     display: block;
     color: var(--color-text-muted);
+}
+
+/* 並べ替えの間違いは、正しい順の4枚を1行に並べるので、一覧の幅いっぱいを使う。 */
+.quiz-wrong-list .quiz-wrong-order {
+    grid-column: 1 / -1;
+}
+
+.quiz-wrong-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-width: 26rem;
+    margin: 0 auto 0.25rem;
+}
+
+.quiz-wrong-value {
+    display: block;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
 }
 
 /* 4列とも短いので、表の最小幅(横スクロールさせるためのもの)を外す。 */
