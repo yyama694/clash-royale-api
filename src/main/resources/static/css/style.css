@@ -2344,6 +2344,24 @@ td.cell-action {
         display: none;
     }
 
+    /* マウスでは横にスワイプできないので、つかめるスクロールバーを出す(ホイールで動かすのはlayout.htmlのスクリプト)。 */
+    @media (hover: hover) and (pointer: fine) {
+        .site-nav {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.55) transparent;
+        }
+
+        .site-nav::-webkit-scrollbar {
+            display: block;
+            height: 6px;
+        }
+
+        .site-nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.55);
+            border-radius: 3px;
+        }
+    }
+
     /* 右に続きがあるときだけ右端を薄くし、横にスクロールできることを示す(has-moreはlayout.htmlのスクリプトが付ける)。 */
     .site-nav.has-more {
         -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);

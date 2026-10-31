@@ -187,6 +187,7 @@
     <!--/*
       スマホ幅のヘッダーのメニューは横にスクロールするが、続きがあることが見た目で分からず、後ろの項目(クランランキング・
       カード・お気に入り)に気付きにくかった。右に続きがある間だけ has-more を付け、CSSで右端をぼかす。
+      マウスの縦のホイールではブラウザが横に動かさないため、メニューの上では横に動かす。端まで来たらページのスクロールに任せる。
     */-->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -197,6 +198,19 @@
             function update() {
                 nav.classList.toggle('has-more', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4);
             }
+            nav.addEventListener('wheel', function (event) {
+                var max = nav.scrollWidth - nav.clientWidth;
+                if (max <= 0 || event.deltaX !== 0 || event.deltaY === 0 || event.ctrlKey) {
+                    return;
+                }
+                if ((event.deltaY < 0 && nav.scrollLeft <= 0) || (event.deltaY > 0 && nav.scrollLeft >= max - 1)) {
+                    return;
+                }
+                event.preventDefault();
+                // Firefoxのマウスは行単位(deltaMode=1)で3前後しか来ないので、ピクセルに直す。
+                var unit = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? nav.clientWidth : 1;
+                nav.scrollLeft += event.deltaY * unit;
+            }, {passive: false});
             nav.addEventListener('scroll', update, {passive: true});
             window.addEventListener('resize', update);
             update();
