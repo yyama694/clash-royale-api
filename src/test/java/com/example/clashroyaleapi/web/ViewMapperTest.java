@@ -975,7 +975,7 @@ class ViewMapperTest {
         assertEquals("2026-10-26", view.date());
         QuizView.Question question = view.questions().get(0);
         assertEquals("26000000", question.key());
-        assertEquals(List.of(new QuizView.Card(26000000, "Knight", "knight.png", null)), question.cards());
+        assertEquals(List.of(new QuizView.Card(26000000, "Knight", "knight.png", null, null)), question.cards());
         assertEquals("elixir", question.type());
         assertEquals("1,2,3,4", question.choicesText());
         assertEquals("2", question.answer());
@@ -1048,11 +1048,42 @@ class ViewMapperTest {
         assertEquals("hp:26000014-26000003-26000000-26000021", question.key());
         assertEquals("ヒットポイントが多い順に並べよう", question.prompt());
         assertEquals("ヒットポイントはレベル16の値です", question.note());
-        assertEquals(List.of(new QuizView.Card(26000014, "マスケット銃士", "musketeer.png", "1153"),
-                new QuizView.Card(26000003, "ジャイアント", "giant.png", "6339"),
-                new QuizView.Card(26000000, "ナイト", "knight.png", "2822"),
-                new QuizView.Card(26000021, "ホグライダー", "hog.png", "2711")), question.cards());
+        assertEquals(List.of(new QuizView.Card(26000014, "マスケット銃士", "musketeer.png", "1153", null),
+                new QuizView.Card(26000003, "ジャイアント", "giant.png", "6339", null),
+                new QuizView.Card(26000000, "ナイト", "knight.png", "2822", null),
+                new QuizView.Card(26000021, "ホグライダー", "hog.png", "2711", null)), question.cards());
         assertEquals("1230", question.answer());
         assertEquals("", question.choicesText());
+    }
+
+    @Test
+    void クイズの並べ替えはどの姿のヒットポイントかの注釈を添える() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
+        Map<Integer, CardsResponse.Card> cards = Map.of(
+                1, new CardsResponse.Card(1, "Suspicious Bush", 16, null, 2, "rare", null),
+                2, new CardsResponse.Card(2, "Barbarians", 16, null, 5, "common", null),
+                3, new CardsResponse.Card(3, "Dark Prince", 16, null, 4, "epic", null),
+                4, new CardsResponse.Card(4, "Guards", 16, null, 3, "epic", null),
+                5, new CardsResponse.Card(5, "Knight", 16, null, 3, "common", null));
+        CardStats stats = new CardStats(LocalDate.of(2026, 10, 25), Map.of(
+                "Barbarians", List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.COUNT, "5", "5", null)),
+                "Dark Prince", List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.SHIELD_HEALTH, "384", "240", null)),
+                "Guards", List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.COUNT, "3", "3", null),
+                        new CardStats.Row(CardStats.Form.NORMAL, CardStats.SHIELD_HEALTH, "409", "256", null))));
+        DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 10, 31), 5, List.of(
+                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(1, 130), new QuizQuestion.HpCard(2, 1145),
+                        new QuizQuestion.HpCard(3, 1918), new QuizQuestion.HpCard(4, 130))),
+                new QuizQuestion.HpOrder(List.of(new QuizQuestion.HpCard(5, 2822), new QuizQuestion.HpCard(2, 1145),
+                        new QuizQuestion.HpCard(3, 1918), new QuizQuestion.HpCard(1, 130)))));
+
+        List<QuizView.Card> shown = mapper.toQuiz(quiz, cards, stats, Locale.JAPANESE).questions().get(0).cards();
+
+        // 別のユニットが出るカードはカードごとの文言、何体も出る・シールドがあるだけのカードはステータスの行から
+        assertEquals("草のヒットポイント(飛び出すステルスゴブリンは含まない)", shown.get(0).condition());
+        assertEquals("1体あたり", shown.get(1).condition());
+        assertEquals("シールドを除く", shown.get(2).condition());
+        assertEquals("1体あたり・シールドを除く", shown.get(3).condition());
+        assertNull(mapper.toQuiz(quiz, cards, stats, Locale.JAPANESE).questions().get(1).cards().get(0).condition());
     }
 }

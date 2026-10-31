@@ -92,7 +92,7 @@ class QuizServiceTest {
     }
 
     @Test
-    void 並べ替えにはステータスのヒットポイントを使い何体も出るカードとシールドのあるカードと呪文は出さない() {
+    void 並べ替えにはステータスのヒットポイントを使い何体も出るカードとシールドのあるカードも出し呪文は出さない() {
         Set<Integer> seen = new HashSet<>();
         for (int day = 0; day < 60; day++) {
             DailyQuiz quiz = service(Instant.parse("2026-10-26T12:00:00Z").plusSeconds(day * 86_400L)).today();
@@ -106,8 +106,9 @@ class QuizServiceTest {
                 }
             }
         }
-        assertFalse(seen.contains(BARBARIANS));
-        assertFalse(seen.contains(DARK_PRINCE));
+        // 1体あたり・シールドを除く値であることは、画面で注釈を添える(ViewMapper)
+        assertTrue(seen.contains(BARBARIANS));
+        assertTrue(seen.contains(DARK_PRINCE));
         assertTrue(seen.stream().allMatch(id -> id < WITH_HEALTH));
         // 地上に出せるカードも、霊龍の形のヒットポイントで出る(地上の形は同じ値なので出さない)
         assertTrue(seen.contains(EMPRESS));

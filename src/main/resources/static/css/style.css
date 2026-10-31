@@ -3087,9 +3087,22 @@ td.cell-action {
     pointer-events: none;
 }
 
-.quiz-order-name {
+.quiz-order-label {
+    display: flex;
     flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.quiz-order-name {
     font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.quiz-order-condition {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    line-height: 1.35;
     overflow-wrap: anywhere;
 }
 
@@ -3260,6 +3273,14 @@ td.cell-action {
     display: block;
     color: var(--color-text);
     font-variant-numeric: tabular-nums;
+}
+
+.quiz-wrong-condition {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+    font-weight: 400;
+    line-height: 1.35;
 }
 
 /* 4列とも短いので、表の最小幅(横スクロールさせるためのもの)を外す。 */

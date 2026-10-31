@@ -45,14 +45,17 @@ public class QuizService {
      * 地上に出すと別のコストになるカード(スピリットエンプレス)は、地上の形も別のカードとして出す。
      * 地上のコストは公式APIに無いので、ゲームの画面から読み取ったステータスの「エリクサー（地上）」を使う。
      * ヒットポイントの並べ替えも、ステータスのヒットポイントで出す(地上の形は霊龍の形と同じ値なので出さない)。
+     * 何体も出るカード(1体あたりの値)やシールドのあるカード(シールドを含まない値)も出し、どの値かは画面で注釈を添える
+     * (ViewMapper。2026-10-31にユーザーが決定)。
      */
     public DailyQuiz today() {
         CardStats stats = cardStatsService.stats();
         List<DailyQuiz.Card> cards = apiClient.getCards().items().stream()
                 .filter(card -> card.elixirCost() != null)
                 .flatMap(card -> {
+                    OptionalInt health = stats.health(card.name());
                     DailyQuiz.Card normal = new DailyQuiz.Card(card.id(), false, card.elixirCost(),
-                            hpOrderHealth(stats, card.name()));
+                            health.isPresent() ? health.getAsInt() : null);
                     OptionalInt ground = stats.groundElixir(card.name());
                     return ground.isPresent()
                             ? Stream.of(normal, new DailyQuiz.Card(card.id(), true, ground.getAsInt()))
@@ -60,17 +63,5 @@ public class QuizService {
                 })
                 .toList();
         return DailyQuiz.of(LocalDate.now(clock.withZone(ZoneOffset.UTC)), FIRST_DAY, cards);
-    }
-
-    /**
-     * 何体も出るカードのヒットポイントは1体あたり、シールドのあるカードはシールドを含まない値なので、
-     * 全体の値と勘違いして間違えないよう並べ替えには出さない(2026-10-31にユーザーが決定)。
-     */
-    private static Integer hpOrderHealth(CardStats stats, String card) {
-        if (stats.has(card, CardStats.COUNT) || stats.has(card, CardStats.SHIELD_HEALTH)) {
-            return null;
-        }
-        OptionalInt health = stats.health(card);
-        return health.isPresent() ? health.getAsInt() : null;
     }
 }

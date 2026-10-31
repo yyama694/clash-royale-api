@@ -121,7 +121,7 @@
                 th:data-choice-label="${!q.choices().isEmpty()} ? #{${'quiz.' + q.type() + '.choice'}('{0}')}"><span
                     th:each="card : ${q.cards()}" th:data-card="${card.id()}" th:data-name="${card.name()}"
                     th:data-icon="${card.iconUrl()}" th:data-link="@{/card/{id}(id=${card.id()})}"
-                    th:data-value="${card.value()}"></span></li>
+                    th:data-value="${card.value()}" th:data-condition="${card.condition()}"></span></li>
         </ol>
     </main>
     <footer th:replace="~{fragments/layout :: footer}"></footer>
@@ -160,7 +160,8 @@
                             name: span.dataset.name,
                             icon: span.dataset.icon,
                             link: span.dataset.link,
-                            value: span.dataset.value
+                            value: span.dataset.value,
+                            condition: span.dataset.condition
                         };
                     })
                 };
@@ -416,10 +417,20 @@
                         image.draggable = false;
                         item.appendChild(image);
                     }
+                    // どの姿の値か(「1体あたり」など)は、答える前から名前の下に出す。
+                    var label = document.createElement('span');
+                    label.className = 'quiz-order-label';
                     var name = document.createElement('span');
                     name.className = 'quiz-order-name';
                     name.textContent = card.name;
-                    item.appendChild(name);
+                    label.appendChild(name);
+                    if (card.condition) {
+                        var condition = document.createElement('span');
+                        condition.className = 'quiz-order-condition';
+                        condition.textContent = card.condition;
+                        label.appendChild(condition);
+                    }
+                    item.appendChild(label);
                     var handle = document.createElement('span');
                     handle.className = 'quiz-order-handle';
                     handle.setAttribute('aria-hidden', 'true');
@@ -641,6 +652,12 @@
                     valueElement.className = 'quiz-wrong-value';
                     valueElement.textContent = value;
                     link.appendChild(valueElement);
+                    if (card.condition) {
+                        var condition = document.createElement('span');
+                        condition.className = 'quiz-wrong-condition';
+                        condition.textContent = card.condition;
+                        link.appendChild(condition);
+                    }
                 }
                 return link;
             }

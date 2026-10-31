@@ -340,7 +340,7 @@ public class ViewMapper {
         List<QuizView.Question> questions = quiz.questions().stream()
                 .map(question -> switch (question) {
                     case QuizQuestion.Elixir elixir -> toElixirQuestion(elixir, cards.get(elixir.cardId()), stats, locale);
-                    case QuizQuestion.HpOrder hpOrder -> toHpOrderQuestion(hpOrder, cards, locale);
+                    case QuizQuestion.HpOrder hpOrder -> toHpOrderQuestion(hpOrder, cards, stats, locale);
                 })
                 .toList();
         List<String> leads = quiz.questions().stream()
@@ -379,12 +379,12 @@ public class ViewMapper {
         String key = question.cardId() + (question.ground() ? "g" : "");
         return new QuizView.Question(key, type,
                 prompt != null ? prompt : labels.message("quiz." + type + ".prompt", locale), note,
-                List.of(new QuizView.Card(question.cardId(), labels.cardName(name, locale), iconUrl, null)),
+                List.of(new QuizView.Card(question.cardId(), labels.cardName(name, locale), iconUrl, null, null)),
                 question.choices().stream().map(String::valueOf).toList(), String.valueOf(question.answer()));
     }
 
     private QuizView.Question toHpOrderQuestion(QuizQuestion.HpOrder question, Map<Integer, CardsResponse.Card> cards,
-            Locale locale) {
+            CardStats stats, Locale locale) {
         String type = question.type().code();
         List<QuizView.Card> shown = question.cards().stream()
                 .map(hpCard -> {
@@ -392,7 +392,7 @@ public class ViewMapper {
                     String name = card == null ? null : card.name();
                     String iconUrl = card == null || card.iconUrls() == null ? null : card.iconUrls().medium();
                     return new QuizView.Card(hpCard.id(), labels.cardName(name, locale), iconUrl,
-                            String.valueOf(hpCard.health()));
+                            String.valueOf(hpCard.health()), name == null ? null : hpCondition(name, stats, locale));
                 })
                 .toList();
         String key = type + ":" + question.cards().stream()
@@ -401,6 +401,27 @@ public class ViewMapper {
         String answer = question.answer().stream().map(String::valueOf).collect(Collectors.joining());
         return new QuizView.Question(key, type, labels.message("quiz." + type + ".prompt", locale),
                 labels.message("quiz." + type + ".note", locale), shown, List.of(), answer);
+    }
+
+    /**
+     * ヒットポイントがどの姿の値かの注釈。別のユニットや姿が出るカード(ステルスブッシュの草とステルスゴブリンなど)は
+     * カードごとの文言(quiz.hp.condition.<英語名>)で言う。何体も出る・シールドがあるだけのカードは、ステータスの
+     * 「同時出撃数」「シールドのヒットポイント」の行から共通の文言にする。どれも当てはまらなければ null。
+     */
+    private String hpCondition(String card, CardStats stats, Locale locale) {
+        String special = labels.optionalMessage("quiz.hp.condition." + card, locale);
+        if (special != null) {
+            return special;
+        }
+        boolean perUnit = stats.has(card, CardStats.COUNT);
+        boolean shield = stats.has(card, CardStats.SHIELD_HEALTH);
+        if (perUnit && shield) {
+            return labels.message("quiz.hp.condition.perUnitWithoutShield", locale);
+        }
+        if (perUnit) {
+            return labels.message("quiz.hp.condition.perUnit", locale);
+        }
+        return shield ? labels.message("quiz.hp.condition.withoutShield", locale) : null;
     }
 
     private static Date utcNoon(LocalDate day) {

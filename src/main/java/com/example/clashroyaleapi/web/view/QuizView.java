@@ -25,7 +25,11 @@ public record QuizView(String date, int number, String roundLabel, List<String> 
         }
     }
 
-    /** value は並べ替えで答えた後に出す値(ヒットポイント)。エリクサーの問題では null。 */
-    public record Card(int id, String name, String iconUrl, String value) {
+    /**
+     * value は並べ替えで答えた後に出す値(ヒットポイント)。condition はその値がどの姿の値かの注釈で、
+     * 問題を出すときからカード名の下に出す(「1体あたり」「草のヒットポイント(…は含まない)」など)。
+     * どちらもエリクサーの問題と、注釈の要らないカードでは null。
+     */
+    public record Card(int id, String name, String iconUrl, String value, String condition) {
     }
 }
