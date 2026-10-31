@@ -70,7 +70,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
 7. **日別ドキュメントに1行追記する(2026-09-26にユーザーが依頼)**。
    集計したら、Claude Docsのドキュメント「アクセス状況(日別)」
    (`https://claude.ai/code/artifact/07ff8c83-6635-4dcf-a087-058d5554133c`)の表にその日の行を足す。確認は不要。
-   - 1行 = 日本時間の1日。新しい日を表の一番上(見出し行のすぐ下)に入れる。列は「日付 | 実訪問 | うち再訪 | PV | 人間候補(IP) | Xからの流入 | 検索から | メモ」。人間候補の列は10/23までの値を残しているだけで、10/24以降は空欄にする。
+   - 1行 = 日本時間の1日。新しい日を表の一番上(見出し行のすぐ下)に入れる。列は「日付 | 実訪問 | うち再訪 | PV | Xからの流入 | 検索から | メモ」の7列(人間候補の列は消してある。8つのセルで行を足すと`shape_mismatch`で拒否される)。
    - **実訪問**: ビーコンの送信元のうち、データセンター・クラウド由来(`*`付き、逆引きなしでもAlibaba等と分かるもの)を除いた人数。人かどうか判断できないものは「1(不明)」のように書く。
    - **うち再訪**: 実訪問のうち、前日以前にも来たことがある人数(2026-10-15に列を追加し、9/22以降の行もIPの一致とメモの記録からさかのぼって埋めた)。出力の「再訪」の目印か前の来訪のどちらかがある人に、メモから分かる人を足す。同じ日に何度も来た人は数えない。メモに「10/13以来2日ぶり」のように書く。
    - **PV**: 実訪問に数えた送信元のビーコン件数の合計(ビーコンはページ表示1回につき1件)。出力の「送信元IP別」の件数を足す。実訪問で「不明」とした送信元の分は「7+1(不明)」のように分けて書く(2026-09-29にユーザーが依頼)。
@@ -81,6 +81,13 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    - 前回の行から日が空いていたら、スクリプトに日付を渡して(`check-access.sh 2026-09-25`のように)抜けた日も集計して埋める。
    - ドキュメントの操作はdocsスキル(`anthropic-skills:docs`)を読み込んでから行う。
    - 更新したら、ドキュメントをユーザーの画面に開く。確認は不要(2026-09-28にユーザーが依頼)。開くときはPowerShellの`Start-Process chrome "https://claude.ai/code/artifact/07ff8c83-6635-4dcf-a087-058d5554133c"`を使う(2026-10-13から。Artifactツールの`open`では画面に表示されないことがあった)。
+
+8. **グラフ(「アクセス推移グラフ」)のデータも差し替え、日別ドキュメントと両方を開く(2026-10-31にユーザーが依頼)**。
+   主要指標(実訪問・うち再訪・PV・Xからの流入・検索から)の日別グラフを、Dashboardの型のArtifact(`https://claude.ai/artifact/ForKbCRDkW7A6SoWZNwyL9`)に置いている。直近7日の1日平均と前の7日との比較、実訪問の7日移動平均も出す。確認は不要。
+   - 元データは`history/daily.csv`(このスキルのフォルダ。列は`date,visitors,visitors_unknown,revisits,pv,pv_unknown,x,search,partial_until`)。日別ドキュメントの表と同じ値を、1行=日本時間の1日で古い順に書く。「22+1(不明)」は`visitors`=22・`visitors_unknown`=1のように分け、日の途中の集計は`partial_until`に「16:34」のように時刻を入れる(グラフで薄く出し、平均には入れない)。1日分で置き換えたら空にする。
+   - 差し替え方: ①CSVを直す ②Artifactツールで`url`=上のURL・`file_path`=CSV・`asset: true`でアップロードする(`.tsv`は受け付けない) ③ArtifactDataで`datasets/daily`を読み、返ってきた`version`を`if_version`に付けて`update`し、`source.url`をアップロード結果の`/_blob/<id>`に、`updated.at`を今のUTCの時刻にする ④古いファイルはArtifactツールの`action: "delete"`(`url`と`path`=古いid)で消す
+   - 両方をユーザーの画面に開く: `Start-Process chrome "https://claude.ai/code/artifact/07ff8c83-6635-4dcf-a087-058d5554133c"; Start-Process chrome "https://claude.ai/artifact/ForKbCRDkW7A6SoWZNwyL9"`
+   - CSVは記録として、masterに直接コミットしてよい(`ranking-live`の`history/players.tsv`と同じ扱い)
 
 ## 報告フォーマット
 
