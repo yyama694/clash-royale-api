@@ -27,7 +27,7 @@ class CurrentDeckTest {
     }
 
     private static PlayerResponse player(List<BattleLogEntry.Card> deck) {
-        return new PlayerResponse("#ABC", "name", 15, 9000, 9000, 0, 0, 0, null, deck, cards(159000000), null, null,
+        return new PlayerResponse("#ABC", "name", 15, 9000, 9000, 0, 0, 0, null, deck, cards(159000000), null, null, null,
                 List.of());
     }
 
@@ -174,7 +174,7 @@ class CurrentDeckTest {
     @Test
     void 対戦のデッキのレベルは所持カードの今の値にする() {
         PlayerResponse player = new PlayerResponse("#ABC", "name", 15, 9000, 9000, 0, 0, 0, null,
-                cards(1, 2, 3, 4, 5, 6, 7, 8), cards(159000000), null, null,
+                cards(1, 2, 3, 4, 5, 6, 7, 8), cards(159000000), null, null, null,
                 List.of(new PlayerResponse.OwnedCard(1, "card", 15, 16, 0, "common")));
         List<BattleLogEntry> log = List.of(standardBattle("PvP", "Ladder", cards(1, 2, 3, 4, 5, 6, 7, 8),
                 cards(159000000)));

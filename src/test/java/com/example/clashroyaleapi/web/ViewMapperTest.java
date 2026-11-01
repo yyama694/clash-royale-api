@@ -149,9 +149,9 @@ class ViewMapperTest {
 
     @Test
     void キングタワーレベルが0なら出さない() {
-        PlayerResponse active = new PlayerResponse("#AAA", "a", 13, 0, 0, 0, 0, 0, null, List.of(), List.of(), null,
+        PlayerResponse active = new PlayerResponse("#AAA", "a", 13, 0, 0, 0, 0, 0, null, List.of(), List.of(), null, null,
                 null, List.of());
-        PlayerResponse dormant = new PlayerResponse("#BBB", "b", 0, 0, 0, 0, 0, 0, null, List.of(), List.of(), null,
+        PlayerResponse dormant = new PlayerResponse("#BBB", "b", 0, 0, 0, 0, 0, 0, null, List.of(), List.of(), null, null,
                 null, List.of());
 
         assertEquals(13, viewMapper.kingTowerLevel(active));
@@ -394,9 +394,9 @@ class ViewMapperTest {
     void お気に入りプレイヤーは見つかった順位無し見つからない取得できないを区別する() {
         PlayerResponse.RankedSeasonResult ranked = new PlayerResponse.RankedSeasonResult(1, 4500, 12);
         PlayerResponse found = new PlayerResponse("#AAA", "太郎", 10, 5000, 5000, 1, 0, 0,
-                new PlayerResponse.ClanRef("#CLAN", "償い"), List.of(), List.of(), ranked, null, List.of());
+                new PlayerResponse.ClanRef("#CLAN", "償い"), List.of(), List.of(), ranked, null, null, List.of());
         PlayerResponse noRank = new PlayerResponse("#BBB", "次郎", 5, 1000, 1000, 0, 0, 0, null, List.of(), List.of(),
-                new PlayerResponse.RankedSeasonResult(null, 0, null), null, List.of());
+                new PlayerResponse.RankedSeasonResult(null, 0, null), null, null, List.of());
 
         List<FavoritePlayerView> rows = viewMapper.toFavoritePlayerRows(List.of(
                 new FavoriteFetch.Found<>("AAA", "太郎(旧)", found),
@@ -419,14 +419,14 @@ class ViewMapperTest {
     @Test
     void 前回からの変化の元の値はランク戦の順位が無ければ順位もレーティングも持たない() {
         PlayerResponse ranked = new PlayerResponse("#AAA", "太郎", 10, 14000, 14000, 900, 400, 100, null,
-                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(7, 3100, 25), null, List.of());
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(7, 3100, 25), null, null, List.of());
         PlayerResponse noRank = new PlayerResponse("#BBB", "次郎", 5, 1000, 1000, 30, 20, 2, null,
-                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(3, 0, null), null, List.of());
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(3, 0, null), null, null, List.of());
         PlayerResponse noResult = new PlayerResponse("#CCC", "三郎", 1, 0, 0, 0, 0, 0, null,
-                List.of(), List.of(), null, null, List.of());
+                List.of(), List.of(), null, null, null, List.of());
         // シーズンの切り替え直後は、レーティングが0に戻っても前のシーズンの順位が残る。
         PlayerResponse justReset = new PlayerResponse("#DDD", "四郎", 16, 14000, 14000, 900, 400, 100, null,
-                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(1, 0, 1), null, List.of());
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(1, 0, 1), null, null, List.of());
 
         Instant now = Instant.parse("2026-10-15T00:00:00Z");
         assertEquals(new PlayerProgressView(14000, 900, 400, 25, 3100, "2026-10"), viewMapper.toPlayerProgress(ranked, now));
@@ -459,7 +459,7 @@ class ViewMapperTest {
     @Test
     void 前回からの変化のシーズンは切り替えの時刻で次の月になる() {
         PlayerResponse player = new PlayerResponse("#AAA", "太郎", 10, 14000, 14000, 900, 400, 100, null,
-                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(7, 3100, 25), null, List.of());
+                List.of(), List.of(), new PlayerResponse.RankedSeasonResult(7, 3100, 25), null, null, List.of());
 
         assertEquals("2026-10", viewMapper.toPlayerProgress(player, Instant.parse("2026-11-02T08:59:59Z")).season());
         assertEquals("2026-11", viewMapper.toPlayerProgress(player, Instant.parse("2026-11-02T09:00:00Z")).season());
@@ -679,7 +679,7 @@ class ViewMapperTest {
 
     private static PlayerResponse rankedPlayer(int trophies, PlayerResponse.RankedSeasonResult current) {
         return new PlayerResponse("#AAA", "太郎", 10, trophies, trophies, 900, 400, 100, null,
-                List.of(), List.of(), current, null, List.of());
+                List.of(), List.of(), current, null, null, List.of());
     }
 
     private static BattleLogEntry.Card card(int level, int maxLevel) {

@@ -137,7 +137,7 @@ class ProPlayerServiceTest {
         PlayerResponse.RankedSeasonResult ranked = rank == null
                 ? new PlayerResponse.RankedSeasonResult(null, 0, null)
                 : new PlayerResponse.RankedSeasonResult(7, 3000 - rank, rank);
-        return new PlayerResponse(tag, tag, 16, trophies, trophies, 0, 0, 0, null, List.of(), List.of(), ranked,
+        return new PlayerResponse(tag, tag, 16, trophies, trophies, 0, 0, 0, null, List.of(), List.of(), ranked, null,
                 null, List.of());
     }
 

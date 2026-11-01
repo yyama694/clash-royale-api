@@ -25,16 +25,32 @@ public record PlayerResponse(
         List<BattleLogEntry.Card> currentDeck,
         List<BattleLogEntry.Card> currentDeckSupportCards,
         RankedSeasonResult currentPathOfLegendSeasonResult,
+        RankedSeasonResult lastPathOfLegendSeasonResult,
         RankedSeasonResult bestPathOfLegendSeasonResult,
         List<OwnedCard> cards
 ) {
+    /**
+     * 今シーズンの順位表に入っていない人にも、公式APIは前のシーズンの最終順位を今シーズンの rank として返す
+     * (2026-11-01に4人で確認。レーティング2,247の人に、前のシーズン2,949のときの「695位」)。
+     * 前のシーズンと同じ順位は今シーズンの順位として扱わない。たまたま同じ順位だった人も順位なしになるが、まれなので受け入れる。
+     */
+    public PlayerResponse {
+        if (currentPathOfLegendSeasonResult != null && currentPathOfLegendSeasonResult.rank() != null
+                && lastPathOfLegendSeasonResult != null
+                && currentPathOfLegendSeasonResult.rank().equals(lastPathOfLegendSeasonResult.rank())) {
+            currentPathOfLegendSeasonResult = new RankedSeasonResult(currentPathOfLegendSeasonResult.leagueNumber(),
+                    currentPathOfLegendSeasonResult.trophies(), null);
+        }
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ClanRef(String tag, String name) {
     }
 
     /**
      * ランク戦(旧パス・オブ・レジェンド)のシーズン成績。trophies はレーティング。
-     * 上位の順位に入っていないプレイヤーは rank が null、trophies が 0 になる。
+     * 上位の順位に入っていないプレイヤーは rank が null、trophies が 0 になる
+     * (今シーズンの rank に前のシーズンの順位が入って返る癖は、PlayerResponse のコンストラクタで直す)。
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record RankedSeasonResult(Integer leagueNumber, Integer trophies, Integer rank) {
