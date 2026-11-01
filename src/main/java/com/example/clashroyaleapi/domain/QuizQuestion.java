@@ -11,7 +11,7 @@ public sealed interface QuizQuestion {
 
     /** 並びは、はじめの画面で問題の種類の説明を出す順。 */
     enum Type {
-        ELIXIR("elixir"), HP_ORDER("hp");
+        ELIXIR("elixir"), HP_ORDER("hp"), SPELL("spell");
 
         private final String code;
 
@@ -55,6 +55,28 @@ public sealed interface QuizQuestion {
         public List<Integer> answer() {
             return IntStream.range(0, cards.size()).boxed()
                     .sorted(Comparator.comparingInt((Integer i) -> cards.get(i).health()).reversed())
+                    .toList();
+        }
+    }
+
+    /**
+     * 「呪文一撃で倒せるのはどれ?」。cards は候補(見せる並び)、damages はそれぞれへの呪文のダメージ(レベル16。
+     * アースクエイクは建物へのダメージが違う)。倒せるのを全部選び、選んだものが全部合っていれば正解。
+     * シールドのあるカードはシールドが外れた後に当たる前提で、ヒットポイントはシールドを含まない値(2026-11-01にユーザーが決定)。
+     * 倒せるかどうかはレベル11とレベル16で変わらない(QuizSpellDataTest で確かめている)。
+     */
+    record SpellKill(int spellId, List<HpCard> cards, List<Integer> damages) implements QuizQuestion {
+
+        @Override
+        public Type type() {
+            return Type.SPELL;
+        }
+
+        /** 倒せる候補の cards での位置(小さい順)。ヒットポイントがダメージと同じなら倒せる。 */
+        public List<Integer> answer() {
+            return IntStream.range(0, cards.size())
+                    .filter(i -> cards.get(i).health() <= damages.get(i))
+                    .boxed()
                     .toList();
         }
     }

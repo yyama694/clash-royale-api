@@ -341,6 +341,7 @@ public class ViewMapper {
                 .map(question -> switch (question) {
                     case QuizQuestion.Elixir elixir -> toElixirQuestion(elixir, cards.get(elixir.cardId()), stats, locale);
                     case QuizQuestion.HpOrder hpOrder -> toHpOrderQuestion(hpOrder, cards, stats, locale);
+                    case QuizQuestion.SpellKill spellKill -> toSpellQuestion(spellKill, cards, stats, locale);
                 })
                 .toList();
         List<String> leads = quiz.questions().stream()
@@ -380,13 +381,50 @@ public class ViewMapper {
         return new QuizView.Question(key, type,
                 prompt != null ? prompt : labels.message("quiz." + type + ".prompt", locale), note,
                 List.of(new QuizView.Card(question.cardId(), labels.cardName(name, locale), iconUrl, null, null)),
-                question.choices().stream().map(String::valueOf).toList(), String.valueOf(question.answer()));
+                question.choices().stream().map(String::valueOf).toList(), String.valueOf(question.answer()), null);
     }
 
     private QuizView.Question toHpOrderQuestion(QuizQuestion.HpOrder question, Map<Integer, CardsResponse.Card> cards,
             CardStats stats, Locale locale) {
         String type = question.type().code();
-        List<QuizView.Card> shown = question.cards().stream()
+        String key = type + ":" + hpCardKeys(question.cards());
+        String answer = question.answer().stream().map(String::valueOf).collect(Collectors.joining());
+        return new QuizView.Question(key, type, labels.message("quiz." + type + ".prompt", locale),
+                labels.message("quiz." + type + ".note", locale), hpCardViews(question.cards(), cards, stats, locale),
+                List.of(), answer, null);
+    }
+
+    /**
+     * 呪文の問題。問題文は呪文ごとの文言(矢の雨は3回とも当たったとき、時間で削る呪文は効果時間いっぱい当てたとき)があれば
+     * それを、無ければ共通の文言を使う。答えた後に呪文のダメージを添える(アースクエイクは建物へのダメージも)。
+     */
+    private QuizView.Question toSpellQuestion(QuizQuestion.SpellKill question, Map<Integer, CardsResponse.Card> cards,
+            CardStats stats, Locale locale) {
+        String type = question.type().code();
+        CardsResponse.Card spell = cards.get(question.spellId());
+        String name = spell == null ? null : spell.name();
+        String spellName = labels.cardName(name, locale);
+        String iconUrl = spell == null || spell.iconUrls() == null ? null : spell.iconUrls().medium();
+        int damage = question.damages().stream().mapToInt(Integer::intValue).min().orElse(0);
+        int buildingDamage = question.damages().stream().mapToInt(Integer::intValue).max().orElse(0);
+        String prompt = labels.optionalMessage("quiz." + type + ".prompt." + name, locale, spellName);
+        // ヒットポイントと同じく桁区切りを入れずに出すため、数ではなく文字で渡す。
+        String note = damage == buildingDamage
+                ? labels.message("quiz." + type + ".note", locale, String.valueOf(damage))
+                : labels.message("quiz." + type + ".note.building", locale, String.valueOf(damage),
+                        String.valueOf(buildingDamage));
+        String key = type + ":" + question.spellId() + ":" + hpCardKeys(question.cards());
+        String answer = question.answer().stream().map(String::valueOf).collect(Collectors.joining());
+        return new QuizView.Question(key, type,
+                prompt != null ? prompt : labels.message("quiz." + type + ".prompt", locale, spellName), note,
+                hpCardViews(question.cards(), cards, stats, locale), List.of(), answer,
+                new QuizView.Card(question.spellId(), spellName, iconUrl, String.valueOf(damage), null));
+    }
+
+    /** 並べ替えと呪文の問題の候補。カードの名前と画像で出し、どの姿のヒットポイントかを注釈で添える。 */
+    private List<QuizView.Card> hpCardViews(List<QuizQuestion.HpCard> hpCards, Map<Integer, CardsResponse.Card> cards,
+            CardStats stats, Locale locale) {
+        return hpCards.stream()
                 .map(hpCard -> {
                     CardsResponse.Card card = cards.get(hpCard.id());
                     String name = card == null ? null : card.name();
@@ -396,12 +434,12 @@ public class ViewMapper {
                             name == null ? null : hpCondition(name, hpCard.unit(), stats, locale));
                 })
                 .toList();
-        String key = type + ":" + question.cards().stream()
+    }
+
+    private static String hpCardKeys(List<QuizQuestion.HpCard> hpCards) {
+        return hpCards.stream()
                 .map(hpCard -> hpCard.id() + (hpCard.unit() == null ? "" : "." + hpCard.unit()))
                 .collect(Collectors.joining("-"));
-        String answer = question.answer().stream().map(String::valueOf).collect(Collectors.joining());
-        return new QuizView.Question(key, type, labels.message("quiz." + type + ".prompt", locale),
-                labels.message("quiz." + type + ".note", locale), shown, List.of(), answer);
     }
 
     /**

@@ -19,6 +19,13 @@
           th:data-msg-correct="#{quiz.correct}"
           th:data-msg-wrong="#{quiz.wrong('{0}')}"
           th:data-msg-hp-wrong="#{quiz.hp.wrong('{0}')}"
+          th:data-msg-hp-submit="#{quiz.hp.submit}"
+          th:data-msg-spell-submit="#{quiz.spell.submit}"
+          th:data-msg-spell-wrong="#{quiz.spell.wrong('{0}')}"
+          th:data-msg-spell-killed="#{quiz.spell.killed}"
+          th:data-msg-spell-survived="#{quiz.spell.survived}"
+          th:data-msg-spell-none="#{quiz.spell.none}"
+          th:data-msg-spell-damage="#{quiz.spell.damage('{0}')}"
           th:data-msg-next="#{quiz.next}"
           th:data-msg-to-result="#{quiz.toResult}"
           th:data-msg-quit="#{quiz.quit}"
@@ -26,6 +33,7 @@
           th:data-msg-score="#{quiz.result.score('{0}', '{1}')}"
           th:data-msg-wrong-item="#{quiz.result.wrong.item('{0}', '{1}')}"
           th:data-msg-wrong-order="#{quiz.result.wrong.order('{0}')}"
+          th:data-msg-wrong-spell="#{quiz.result.wrong.spell('{0}', '{1}')}"
           th:data-msg-streak="#{quiz.stats.streak.value('{0}', '{1}')}">
         <a class="back-link" th:href="@{/}">&laquo; <span th:text="#{action.backToTop}"></span></a>
 
@@ -62,10 +70,15 @@
                 <p class="quiz-order-end" th:text="#{quiz.hp.less}"></p>
                 <p class="notice quiz-order-howto" th:text="#{quiz.hp.howto}"></p>
             </div>
+            <!--/* 呪文1発で倒せる候補を選ぶ。行を押すと選んだ印が付き、もう一度押すと外れる。 */-->
+            <div class="quiz-pick" hidden>
+                <ol class="quiz-pick-list"></ol>
+                <p class="notice quiz-pick-howto" th:text="#{quiz.spell.howto}"></p>
+            </div>
             <p class="quiz-feedback" aria-live="polite"></p>
             <p class="quiz-note" aria-live="polite" hidden></p>
             <div class="quiz-actions">
-                <button type="button" class="quiz-submit" hidden th:text="#{quiz.hp.submit}"></button>
+                <button type="button" class="quiz-submit" hidden></button>
                 <button type="button" class="quiz-next" hidden></button>
             </div>
             <button type="button" class="quiz-quit"></button>
@@ -113,11 +126,17 @@
             <p class="notice" th:text="#{quiz.stats.note}"></p>
         </section>
 
-        <!--/* 1問に1つの li。中の span がカード(エリクサーは1枚、並べ替えは最初に見せる並びの4枚)。 */-->
+        <!--/*
+          1問に1つの li。中の span がカード(エリクサーは1枚、並べ替えは最初に見せる並びの4枚、呪文は候補の4枚)。
+          呪文の問題の呪文は li の data-subject-* に入れる。
+        */-->
         <ol id="quiz-questions" hidden>
             <li th:each="q : ${quiz.questions()}" th:data-key="${q.key()}" th:data-type="${q.type()}"
                 th:data-prompt="${q.prompt()}" th:data-note="${q.note()}" th:data-choices="${q.choicesText()}"
                 th:data-answer="${q.answer()}"
+                th:data-subject-name="${q.subject()?.name()}" th:data-subject-icon="${q.subject()?.iconUrl()}"
+                th:data-subject-link="${q.subject() != null} ? @{/card/{id}(id=${q.subject().id()})}"
+                th:data-subject-value="${q.subject()?.value()}"
                 th:data-choice-label="${!q.choices().isEmpty()} ? #{${'quiz.' + q.type() + '.choice'}('{0}')}"><span
                     th:each="card : ${q.cards()}" th:data-card="${card.id()}" th:data-name="${card.name()}"
                     th:data-icon="${card.iconUrl()}" th:data-link="@{/card/{id}(id=${card.id()})}"
@@ -129,7 +148,8 @@
     <!--/*
       成績の保存(localStorage の quiz)。形は {v: 1, maxStreak, days: {"2026-10-26": {"10": 回}}}。
       回は問題数ごとの、その日の最初の1回(公式の成績)で、ids(出題した問題の key)・answers(答え)・終わったら marks("oox…")。
-      答えはエリクサーなら選んだ位置(数)、並べ替えなら並べたカードの最初の並びでの位置("2031")で、正解と文字にして比べる。
+      答えはエリクサーなら選んだ位置(数)、並べ替えなら並べたカードの最初の並びでの位置("2031")、
+      呪文なら選んだ候補の位置を小さい順に並べたもの("13"。何も選ばなければ "")で、正解と文字にして比べる。
       前の日以前の回は marks だけ残し、終わっていない回と400日より前の日は消す。
       2回目以降(練習)は保存しない。日付はページに埋めたUTCの日付で決め、端末の時計は使わない。
       別のタブが書いた分を消さないよう、書くたびに読み直してから書く。
@@ -163,7 +183,13 @@
                             value: span.dataset.value,
                             condition: span.dataset.condition
                         };
-                    })
+                    }),
+                    subject: li.dataset.subjectName ? {
+                        name: li.dataset.subjectName,
+                        icon: li.dataset.subjectIcon,
+                        link: li.dataset.subjectLink,
+                        value: li.dataset.subjectValue
+                    } : null
                 };
             });
             var screens = {
@@ -173,6 +199,7 @@
             };
             var stats = document.getElementById('quiz-stats');
             var orderList = screens.play.querySelector('.quiz-order-list');
+            var pickList = screens.play.querySelector('.quiz-pick-list');
             var current = 'start';
             var play = null;
             var drag = null;
@@ -339,21 +366,28 @@
                 var q = questions[index];
                 var screen = screens.play;
                 var ordering = q.type === 'hp';
+                var picking = q.type === 'spell';
                 screen.querySelector('.quiz-progress-text').textContent = format(msg.msgProgress, [index + 1, play.size]);
                 screen.querySelector('.quiz-practice').hidden = play.official;
                 // 練習は保存しないので、やめると続きから再開できない。
                 screen.querySelector('.quiz-quit').textContent = play.official ? msg.msgQuit : msg.msgQuitPractice;
                 screen.querySelector('.quiz-progress-bar').style.width = (index / play.size * 100) + '%';
                 screen.querySelector('.quiz-card').hidden = ordering;
-                screen.querySelector('.quiz-choices').hidden = ordering;
+                screen.querySelector('.quiz-choices').hidden = ordering || picking;
                 screen.querySelector('.quiz-order').hidden = !ordering;
                 screen.querySelector('.quiz-order-howto').hidden = false;
-                screen.querySelector('.quiz-submit').hidden = !ordering;
+                screen.querySelector('.quiz-pick').hidden = !picking;
+                screen.querySelector('.quiz-pick-howto').hidden = false;
+                var submit = screen.querySelector('.quiz-submit');
+                submit.hidden = !(ordering || picking);
+                submit.textContent = picking ? msg.msgSpellSubmit : msg.msgHpSubmit;
                 var prompt = screen.querySelector('.quiz-prompt');
                 prompt.textContent = q.prompt;
                 prompt.classList.toggle('is-order', ordering);
                 if (ordering) {
                     renderOrder(q);
+                } else if (picking) {
+                    renderPick(q);
                 } else {
                     renderChoices(q);
                 }
@@ -364,7 +398,8 @@
                 play.answered = false;
                 // 次の問題の画像を先に読んでおき、テンポよく進めるようにする。
                 if (index + 1 < play.size) {
-                    questions[index + 1].cards.forEach(function (card) {
+                    var upcoming = questions[index + 1];
+                    upcoming.cards.concat(upcoming.subject ? [upcoming.subject] : []).forEach(function (card) {
                         if (card.icon) {
                             new Image().src = card.icon;
                         }
@@ -373,15 +408,20 @@
                 show('play');
             }
 
-            function renderChoices(q) {
+            // 上の大きなカード(エリクサーの問題のカード、呪文の問題の呪文)。
+            function showFigure(card) {
                 var screen = screens.play;
-                var card = q.cards[0];
                 var image = screen.querySelector('.quiz-card-image');
                 image.hidden = !card.icon;
                 if (card.icon) {
                     image.src = card.icon;
                 }
                 screen.querySelector('.quiz-card-name').textContent = card.name;
+            }
+
+            function renderChoices(q) {
+                var screen = screens.play;
+                showFigure(q.cards[0]);
                 var choices = screen.querySelector('.quiz-choices');
                 choices.textContent = '';
                 q.choices.forEach(function (label, choice) {
@@ -442,6 +482,69 @@
                     item.appendChild(value);
                     orderList.appendChild(item);
                 });
+            }
+
+            // 呪文の問題。上に呪文を出し、候補を1行ずつボタンにする(押すと選んだ印、もう一度押すと外れる)。
+            function renderPick(q) {
+                showFigure(q.subject);
+                pickList.textContent = '';
+                q.cards.forEach(function (card, index) {
+                    var item = document.createElement('li');
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'quiz-pick-button';
+                    button.dataset.index = index;
+                    button.setAttribute('aria-pressed', 'false');
+                    var check = document.createElement('span');
+                    check.className = 'quiz-pick-check';
+                    check.setAttribute('aria-hidden', 'true');
+                    button.appendChild(check);
+                    if (card.icon) {
+                        var image = document.createElement('img');
+                        image.src = card.icon;
+                        image.alt = '';
+                        image.width = 285;
+                        image.height = 420;
+                        button.appendChild(image);
+                    }
+                    var label = document.createElement('span');
+                    label.className = 'quiz-order-label';
+                    var name = document.createElement('span');
+                    name.className = 'quiz-order-name';
+                    name.textContent = card.name;
+                    label.appendChild(name);
+                    if (card.condition) {
+                        var condition = document.createElement('span');
+                        condition.className = 'quiz-order-condition';
+                        condition.textContent = card.condition;
+                        label.appendChild(condition);
+                    }
+                    button.appendChild(label);
+                    var result = document.createElement('span');
+                    result.className = 'quiz-pick-result';
+                    result.hidden = true;
+                    button.appendChild(result);
+                    button.addEventListener('click', function () {
+                        togglePick(index);
+                    });
+                    item.appendChild(button);
+                    pickList.appendChild(item);
+                });
+            }
+
+            function togglePick(index) {
+                if (play.answered) {
+                    return;
+                }
+                var button = pickList.querySelectorAll('.quiz-pick-button')[index];
+                var selected = button.classList.toggle('is-selected');
+                button.setAttribute('aria-pressed', String(selected));
+            }
+
+            function pickNames(q, picks) {
+                return picks ? picks.split('').map(function (index) {
+                    return q.cards[Number(index)].name;
+                }).join('・') : msg.msgSpellNone;
             }
 
             // 答えを記録する(公式の回は1問ごとに保存する)。最後の問題なら true。
@@ -521,6 +624,32 @@
                 screens.play.querySelector('.quiz-submit').hidden = true;
                 screens.play.querySelector('.quiz-order-howto').hidden = true;
                 showFeedback(isCorrect(q, order), format(msg.msgHpWrong, [orderNames(q, q.answer)]), q.note, finished);
+            }
+
+            // 選んだ候補の位置を小さい順に並べたもの("13"。何も選ばなければ "")を答えにする。倒せるのを全部選んでいれば正解。
+            // 行ごとに、選んだかどうかが合っていれば緑、違えば赤にして、ヒットポイントと倒せるかどうかを出す。
+            function answerPick() {
+                if (play.answered) {
+                    return;
+                }
+                var q = questions[play.answers.length];
+                var buttons = Array.prototype.slice.call(pickList.querySelectorAll('.quiz-pick-button'));
+                var chosen = buttons.filter(function (button) {
+                    return button.classList.contains('is-selected');
+                }).map(function (button) { return button.dataset.index; }).join('');
+                var finished = record(chosen);
+                buttons.forEach(function (button) {
+                    var index = button.dataset.index;
+                    var killed = q.answer.indexOf(index) >= 0;
+                    button.disabled = true;
+                    button.classList.add(killed === button.classList.contains('is-selected') ? 'is-correct' : 'is-wrong');
+                    var result = button.querySelector('.quiz-pick-result');
+                    result.textContent = q.cards[Number(index)].value + ' ' + (killed ? msg.msgSpellKilled : msg.msgSpellSurvived);
+                    result.hidden = false;
+                });
+                screens.play.querySelector('.quiz-submit').hidden = true;
+                screens.play.querySelector('.quiz-pick-howto').hidden = true;
+                showFeedback(isCorrect(q, chosen), format(msg.msgSpellWrong, [pickNames(q, q.answer)]), q.note, finished);
             }
 
             // 並べ替えのタップ: 1枚目を選び、2枚目で入れ替える。同じカードをもう一度押すと選ぶのをやめる。
@@ -677,6 +806,18 @@
                     });
                     item.appendChild(cards);
                     detail.textContent = format(msg.msgWrongOrder, [orderNames(q, String(answer))]);
+                } else if (q.type === 'spell') {
+                    // 呪文(ダメージ)と4枚の候補(ヒットポイントと倒せるかどうか)を並べ、倒せるものとあなたの答えを文で添える。
+                    item.className = 'quiz-wrong-spell';
+                    var tiles = document.createElement('div');
+                    tiles.className = 'quiz-wrong-cards';
+                    tiles.appendChild(cardLink(q.subject, format(msg.msgSpellDamage, [q.subject.value])));
+                    q.cards.forEach(function (card, index) {
+                        var killed = q.answer.indexOf(String(index)) >= 0;
+                        tiles.appendChild(cardLink(card, card.value + ' ' + (killed ? msg.msgSpellKilled : msg.msgSpellSurvived)));
+                    });
+                    item.appendChild(tiles);
+                    detail.textContent = format(msg.msgWrongSpell, [pickNames(q, q.answer), pickNames(q, String(answer))]);
                 } else {
                     item.className = 'quiz-wrong-choice';
                     item.appendChild(cardLink(q.cards[0]));
@@ -788,7 +929,13 @@
                     start(Number(button.dataset.size));
                 });
             });
-            screens.play.querySelector('.quiz-submit').addEventListener('click', answerOrder);
+            screens.play.querySelector('.quiz-submit').addEventListener('click', function () {
+                if (questions[play.answers.length].type === 'spell') {
+                    answerPick();
+                } else {
+                    answerOrder();
+                }
+            });
             screens.play.querySelector('.quiz-next').addEventListener('click', next);
             screens.play.querySelector('.quiz-quit').addEventListener('click', function () {
                 store = load();
@@ -812,6 +959,15 @@
                     } else if (event.key === 'Enter' && !event.target.closest('button, a')) {
                         event.preventDefault();
                         answerOrder();
+                    }
+                    return;
+                }
+                if (q.type === 'spell') {
+                    if (number >= 0 && number < q.cards.length) {
+                        togglePick(number);
+                    } else if (event.key === 'Enter' && !event.target.closest('button, a')) {
+                        event.preventDefault();
+                        answerPick();
                     }
                     return;
                 }
