@@ -3256,17 +3256,26 @@ td.cell-action {
     color: var(--color-text-muted);
 }
 
-/* 並べ替えの間違いは、正しい順の4枚を1行に並べるので、一覧の幅いっぱいを使う。 */
+/*
+  並べ替えの間違いは、一覧の幅いっぱいの段にし、正しい順の4枚をエリクサーの問題のタイルと同じ列に左から並べる
+  (subgrid。中央寄せにすると左端がそろわずガタガタに見えた)。列が4つに満たないスマホ幅では折り返す。
+  subgrid が使えないブラウザでは、前の行の4列になる。
+*/
 .quiz-wrong-list .quiz-wrong-order {
     grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: subgrid;
+    row-gap: 0.25rem;
 }
 
 .quiz-wrong-cards {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.5rem;
-    max-width: 26rem;
-    margin: 0 auto 0.25rem;
+    display: contents;
+}
+
+.quiz-wrong-order .quiz-wrong-detail {
+    grid-column: 1 / -1;
+    text-align: left;
 }
 
 .quiz-wrong-value {
