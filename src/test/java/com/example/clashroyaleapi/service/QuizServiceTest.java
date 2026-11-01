@@ -167,8 +167,74 @@ class QuizServiceTest {
                 .flatMap(question -> switch (question) {
                     case QuizQuestion.Elixir elixir -> Stream.of(elixir.cardId());
                     case QuizQuestion.HpOrder hpOrder -> hpOrder.cards().stream().map(QuizQuestion.HpCard::id);
+                    case QuizQuestion.SpellKill spellKill -> spellKill.cards().stream().map(QuizQuestion.HpCard::id);
                 })
                 .toList();
+    }
+
+    @Test
+    void 呪文のダメージはステータスから出し時間で削る呪文は効果時間いっぱいの合計にする() {
+        CardStats stats = new CardStats(LocalDate.of(2026, 10, 25), Map.of(
+                "Fireball", List.of(row("stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "1100")),
+                "Arrows", List.of(row("stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "196 x3")),
+                "Lightning", List.of(row("stat.TID_SPELL_ATTRIBUTE_DAMAGE", "1689")),
+                "The Log", List.of(row("stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE", "429")),
+                "Poison", List.of(row("stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND", "147"),
+                        row("stat.TID_SPELL_ATTRIBUTE_DURATION", "{s:8}")),
+                "Earthquake", List.of(row("stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND", "130"),
+                        row("stat.TID_SPELL_ATTRIBUTE_BUILDING_DPS", "455"), row("stat.TID_SPELL_ATTRIBUTE_DURATION", "{s:3}")),
+                "Goblin Curse", List.of(row("stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND", "57"),
+                        row("stat.TID_SPELL_ATTRIBUTE_CURSE_DURATION", "{s:6}")),
+                "Void", List.of(row("stat.TID_DAMAGE_WITH_SINGLE_TARGET", "1112"))));
+
+        assertEquals(new DailyQuiz.Spell(1, 1100, 1100, false, false), spell(stats, 1, "Fireball"));
+        // 矢の雨は3回とも当たったとき
+        assertEquals(new DailyQuiz.Spell(2, 588, 588, false, false), spell(stats, 2, "Arrows"));
+        assertEquals(new DailyQuiz.Spell(3, 1689, 1689, false, false), spell(stats, 3, "Lightning"));
+        assertEquals(new DailyQuiz.Spell(4, 429, 429, true, false), spell(stats, 4, "The Log"));
+        assertEquals(new DailyQuiz.Spell(5, 1176, 1176, false, true), spell(stats, 5, "Poison"));
+        // アースクエイクは地上だけで、建物へのダメージが違う
+        assertEquals(new DailyQuiz.Spell(6, 390, 1365, true, true), spell(stats, 6, "Earthquake"));
+        assertEquals(new DailyQuiz.Spell(7, 342, 342, false, true), spell(stats, 7, "Goblin Curse"));
+        // ボイドは当たった数でダメージが変わるので出さない。ステータスの無い呪文も出さない
+        assertEquals(null, spell(stats, 8, "Void"));
+        assertEquals(null, spell(stats, 9, "Zap"));
+    }
+
+    @Test
+    void 地上だけの呪文の問題には空を飛ぶカードを出さず建物にはアースクエイクの建物へのダメージで考える() {
+        // 空を飛ぶカード(ガーゴイル)と建物(稼働時間のあるカード)を足し、アースクエイクだけを出題させる
+        List<CardsResponse.Card> items = new ArrayList<>(apiClient.getCards().items());
+        items.add(new CardsResponse.Card(200, "Minions", 16, null, 3, "common", null));
+        items.add(new CardsResponse.Card(201, "Earthquake", 16, null, 3, "rare", null));
+        when(apiClient.getCards()).thenReturn(new CardsResponse(items, List.of()));
+        Map<String, List<CardStats.Row>> rows = new HashMap<>(cardStatsService.stats().byCard());
+        rows.put("Minions", List.of(row(CardStats.HEALTH, "368")));
+        rows.put("Card8", List.of(row(CardStats.HEALTH, "1200"), row(CardStats.LIFETIME, "{s:30}")));
+        rows.put("Earthquake", List.of(row("stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND", "130"),
+                row("stat.TID_SPELL_ATTRIBUTE_BUILDING_DPS", "455"), row("stat.TID_SPELL_ATTRIBUTE_DURATION", "{s:3}")));
+        CardStatsService withSpell = new CardStatsService(new CardStats(LocalDate.of(2026, 10, 25), rows));
+
+        Set<Integer> candidates = new HashSet<>();
+        for (int day = 0; day < 60; day++) {
+            Clock clock = Clock.fixed(Instant.parse("2026-10-26T12:00:00Z").plusSeconds(day * 86_400L), ZoneId.of("UTC"));
+            for (QuizQuestion question : new QuizService(apiClient, withSpell, clock).today().questions()) {
+                if (question instanceof QuizQuestion.SpellKill spellKill) {
+                    assertEquals(201, spellKill.spellId());
+                    for (int i = 0; i < spellKill.cards().size(); i++) {
+                        int id = spellKill.cards().get(i).id();
+                        candidates.add(id);
+                        assertEquals(id == 8 ? 1365 : 390, spellKill.damages().get(i));
+                    }
+                }
+            }
+        }
+        assertFalse(candidates.contains(200));
+        assertTrue(candidates.contains(8));
+    }
+
+    private static DailyQuiz.Spell spell(CardStats stats, int id, String name) {
+        return QuizService.spell(stats, new CardsResponse.Card(id, name, 16, null, 3, "rare", null)).orElse(null);
     }
 
     private static CardStats.Row row(String labelKey, String level16) {

@@ -13,6 +13,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,8 +29,34 @@ class DailyQuizTest {
 
     // 122枚のうち82枚に、ヒットポイント(130〜8230)を持たせたもの。2026-10の並べ替えに出せる枚数と同じ。
     private static final List<DailyQuiz.Card> CARDS_WITH_HEALTH = IntStream.range(0, 122)
-            .mapToObj(i -> new DailyQuiz.Card(26_000_000 + i, false, cost(i), i < 82 ? 130 + i * 100 : null))
+            .mapToObj(i -> new DailyQuiz.Card(26_000_000 + i, false, cost(i), i < 82 ? 130 + i * 100 : null,
+                    flying(26_000_000 + i), building(26_000_000 + i)))
             .toList();
+
+    // 呪文の問題用。122枚のうち100枚に、実際のカードに近い細かさのヒットポイント(80〜約16000。1枚ごとに5.5%ずつ増える)を持たせたもの。
+    // 100刻みのような粗いヒットポイントだと、1日の後半で「際どい」カードを使い切ってしまう。
+    private static final List<DailyQuiz.Card> SPELL_TARGETS = IntStream.range(0, 122)
+            .mapToObj(i -> new DailyQuiz.Card(26_000_000 + i, false, cost(i),
+                    i < 100 ? (int) Math.round(80 * Math.pow(1.055, i)) : null, flying(26_000_000 + i),
+                    building(26_000_000 + i)))
+            .toList();
+
+    // 呪文の問題に出す呪文の役。ファイアボール・ローリングウッド(地上だけ)・アースクエイク(地上だけ・時間で削る・建物に大きい)・ポイズン(時間で削る)
+    private static final DailyQuiz.Spell FIREBALL = new DailyQuiz.Spell(28_000_000, 1100, 1100, false, false);
+    private static final DailyQuiz.Spell LOG = new DailyQuiz.Spell(28_000_011, 429, 429, true, false);
+    private static final DailyQuiz.Spell EARTHQUAKE = new DailyQuiz.Spell(28_000_014, 390, 1365, true, true);
+    private static final DailyQuiz.Spell POISON = new DailyQuiz.Spell(28_000_009, 1176, 1176, false, true);
+    private static final List<DailyQuiz.Spell> SPELLS = List.of(FIREBALL, LOG, EARTHQUAKE, POISON);
+
+    /** 空を飛ぶカードの役(IDが5で割り切れるもの)。 */
+    private static boolean flying(int id) {
+        return id % 5 == 0;
+    }
+
+    /** 建物の役(IDが7で割り切れるもの)。 */
+    private static boolean building(int id) {
+        return id % 7 == 0;
+    }
 
     private static int cost(int i) {
         int[] costs = {1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 7, 8, 9};
@@ -87,9 +114,9 @@ class DailyQuizTest {
     }
 
     @Test
-    void 一日の30問には並べ替えの4枚も含めて同じカードは出ない() {
+    void 一日の30問には並べ替えと呪文の候補も含めて同じカードは出ない() {
         for (int day = 0; day < 100; day++) {
-            DailyQuiz quiz = DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, CARDS_WITH_HEALTH);
+            DailyQuiz quiz = DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, SPELL_TARGETS, List.of(), SPELLS);
 
             assertEquals(DailyQuiz.QUESTIONS_PER_DAY, quiz.questions().size());
             List<Integer> ids = cardIds(quiz);
@@ -291,6 +318,107 @@ class DailyQuizTest {
         assertEquals(DailyQuiz.QUESTIONS_PER_DAY - 1, elixirs(quiz).size());
     }
 
+    @Test
+    void 呪文の問題は10問ごとに2問ずつ混ざり呪文が無ければエリクサーの問題になる() {
+        for (int day = 0; day < 100; day++) {
+            List<QuizQuestion> questions = DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, SPELL_TARGETS,
+                    List.of(), SPELLS).questions();
+
+            for (int start = 0; start < DailyQuiz.QUESTIONS_PER_DAY; start += 10) {
+                List<QuizQuestion> block = questions.subList(start, start + 10);
+                assertEquals(2, block.stream().filter(QuizQuestion.SpellKill.class::isInstance).count());
+                assertEquals(2, block.stream().filter(QuizQuestion.HpOrder.class::isInstance).count());
+            }
+        }
+        DailyQuiz withoutSpells = DailyQuiz.of(FIRST_DAY, FIRST_DAY, CARDS_WITH_HEALTH);
+        assertEquals(DailyQuiz.QUESTIONS_PER_DAY, withoutSpells.questions().size());
+        assertTrue(spellKills(withoutSpells).isEmpty());
+    }
+
+    @Test
+    void 呪文の候補は4枚で倒せるのは1から3枚でヒットポイントがダメージに近い際どいカードが入る() {
+        for (int day = 0; day < 200; day++) {
+            for (QuizQuestion.SpellKill question : spellKills(DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY,
+                    SPELL_TARGETS, List.of(), SPELLS))) {
+                assertEquals(4, question.cards().size());
+                int killed = question.answer().size();
+                assertTrue(killed >= 1 && killed <= 3, () -> "倒せる枚数: " + question);
+                assertTrue(IntStream.range(0, 4).anyMatch(i -> question.cards().get(i).health() * 100L
+                        >= question.damages().get(i) * 80L
+                        && question.cards().get(i).health() * 100L <= question.damages().get(i) * 125L),
+                        () -> "際どいカードが無い: " + question);
+            }
+        }
+    }
+
+    @Test
+    void 地上にしか当たらない呪文の候補には空を飛ぶカードを出さず建物には建物へのダメージで考える() {
+        boolean buildingSeen = false;
+        for (int day = 0; day < 200; day++) {
+            for (QuizQuestion.SpellKill question : spellKills(DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY,
+                    SPELL_TARGETS, List.of(), SPELLS))) {
+                DailyQuiz.Spell spell = SPELLS.stream().filter(s -> s.id() == question.spellId()).findFirst().orElseThrow();
+                for (int i = 0; i < 4; i++) {
+                    int id = question.cards().get(i).id();
+                    if (spell.groundOnly()) {
+                        assertFalse(flying(id), () -> "地上だけの呪文に空のカード: " + question);
+                    }
+                    assertEquals(building(id) ? spell.buildingDamage() : spell.damage(), question.damages().get(i));
+                    buildingSeen |= spell == EARTHQUAKE && building(id);
+                }
+            }
+        }
+        assertTrue(buildingSeen);
+    }
+
+    @Test
+    void 時間で削る呪文の候補にはヒットポイントがダメージの3パーセント以内のカードを出さない() {
+        for (int day = 0; day < 200; day++) {
+            for (QuizQuestion.SpellKill question : spellKills(DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY,
+                    SPELL_TARGETS, List.of(), SPELLS))) {
+                if (question.spellId() != EARTHQUAKE.id() && question.spellId() != POISON.id()) {
+                    continue;
+                }
+                for (int i = 0; i < 4; i++) {
+                    long health = question.cards().get(i).health();
+                    long damage = question.damages().get(i);
+                    assertTrue(Math.abs(health - damage) * 100 >= damage * 3, () -> "近すぎる: " + question);
+                }
+            }
+        }
+    }
+
+    @Test
+    void 一日の呪文の問題はふつうすべての呪文が出るまで同じ呪文を使わない() {
+        // 問題が作れない呪文(際どい候補を使い切ったときなど)は飛ばして次の呪文を使うので、まれに早めに同じ呪文が出る
+        int distinctDays = 0;
+        for (int day = 0; day < 100; day++) {
+            List<Integer> spellIds = spellKills(DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, SPELL_TARGETS,
+                    List.of(), SPELLS)).stream().map(QuizQuestion.SpellKill::spellId).toList();
+
+            distinctDays += new HashSet<>(spellIds.subList(0, SPELLS.size())).size() == SPELLS.size() ? 1 : 0;
+        }
+        assertTrue(distinctDays >= 95, () -> "同じ呪文が早めに出た日が多い: " + (100 - distinctDays));
+    }
+
+    @Test
+    void 呪文の問題の正解はヒットポイントがダメージ以下の候補の位置() {
+        QuizQuestion.SpellKill question = new QuizQuestion.SpellKill(28_000_000, List.of(
+                new QuizQuestion.HpCard(1, null, 1153), new QuizQuestion.HpCard(2, null, 1100),
+                new QuizQuestion.HpCard(3, null, 2822), new QuizQuestion.HpCard(4, "egg", 507)),
+                List.of(1100, 1100, 1100, 1100));
+
+        // ヒットポイントがダメージと同じなら倒せる
+        assertEquals(List.of(1, 3), question.answer());
+    }
+
+    private static List<QuizQuestion.SpellKill> spellKills(DailyQuiz quiz) {
+        return quiz.questions().stream()
+                .filter(QuizQuestion.SpellKill.class::isInstance)
+                .map(QuizQuestion.SpellKill.class::cast)
+                .toList();
+    }
+
     private static List<QuizQuestion.Elixir> elixirs(DailyQuiz quiz) {
         return quiz.questions().stream()
                 .filter(QuizQuestion.Elixir.class::isInstance)
@@ -311,6 +439,7 @@ class DailyQuizTest {
                 .flatMap(question -> switch (question) {
                     case QuizQuestion.Elixir elixir -> Stream.of(elixir.cardId());
                     case QuizQuestion.HpOrder hpOrder -> hpOrder.cards().stream().map(QuizQuestion.HpCard::id);
+                    case QuizQuestion.SpellKill spellKill -> spellKill.cards().stream().map(QuizQuestion.HpCard::id);
                 })
                 .toList();
     }

@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -141,6 +142,17 @@ public record CardStats(LocalDate asOf, Map<String, List<Row>> byCard) {
 
     /** シールドのヒットポイント。これがあるカードのヒットポイントはシールドを含まない。 */
     public static final String SHIELD_HEALTH = "stat.TID_SPELL_ATTRIBUTE_SHIELD_HEALTH";
+
+    /** 稼働時間。これがあるカードは建物。 */
+    public static final String LIFETIME = "stat.TID_SPELL_ATTRIBUTE_LIFETIME";
+
+    /** 通常の形のその項目のレベル16の値(画面の表記に近い文字列)。無ければ empty。 */
+    public Optional<String> value16(String card, String labelKey) {
+        return of(card).stream()
+                .filter(row -> row.form() == Form.NORMAL && row.labelKey().equals(labelKey))
+                .map(Row::level16)
+                .findFirst();
+    }
 
     /** 通常の形にその項目があるか。 */
     public boolean has(String card, String labelKey) {

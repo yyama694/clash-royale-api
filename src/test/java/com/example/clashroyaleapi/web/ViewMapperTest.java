@@ -1108,4 +1108,45 @@ class ViewMapperTest {
         assertEquals(new QuizView.Card(1, "ゴブリンシュタイン", "goblinstein.png", "1153", "博士のヒットポイント"),
                 question.cards().get(2));
     }
+
+    @Test
+    void クイズの呪文の問題は呪文を主役にして候補と倒せる位置とダメージを出す() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
+        Map<Integer, CardsResponse.Card> cards = Map.of(
+                28000000, new CardsResponse.Card(28000000, "Fireball", 16, null, 4, "rare",
+                        new CardsResponse.Card.IconUrls("fireball.png", null, null)),
+                28000014, new CardsResponse.Card(28000014, "Earthquake", 16, null, 3, "rare", null),
+                26000014, new CardsResponse.Card(26000014, "Musketeer", 16, null, 4, "rare", null),
+                26000038, new CardsResponse.Card(26000038, "Ice Wizard", 16, null, 3, "legendary", null),
+                26000013, new CardsResponse.Card(26000013, "Barbarians", 16, null, 5, "common", null),
+                27000000, new CardsResponse.Card(27000000, "Cannon", 16, null, 3, "common", null));
+        CardStats stats = new CardStats(LocalDate.of(2026, 10, 25), Map.of("Barbarians",
+                List.of(new CardStats.Row(CardStats.Form.NORMAL, CardStats.COUNT, "5", "5", null))));
+        DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 11, 1), 6, List.of(
+                new QuizQuestion.SpellKill(28000000, List.of(new QuizQuestion.HpCard(26000014, null, 1153),
+                        new QuizQuestion.HpCard(26000038, null, 1100), new QuizQuestion.HpCard(26000013, null, 1145),
+                        new QuizQuestion.HpCard(27000000, null, 1316)), List.of(1100, 1100, 1100, 1100)),
+                new QuizQuestion.SpellKill(28000014, List.of(new QuizQuestion.HpCard(26000014, null, 1153),
+                        new QuizQuestion.HpCard(26000038, null, 1100), new QuizQuestion.HpCard(26000013, null, 1145),
+                        new QuizQuestion.HpCard(27000000, null, 1316)), List.of(390, 390, 390, 1365))));
+
+        QuizView view = mapper.toQuiz(quiz, cards, stats, Locale.JAPANESE);
+
+        assertEquals(List.of("呪文1発で倒せるカードを選ぼう"), view.leads());
+        QuizView.Question fireball = view.questions().get(0);
+        assertEquals("spell", fireball.type());
+        assertEquals("spell:28000000:26000014-26000038-26000013-27000000", fireball.key());
+        assertEquals("同じレベルのとき、ファイアボール1発で倒せるのはどれ?(当てはまるものをすべて選ぶ)", fireball.prompt());
+        assertEquals(new QuizView.Card(28000000, "ファイアボール", "fireball.png", "1100", null), fireball.subject());
+        assertEquals("1", fireball.answer());
+        assertEquals("1体あたり", fireball.cards().get(2).condition());
+        assertEquals("ダメージは1100です(ダメージもヒットポイントもレベル16の値)", fireball.note());
+        // 時間で削る呪文は効果時間いっぱい当てたときで聞き、建物へのダメージが違えば添える
+        QuizView.Question earthquake = view.questions().get(1);
+        assertEquals("同じレベルのとき、アースクエイクを効果時間いっぱい当てて倒せるのはどれ?(当てはまるものをすべて選ぶ)",
+                earthquake.prompt());
+        assertEquals("3", earthquake.answer());
+        assertEquals("ダメージは390、建物には1365です(ダメージもヒットポイントもレベル16の値)", earthquake.note());
+    }
 }

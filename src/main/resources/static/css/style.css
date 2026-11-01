@@ -3148,6 +3148,93 @@ td.cell-action {
     text-align: center;
 }
 
+/* 呪文の問題の候補。並べ替えの行と同じ形で、押すと左の四角に印が付く(画面のスクロールは止めない)。 */
+.quiz-pick {
+    max-width: 26rem;
+    margin: 0 auto;
+}
+
+.quiz-pick-list {
+    margin: 0.25rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.quiz-pick-button {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    margin: 0 0 0.4rem;
+    padding: 0.3rem 0.75rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text);
+    font-weight: 400;
+    text-align: left;
+}
+
+.quiz-pick-button:hover {
+    background: var(--color-bg);
+}
+
+.quiz-pick-button:disabled {
+    cursor: default;
+}
+
+.quiz-pick-button img {
+    width: 40px;
+    height: auto;
+}
+
+.quiz-pick-check {
+    flex: none;
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 2px solid var(--color-border);
+    border-radius: 4px;
+    color: #ffffff;
+    font-weight: 800;
+    line-height: 1.2rem;
+    text-align: center;
+}
+
+.quiz-pick-button.is-selected {
+    border-color: var(--color-primary);
+}
+
+.quiz-pick-button.is-selected .quiz-pick-check {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+}
+
+.quiz-pick-button.is-selected .quiz-pick-check::before {
+    content: "✓";
+}
+
+.quiz-pick-button.is-correct {
+    border-color: var(--color-win);
+    background: var(--color-win-bg);
+}
+
+.quiz-pick-button.is-wrong {
+    border-color: var(--color-lose);
+    background: var(--color-lose-bg);
+}
+
+.quiz-pick-result {
+    flex: none;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.quiz-pick-howto {
+    margin: 0.4rem 0 0;
+    text-align: center;
+}
+
 .quiz-feedback {
     min-height: 1.6em;
     margin: 0.75rem 0 0.25rem;
@@ -3278,7 +3365,8 @@ td.cell-action {
     display: contents;
 }
 
-.quiz-wrong-order .quiz-wrong-detail {
+.quiz-wrong-order .quiz-wrong-detail,
+.quiz-wrong-spell .quiz-wrong-detail {
     grid-column: 1 / -1;
     text-align: left;
 }
