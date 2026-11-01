@@ -79,10 +79,9 @@ class SupportedLanguagesTest {
     }
 
     @Test
-    void クイズは日本語に固定しほかの画面は固定しない() {
-        assertEquals(Locale.JAPANESE, SupportedLanguages.fixedLanguage("/quiz").orElseThrow());
+    void 言語を固定する画面は今は無くクイズも10言語で出す() {
+        assertTrue(SupportedLanguages.fixedLanguage("/quiz").isEmpty());
         assertTrue(SupportedLanguages.fixedLanguage("/").isEmpty());
-        assertTrue(SupportedLanguages.fixedLanguage("/quiz/other").isEmpty());
         assertTrue(SupportedLanguages.fixedLanguage(null).isEmpty());
     }
 

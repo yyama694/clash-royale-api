@@ -47,7 +47,8 @@
                     <span class="quiz-size-status"></span>
                 </button>
             </div>
-            <p class="notice" th:text="#{quiz.note}"></p>
+            <!--/* {0} は問題が入れ替わる時刻。見ている人の端末の時刻に直してJSで入れる。 */-->
+            <p class="notice quiz-reset-note" th:text="#{quiz.note('{0}')}"></p>
             <p class="notice quiz-countdown"></p>
         </section>
 
@@ -982,6 +983,11 @@
                     renderStart();
                 }
             });
+
+            // 問題が入れ替わるUTC 0時を、見ている人の端末の時刻で出す(日本なら9:00)。夏時間のある地域もあるので、次に入れ替わる日の時差で計算する。
+            var resetNote = screens.start.querySelector('.quiz-reset-note');
+            resetNote.textContent = format(resetNote.textContent, [new Date((dayNumber(today) + 1) * DAY_MS)
+                .toLocaleTimeString(document.documentElement.lang || undefined, {hour: 'numeric', minute: '2-digit'})]);
 
             renderStart();
             renderCountdown();
