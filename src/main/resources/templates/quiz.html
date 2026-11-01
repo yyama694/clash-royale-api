@@ -678,6 +678,7 @@
                     item.appendChild(cards);
                     detail.textContent = format(msg.msgWrongOrder, [orderNames(q, String(answer))]);
                 } else {
+                    item.className = 'quiz-wrong-choice';
                     item.appendChild(cardLink(q.cards[0]));
                     detail.textContent = format(msg.msgWrongItem, [q.choices[Number(q.answer)], q.choices[answer]]);
                 }

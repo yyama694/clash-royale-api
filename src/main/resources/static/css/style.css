@@ -3257,16 +3257,21 @@ td.cell-action {
 }
 
 /*
-  並べ替えの間違いは、一覧の幅いっぱいの段にし、正しい順の4枚をエリクサーの問題のタイルと同じ列に左から並べる
-  (subgrid。中央寄せにすると左端がそろわずガタガタに見えた)。列が4つに満たないスマホ幅では折り返す。
+  間違えた問題は1問を1段にする(エリクサーも横に詰めず縦に並べる)。どの段も一覧の列を subgrid で受け継ぎ、
+  エリクサーのタイルは左端の列に、並べ替えの正しい順の4枚は左から4列に置いて、左端をそろえる
+  (中央寄せにすると左端がそろわずガタガタに見えた)。列が4つに満たないスマホ幅では、並べ替えの4枚は折り返す。
   subgrid が使えないブラウザでは、前の行の4列になる。
 */
-.quiz-wrong-list .quiz-wrong-order {
+.quiz-wrong-list > li {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-columns: subgrid;
     row-gap: 0.25rem;
+}
+
+.quiz-wrong-choice > * {
+    grid-column: 1;
 }
 
 .quiz-wrong-cards {
