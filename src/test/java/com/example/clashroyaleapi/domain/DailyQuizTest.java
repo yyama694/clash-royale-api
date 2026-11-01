@@ -398,7 +398,7 @@ class DailyQuizTest {
 
             distinctDays += new HashSet<>(spellIds.subList(0, SPELLS.size())).size() == SPELLS.size() ? 1 : 0;
         }
-        assertTrue(distinctDays >= 95, () -> "同じ呪文が早めに出た日が多い: " + (100 - distinctDays));
+        assertTrue(distinctDays >= 95, "同じ呪文が早めに出た日が多い: " + (100 - distinctDays));
     }
 
     @Test
