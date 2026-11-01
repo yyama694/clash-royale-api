@@ -50,7 +50,7 @@ class PageSummariesTest {
 
     private static PlayerResponse player(PlayerResponse.RankedSeasonResult ranked) {
         return new PlayerResponse("#ABC123", "Taro", 15, 9000, 9200, 3210, 1000, 500, null, List.of(), List.of(),
-                ranked, null, List.of());
+                ranked, null, null, List.of());
     }
 
     private static PlayerBattleStats stats(int wins, int losses) {
