@@ -76,6 +76,7 @@
                 <p th:replace="~{fragments/layout :: notice(${cardStats.towerReductionNotice()})}"></p>
             </th:block>
             <p th:replace="~{fragments/layout :: notice(${cardStats.notice()})}"></p>
+            <p th:replace="~{fragments/layout :: quizPromo}"></p>
         </section>
 
         <div th:if="${usage}" class="card">

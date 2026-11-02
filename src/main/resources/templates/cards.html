@@ -10,6 +10,7 @@
         <div class="card">
             <h1 th:text="${byUsage} ? #{cards.usage.heading} : #{cards.pageTitle}"></h1>
             <p th:text="${byUsage} ? #{cards.usage.lead} : #{cards.lead}"></p>
+            <p th:replace="~{fragments/layout :: quizPromo}"></p>
             <!--/* 使用率は1日1回の集計から出すので、初回の集計が終わるまで(デプロイ直後)は切り替えを出さない。 */-->
             <nav class="tabs" th:if="${usageAvailable}" th:aria-label="#{cards.sort.label}">
                 <a class="tab" th:href="@{/cards}" th:classappend="${byUsage} ? '' : 'is-active'"

@@ -173,7 +173,15 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
                 questions.add(elixirQuestion(rest.next(), lowest, highest, random));
             }
         }
-        return new DailyQuiz(date, (int) ChronoUnit.DAYS.between(firstDay, date) + 1, List.copyOf(questions));
+        return new DailyQuiz(date, round(date, firstDay).number(), List.copyOf(questions));
+    }
+
+    /** その日の日付と「第〇回」の番号。 */
+    public record Round(LocalDate date, int number) {
+    }
+
+    public static Round round(LocalDate date, LocalDate firstDay) {
+        return new Round(date, (int) ChronoUnit.DAYS.between(firstDay, date) + 1);
     }
 
     /**

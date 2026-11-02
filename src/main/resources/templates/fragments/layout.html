@@ -603,6 +603,7 @@
         <a th:href="@{/ranking}" th:text="#{nav.clanRanking}"></a>
         <a th:href="@{/cards}" th:text="#{nav.cards}"></a>
         <a th:href="@{/balance}" th:text="#{nav.balance}"></a>
+        <a th:href="@{/quiz}" th:text="#{nav.quiz}"></a>
         <a th:href="@{/favorites}" th:text="#{nav.favorites}"></a>
     </nav>
     <!--/*
@@ -677,6 +678,9 @@
     <button type="button" class="btn btn-secondary btn-small is-hidden"
             th:attr="data-copy-url=${shareUrl},data-copied-label=#{share.copied}" th:text="#{share.copy}"></button>
 </div>
+
+<!--/* クイズへの入口(カード一覧・カード詳細)。カードのコストやヒットポイントを見た人に、覚えたかを試してもらう。 */-->
+<p th:fragment="quizPromo" class="quiz-promo"><a th:href="@{/quiz}"><span th:text="#{quiz.promo}"></span> &raquo;</a></p>
 
 <!--/* Supercellのファンコンテンツポリシーで必須の、非公式である旨の表示。全画面の末尾に置く。 */-->
 <footer class="site-footer" th:fragment="footer">
