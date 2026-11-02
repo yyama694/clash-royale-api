@@ -3305,6 +3305,11 @@ td.cell-action {
     font-size: 1.1rem;
 }
 
+.quiz-share .share-buttons {
+    justify-content: center;
+    margin: 0.75rem 0 1rem;
+}
+
 .quiz-wrong-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));

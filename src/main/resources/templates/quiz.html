@@ -41,8 +41,11 @@
             <h1 th:text="#{quiz.title}"></h1>
             <p class="quiz-round" th:text="${quiz.roundLabel()}"></p>
             <p class="quiz-lead" th:each="lead : ${quiz.leads()}" th:text="${lead}"></p>
+            <!--/* data-share-text は共有の文面の型。{0} に点数をJSで入れる。 */-->
             <div class="quiz-sizes">
-                <button type="button" class="quiz-size" th:each="size : ${quiz.sizes()}" th:data-size="${size}">
+                <button type="button" class="quiz-size" th:each="size : ${quiz.sizes()}" th:data-size="${size}"
+                        th:with="title=#{quiz.title},sizeLabel=#{quiz.size(${size})}"
+                        th:data-share-text="#{quiz.share.text(${title}, ${quiz.number()}, ${sizeLabel}, '{0}', ${size})}">
                     <span class="quiz-size-count" th:text="#{quiz.size(${size})}"></span>
                     <span class="quiz-size-status"></span>
                 </button>
@@ -92,6 +95,10 @@
             <p class="quiz-perfect" hidden th:text="#{quiz.result.perfect}"></p>
             <!--/* 正誤の並びは点数の文で伝わるので、読み上げでは飛ばす。 */-->
             <p class="quiz-grid" aria-hidden="true"></p>
+            <!--/* 共有は公式の成績のときだけ出す。文面は答え終わってから決まるので、JSで書き換える。 */-->
+            <div class="quiz-share" hidden>
+                <div th:replace="~{fragments/layout :: shareButtons(#{quiz.title}, '/quiz')}"></div>
+            </div>
             <div class="quiz-wrong">
                 <h3 th:text="#{quiz.result.wrong.heading}"></h3>
                 <ul class="quiz-wrong-list"></ul>
@@ -840,6 +847,7 @@
                     rows.push(marks.slice(i, i + GRID_COLUMNS).replace(/o/g, '🟩').replace(/x/g, '🟥'));
                 }
                 screen.querySelector('.quiz-grid').textContent = rows.join('\n');
+                renderShare(size, isOfficial, score, rows);
                 var list = screen.querySelector('.quiz-wrong-list');
                 list.textContent = '';
                 (answers || []).forEach(function (answer, i) {
@@ -853,6 +861,24 @@
                 };
                 renderStats();
                 show('result');
+            }
+
+            // Wordle風に点数と正誤の並びだけを共有する(カード名は答えのネタバレになるので入れない)。練習の点数は共有させない。
+            function renderShare(size, isOfficial, score, rows) {
+                var share = screens.result.querySelector('.quiz-share');
+                share.hidden = !isOfficial;
+                if (!isOfficial) {
+                    return;
+                }
+                var template = document.querySelector('.quiz-size[data-size="' + size + '"]').dataset.shareText;
+                var text = format(template, [score]) + '\n' + rows.join('\n');
+                Array.prototype.forEach.call(share.querySelectorAll('[data-share-text]'), function (button) {
+                    button.dataset.shareText = text;
+                });
+                var x = share.querySelector('a[href^="https://x.com/"]');
+                var url = new URL(x.href);
+                url.searchParams.set('text', text);
+                x.href = url.toString();
             }
 
             // 公式の成績を終えた日が続いた数。今日まだなら昨日までで数える。

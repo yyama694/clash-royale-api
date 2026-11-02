@@ -30,8 +30,8 @@ import java.util.stream.Stream;
 @Service
 public class QuizService {
 
-    /** 第1回の日。隠し機能として本番に入れた日。公開するときに数え直すかは、そのとき決める(設計_クイズ.md)。 */
-    static final LocalDate FIRST_DAY = LocalDate.of(2026, 10, 27);
+    /** 第1回の日。公開した日(2026-11-02にユーザーが数え直しを決定。隠し版は10/27から出していた)。 */
+    static final LocalDate FIRST_DAY = LocalDate.of(2026, 11, 2);
 
     /**
      * 空を飛ぶカード(公式APIの英語名)。地上にしか当たらない呪文の問題には出さない。ゲームのデータに「空を飛ぶか」の
@@ -118,7 +118,16 @@ public class QuizService {
                 .map(card -> spell(stats, card))
                 .flatMap(Optional::stream)
                 .toList();
-        return DailyQuiz.of(LocalDate.now(clock.withZone(ZoneOffset.UTC)), FIRST_DAY, cards, units, spells);
+        return DailyQuiz.of(todayUtc(), FIRST_DAY, cards, units, spells);
+    }
+
+    /** 今日の回。問題は作らない(トップページの案内に使う)。 */
+    public DailyQuiz.Round todayRound() {
+        return DailyQuiz.round(todayUtc(), FIRST_DAY);
+    }
+
+    private LocalDate todayUtc() {
+        return LocalDate.now(clock.withZone(ZoneOffset.UTC));
     }
 
     /** 呪文の問題に出す呪文でなければ、またはステータスにダメージが無ければ empty。 */

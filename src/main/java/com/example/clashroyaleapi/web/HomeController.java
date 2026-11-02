@@ -5,6 +5,7 @@ import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
 import com.example.clashroyaleapi.domain.Country;
 import com.example.clashroyaleapi.domain.GameText;
 import com.example.clashroyaleapi.service.PlayerService;
+import com.example.clashroyaleapi.service.QuizService;
 import com.example.clashroyaleapi.service.RankingService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,15 +30,17 @@ public class HomeController {
     private final FavoriteCookies favoriteCookies;
     private final MeCookie meCookie;
     private final PlayerService playerService;
+    private final QuizService quizService;
 
     public HomeController(RankingService rankingService, RankingScope rankingScope, ViewMapper viewMapper,
-            FavoriteCookies favoriteCookies, MeCookie meCookie, PlayerService playerService) {
+            FavoriteCookies favoriteCookies, MeCookie meCookie, PlayerService playerService, QuizService quizService) {
         this.rankingService = rankingService;
         this.rankingScope = rankingScope;
         this.viewMapper = viewMapper;
         this.favoriteCookies = favoriteCookies;
         this.meCookie = meCookie;
         this.playerService = playerService;
+        this.quizService = quizService;
     }
 
     @GetMapping("/")
@@ -59,6 +62,7 @@ public class HomeController {
         // お気に入りは名前だけCookieから出す(表示速度を落とさないよう公式APIは呼ばない)。
         model.addAttribute("favoritePlayers", favoriteCookies.read(request, FavoriteKind.PLAYER).entries());
         model.addAttribute("favoriteClans", favoriteCookies.read(request, FavoriteKind.CLAN).entries());
+        model.addAttribute("quizRound", viewMapper.toQuizRound(quizService.todayRound(), locale));
         meCookie.read(request).ifPresent(tag -> addMe(tag, model));
         return "index";
     }

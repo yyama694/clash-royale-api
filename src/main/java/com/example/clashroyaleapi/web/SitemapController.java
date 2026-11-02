@@ -34,7 +34,7 @@ public class SitemapController {
 
     private static final List<String> STATIC_PATHS = List.of("/", "/cards", "/decks", "/decks/popular",
             "/decks/win-rates", "/pros", "/ranking", "/ranking/players", "/ranking/players/movements",
-            "/ranking/players/seasons", "/balance", "/about", "/privacy");
+            "/ranking/players/seasons", "/balance", "/quiz", "/about", "/privacy");
 
     /**
      * 国別ランキングをsitemapに載せる国。「クラロワ 日本 ランキング」のような国名つきの検索の入口にする(2026-10)。
@@ -215,6 +215,9 @@ public class SitemapController {
                 - Card usage rankings (share of the global top players using each card, updated daily): %s/cards?sort=usage
                 - Balance changes (official buffs and nerfs, with each card's usage among the global top players
                   before the change, 1, 3 and 7 days after, and now; with a page for each change): %s/balance
+                - Daily card quiz (10, 20 or 30 questions that change every day at 00:00 UTC: guess a card's elixir
+                  cost, order four cards by hitpoints, pick the cards one spell can take out; scores and streaks stay
+                  in the player's browser): %s/quiz
 
                 ## Notes
 
@@ -223,7 +226,7 @@ public class SitemapController {
                 - Not affiliated with or endorsed by Supercell.
                 - About this site and contact: %s/about
                 """.formatted(siteName, base, base, base, base, base, base, base, base, base, base, base, base, base, base,
-                        languages,
+                        base, languages,
                 base);
     }
 

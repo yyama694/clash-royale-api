@@ -352,7 +352,12 @@ public class ViewMapper {
                 .toList();
         List<Integer> sizes = DailyQuiz.SIZES.stream().filter(size -> size <= questions.size()).toList();
         return new QuizView(quiz.date().toString(), quiz.number(),
-                labels.message("quiz.round", locale, quiz.number(), utcNoon(quiz.date())), leads, sizes, questions);
+                toQuizRound(new DailyQuiz.Round(quiz.date(), quiz.number()), locale), leads, sizes, questions);
+    }
+
+    /** 「第7回(2026年11月2日)」。 */
+    public String toQuizRound(DailyQuiz.Round round, Locale locale) {
+        return labels.message("quiz.round", locale, round.number(), utcNoon(round.date()));
     }
 
     /**

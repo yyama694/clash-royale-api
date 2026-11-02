@@ -51,6 +51,13 @@
                     th:text="#{home.recent.clear}"></button>
         </div>
 
+        <!--/* クイズの入口(2026-11-02にユーザーが決定)。最近見たもの(検索フォームのすぐ下と決めた)の後に置く。 */-->
+        <div class="card home-quiz">
+            <h2 th:text="#{quiz.title}"></h2>
+            <p><span th:text="${quizRound}"></span> <span th:text="#{quiz.description}"></span></p>
+            <a class="btn card-action" th:href="@{/quiz}" th:text="#{quiz.play}"></a>
+        </div>
+
         <!--/*
           お気に入りは名前だけ(公式APIは呼ばない)。1件も無いときはカードごと出さない
           (初めての訪問者に空の枠を見せないため。登録方法の案内はお気に入り画面が受け持つ)。
