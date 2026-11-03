@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.CardImageClient;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.exception.ApiUnavailableException;
+import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardStats;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,9 @@ class CardImageServiceTest {
                 card(2, "giant.png", "giant-evo.png", "giant-hero.png"),
                 card(3, "zap.png", null, null)), List.of()));
         when(imageClient.exists(anyString())).thenReturn(true);
-        service = new CardImageService(apiClient, imageClient, Map.of("giant-hero.png", "/images/giant-hero.png"),
+        service = new CardImageService(apiClient, imageClient,
+                Map.of(new CardImageService.FormIcon("Card2", CardForm.HERO), "/images/giant-hero.png",
+                        new CardImageService.FormIcon("Card3", CardForm.EVOLUTION), "/images/zap-evo.png"),
                 path -> path.replace(".png", "-abc123.png"));
     }
 
@@ -45,10 +48,10 @@ class CardImageServiceTest {
 
         service.refresh();
 
-        assertNull(service.usable("giant-evo.png"));
-        assertEquals("knight-evo.png", service.usable("knight-evo.png"));
-        assertEquals("knight-hero.png", service.usable("knight-hero.png"));
-        assertNull(service.usable(null));
+        assertNull(giantEvolution());
+        assertEquals("knight-evo.png", service.formIconUrl("Card1", CardForm.EVOLUTION, "knight-evo.png"));
+        assertEquals("knight-hero.png", service.formIconUrl("Card1", CardForm.HERO, "knight-hero.png"));
+        assertNull(service.formIconUrl("Card1", CardForm.EVOLUTION, null));
     }
 
     @Test
@@ -70,8 +73,16 @@ class CardImageServiceTest {
     }
 
     @Test
+    void 代わりの画像はすべて置いてある() {
+        assertFalse(CardImageService.SUBSTITUTES.isEmpty());
+        for (String path : CardImageService.SUBSTITUTES.values()) {
+            assertNotNull(getClass().getResource("/static" + path), path);
+        }
+    }
+
+    @Test
     void 確かめる前はURLをそのまま使う() {
-        assertEquals("giant-evo.png", service.usable("giant-evo.png"));
+        assertEquals("giant-evo.png", giantEvolution());
     }
 
     @Test
@@ -82,7 +93,7 @@ class CardImageServiceTest {
 
         service.refresh();
 
-        assertEquals("giant-evo.png", service.usable("giant-evo.png"));
+        assertEquals("giant-evo.png", giantEvolution());
     }
 
     @Test
@@ -93,8 +104,8 @@ class CardImageServiceTest {
 
         service.refresh();
 
-        assertNull(service.usable("giant-evo.png"));
-        assertEquals("knight-evo.png", service.usable("knight-evo.png"));
+        assertNull(giantEvolution());
+        assertEquals("knight-evo.png", service.formIconUrl("Card1", CardForm.EVOLUTION, "knight-evo.png"));
     }
 
     @Test
@@ -105,7 +116,7 @@ class CardImageServiceTest {
 
         service.refresh();
 
-        assertNull(service.usable("giant-evo.png"));
+        assertNull(giantEvolution());
     }
 
     @Test
@@ -113,14 +124,26 @@ class CardImageServiceTest {
         when(imageClient.exists("giant-hero.png")).thenReturn(false);
         service.refresh();
 
-        assertEquals("/images/giant-hero-abc123.png", service.usable("giant-hero.png"));
+        assertEquals("/images/giant-hero-abc123.png", service.formIconUrl("Card2", CardForm.HERO, "giant-hero.png"));
+    }
+
+    @Test
+    void 公式APIに形の画像のURLが無くても代わりの画像があればそれを使う() {
+        service.refresh();
+
+        assertEquals("/images/zap-evo-abc123.png", service.formIconUrl("Card3", CardForm.EVOLUTION, null));
+        assertNull(service.formIconUrl("Card3", CardForm.HERO, null));
     }
 
     @Test
     void 代わりの画像があっても置き場所にあれば公式の画像を使う() {
         service.refresh();
 
-        assertEquals("giant-hero.png", service.usable("giant-hero.png"));
+        assertEquals("giant-hero.png", service.formIconUrl("Card2", CardForm.HERO, "giant-hero.png"));
+    }
+
+    private String giantEvolution() {
+        return service.formIconUrl("Card2", CardForm.EVOLUTION, "giant-evo.png");
     }
 
     private static CardsResponse.Card card(int id, String medium, String evolution, String hero) {

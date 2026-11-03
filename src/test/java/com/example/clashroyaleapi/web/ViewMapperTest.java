@@ -89,7 +89,7 @@ class ViewMapperTest {
         when(labels.cardName(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(labels.rarity(anyString(), any())).thenAnswer(invocation -> invocation.getArgument(0));
         cardImages = mock(CardImageService.class);
-        when(cardImages.usable(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(cardImages.formIconUrl(any(), any(), any())).thenAnswer(invocation -> invocation.getArgument(2));
         viewMapper = new ViewMapper(labels, mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
     }
 
@@ -588,7 +588,7 @@ class ViewMapperTest {
 
     @Test
     void 置き場所にまだ無い形の画像はデッキでは通常の画像にしカード詳細では出さない() {
-        when(cardImages.usable("evolution.png")).thenReturn(null);
+        when(cardImages.formIconUrl("Electro Giant", CardForm.EVOLUTION, "evolution.png")).thenReturn(null);
         BattleLogEntry.IconUrls icons = new BattleLogEntry.IconUrls("normal.png", "evolution.png", "hero.png");
         BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1,
                 List.of(new BattleLogEntry.Card(1, "Electro Giant", 16, 16, 7, 1, icons)), List.of(), null)));
@@ -601,6 +601,23 @@ class ViewMapperTest {
         assertEquals("normal.png", inDeck.iconUrl());
         assertEquals(CardForm.EVOLUTION, inDeck.form());
         assertNull(detail.evolutionIconUrl());
+        assertEquals("hero.png", detail.heroIconUrl());
+    }
+
+    @Test
+    void 公式APIに形の画像が無くても代わりの画像があればデッキとカード詳細に出す() {
+        when(cardImages.formIconUrl("Giant", CardForm.EVOLUTION, null)).thenReturn("/images/cards/giant-evolution.png");
+        BattleLogEntry.IconUrls icons = new BattleLogEntry.IconUrls("normal.png", null, "hero.png");
+        BattleLogEntry battle = duel(List.of(new BattleLogEntry.Participant("#VIEWER", "Viewer", 1,
+                List.of(new BattleLogEntry.Card(1, "Giant", 14, 14, 5, 1, icons)), List.of(), null)));
+        CardsResponse.Card card = new CardsResponse.Card(1, "Giant", 14, 2, 5, "rare",
+                new CardsResponse.Card.IconUrls("normal.png", null, "hero.png"));
+
+        CardView inDeck = viewMapper.toBattleDetail(battle, "viewer", Locale.JAPANESE).team().get(0).cards().get(0);
+        CardDetailView detail = viewMapper.toCardDetail(card, stats(), Locale.JAPANESE);
+
+        assertEquals("/images/cards/giant-evolution.png", inDeck.iconUrl());
+        assertEquals("/images/cards/giant-evolution.png", detail.evolutionIconUrl());
         assertEquals("hero.png", detail.heroIconUrl());
     }
 

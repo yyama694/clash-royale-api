@@ -130,7 +130,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -203,11 +202,6 @@ public class ViewMapper {
     }
 
     /**
-     * カード詳細。公式APIが返さない項目(説明文・ステータス)は無いため、ここにある内容が全て。
-     * 進化画像は、進化が実装されているカードにだけ付く(maxEvolutionLevelがあっても画像が無いカードがある)。
-     * URLがあっても画像の置き場所にまだ無いものは、画像が無いのと同じに扱う。
-     */
-    /**
      * バランス調整1回分。カードの名前・画像はカード一覧から引き、一覧に無いカード(名前の変わったカードなど)は英語名のまま出す。
      *
      * @param usage 対象カードの使用率の推移
@@ -248,11 +242,8 @@ public class ViewMapper {
             BalanceUsage.Series series, Map<String, CardsResponse.Card> cardsByName, Locale locale) {
         CardsResponse.Card card = cardsByName.get(changes.card());
         CardsResponse.Card.IconUrls icons = card == null ? null : card.iconUrls();
-        String iconUrl = icons == null ? null : switch (changes.form()) {
-            case NORMAL -> icons.medium();
-            case EVOLUTION -> Objects.requireNonNullElse(cardImages.usable(icons.evolutionMedium()), icons.medium());
-            case HERO -> Objects.requireNonNullElse(cardImages.usable(icons.heroMedium()), icons.medium());
-        };
+        String iconUrl = icons == null ? null
+                : iconFor(card.name(), changes.form(), icons.medium(), icons.evolutionMedium(), icons.heroMedium());
         return new BalanceUpdateView.CardChangeView(card == null ? 0 : card.id(),
                 labels.cardName(changes.card(), locale), iconUrl, formLabel(changes.form(), locale),
                 changes.kind().code(), labels.message("balance.kind." + changes.kind().code(), locale),
@@ -493,8 +484,8 @@ public class ViewMapper {
                 labels.cardName(card.name(), locale),
                 card.name(),
                 icons == null ? null : icons.medium(),
-                icons == null ? null : cardImages.usable(icons.evolutionMedium()),
-                icons == null ? null : cardImages.usable(icons.heroMedium()),
+                cardImages.formIconUrl(card.name(), CardForm.EVOLUTION, icons == null ? null : icons.evolutionMedium()),
+                cardImages.formIconUrl(card.name(), CardForm.HERO, icons == null ? null : icons.heroMedium()),
                 ground,
                 labels.rarity(card.rarity(), locale),
                 card.elixirCost(),
@@ -885,15 +876,16 @@ public class ViewMapper {
         }
         CardsResponse.Card.IconUrls icons = card.iconUrls();
         return new CardView(id, labels.cardName(card.name(), locale),
-                icons == null ? null : iconFor(form, icons.medium(), icons.evolutionMedium(), icons.heroMedium()),
+                icons == null ? null
+                        : iconFor(card.name(), form, icons.medium(), icons.evolutionMedium(), icons.heroMedium()),
                 level, form, formLabel(form, locale), toElixirBadge(card.elixirCost(), tower, locale));
     }
 
-    /** 進化・ヒーローの画像が無い(置き場所にまだ無いものを含む)カードは通常の画像にする。 */
-    private String iconFor(CardForm form, String medium, String evolution, String hero) {
+    /** 進化・ヒーローの画像が使えない(公式の画像も代わりの画像も無い)カードは通常の画像にする。 */
+    private String iconFor(String card, CardForm form, String medium, String evolution, String hero) {
         String url = switch (form) {
-            case EVOLUTION -> cardImages.usable(evolution);
-            case HERO -> cardImages.usable(hero);
+            case EVOLUTION -> cardImages.formIconUrl(card, form, evolution);
+            case HERO -> cardImages.formIconUrl(card, form, hero);
             case NORMAL -> null;
         };
         return url != null ? url : medium;
@@ -1560,7 +1552,8 @@ public class ViewMapper {
                     BattleLogEntry.IconUrls icons = card.iconUrls();
                     return new CardView(card.id(), labels.cardName(card.name(), locale),
                             icons == null ? null
-                                    : iconFor(form, icons.medium(), icons.evolutionMedium(), icons.heroMedium()),
+                                    : iconFor(card.name(), form, icons.medium(), icons.evolutionMedium(),
+                                            icons.heroMedium()),
                             CardLevel.inGame(card.level(), card.maxLevel()), form, formLabel(form, locale),
                             toElixirBadge(card.elixirCost(), tower, locale));
                 })

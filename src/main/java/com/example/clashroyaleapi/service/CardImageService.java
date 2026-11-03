@@ -4,6 +4,7 @@ import com.example.clashroyaleapi.client.CardImageClient;
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.client.exception.ClashRoyaleApiException;
+import com.example.clashroyaleapi.domain.CardForm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,32 +21,31 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 /**
- * 公式APIがURLを返すのに、画像の置き場所にまだ無い(404の)進化・ヒーローの画像を覚えておく。
- * 新しい進化・ヒーローは、画像より先にURLが公式APIに載ることがある(2026-10のエレクトロジャイアントの進化と
- * エレクトロウィザードのヒーロー)。そのまま出すと画像が壊れて見えるので、無い画像は「画像が無い」として扱う。
- * 確かめるのは裏で定期的に行い、画面の表示を待たせない。後から画像が置かれれば、次の確認で出るようになる。
+ * 進化・ヒーローの画像を、公式の画像が使えるときだけ公式のURLで、使えないときは手元の代わりの画像で出す。
+ * 新しい進化・ヒーローは、公式の画像が遅れて来ることがある。URLだけ先に公式APIに載って置き場所では404のもの
+ * (2026-10のエレクトロジャイアントの進化とエレクトロウィザードのヒーロー)と、対戦では使われているのに公式APIに
+ * URLすら無いもの(2026-11のジャイアントの進化)があった。404のURLは裏で定期的に確かめて覚えておき、画面の表示を
+ * 待たせない。後から公式に置かれれば、次の確認で公式の画像に戻る。
  *
- * 置き場所に無い間は、手元に置いた代わりの画像があればそれを出す(`static/images/cards/`)。
- * 代わりの画像はファンWiki(clashroyale.fandom.com)のカード画像を公式と同じ285x420に収めたもので、
- * 枠の光り方が公式と少し違う。公式に置かれれば公式の画像に戻るので、そうなったら画像と対応表から消してよい。
+ * 代わりの画像(`static/images/cards/`)はファンWiki(clashroyale.fandom.com)のカード画像を公式と同じ285x420に
+ * 収めたもので、枠の光り方が公式と少し違う。公式の画像が出るようになったら、画像と対応表から消してよい。
  */
 @Service
 public class CardImageService {
 
     private static final Logger log = LoggerFactory.getLogger(CardImageService.class);
 
-    private static final Map<String, String> SUBSTITUTES = Map.of(
-            "https://api-assets.clashroyale.com/cardevolutions/300/_uChZkNHAMq6tPb3v6A49xinOe3CnhjstOhG6OZbPYc.png",
-            "/images/cards/electro-giant-evolution.png",
-            "https://api-assets.clashroyale.com/cardheroes/300/RsFaHgB3w6vXsTjXdPr3x8l_GbV9TbOUCvIx07prbrQ.png",
-            "/images/cards/electro-wizard-hero.png");
+    static final Map<FormIcon, String> SUBSTITUTES = Map.of(
+            new FormIcon("Electro Giant", CardForm.EVOLUTION), "/images/cards/electro-giant-evolution.png",
+            new FormIcon("Electro Wizard", CardForm.HERO), "/images/cards/electro-wizard-hero.png",
+            new FormIcon("Giant", CardForm.EVOLUTION), "/images/cards/giant-evolution.png");
 
     private static final Map<String, String> GROUND_ICONS = Map.of(
             "Spirit Empress", "/images/cards/spirit-empress-ground.png");
 
     private final ClashRoyaleApiClient apiClient;
     private final CardImageClient imageClient;
-    private final Map<String, String> substitutes;
+    private final Map<FormIcon, String> substitutes;
     private final UnaryOperator<String> staticUrl;
 
     private volatile Set<String> missing = Set.of();
@@ -60,7 +60,7 @@ public class CardImageService {
         });
     }
 
-    CardImageService(ClashRoyaleApiClient apiClient, CardImageClient imageClient, Map<String, String> substitutes,
+    CardImageService(ClashRoyaleApiClient apiClient, CardImageClient imageClient, Map<FormIcon, String> substitutes,
             UnaryOperator<String> staticUrl) {
         this.apiClient = apiClient;
         this.imageClient = imageClient;
@@ -105,12 +105,15 @@ public class CardImageService {
         return path == null ? null : staticUrl.apply(path);
     }
 
-    /** 置き場所に無いと分かっている画像なら、代わりの画像のURLを返す。代わりも無ければ null。 */
-    public String usable(String url) {
-        if (url == null || !missing.contains(url)) {
-            return url;
+    /**
+     * カードのその形の画像。公式のURL(officialUrl)が置き場所にあればそれを、無い(URLが無い・置き場所に無いと
+     * 分かっている)なら代わりの画像を返す。代わりも無ければ null。
+     */
+    public String formIconUrl(String card, CardForm form, String officialUrl) {
+        if (officialUrl != null && !missing.contains(officialUrl)) {
+            return officialUrl;
         }
-        String substitute = substitutes.get(url);
+        String substitute = substitutes.get(new FormIcon(card, form));
         return substitute == null ? null : staticUrl.apply(substitute);
     }
 
@@ -123,5 +126,9 @@ public class CardImageService {
                         .filter(Objects::nonNull)
                         .forEach(urls::add));
         return urls;
+    }
+
+    /** card は公式APIの英語のカード名。 */
+    record FormIcon(String card, CardForm form) {
     }
 }
