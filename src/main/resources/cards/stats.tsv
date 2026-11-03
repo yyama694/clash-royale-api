@@ -535,6 +535,9 @@ Goblin Demolisher	normal	stat.TID_SPELL_ATTRIBUTE_RANGE	5	5
 Goblin Demolisher	normal	stat.TID_KAMIKAZE_TRIGGER_HEALTH	50%	50%	
 Goblin Demolisher	normal	stat.TID_KAMIKAZE_MODE_TARGETS	{t:stat.TID_TARGETS_BUILDINGS}	{t:stat.TID_TARGETS_BUILDINGS}	
 Goblin Demolisher	normal	stat.TID_KAMIKAZE_MODE_SPEED	{t:stat.TID_SPEED_5}	{t:stat.TID_SPEED_5}	
+Giant	evolution	stat.TID_KAMIKAZE_TRIGGER_HEALTH	50%	50%	
+Giant	evolution	=レイジの効果時間	1.5秒	1.5秒	ja
+Giant	evolution	=レイジの範囲	2-3.5	2-3.5	ja
 Giant	hero	=着地ダメージ	216	135	ja
 Giant	hero	=投げる距離	9	9	ja
 Giant	hero	=気絶効果時間	2秒	2秒	ja
