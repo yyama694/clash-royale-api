@@ -2966,6 +2966,22 @@ td.cell-action {
     overflow-wrap: anywhere;
 }
 
+/* 呪文の問題は候補の4行が主役なので、呪文は小さな画像と名前を横に並べる(スマホで「これで答える」まで1画面に収めるため)。 */
+.quiz-card.is-compact {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.quiz-card.is-compact .quiz-card-image {
+    width: 48px;
+}
+
+.quiz-card.is-compact .quiz-card-name {
+    margin-top: 0;
+}
+
 .quiz-prompt {
     margin: 0.25rem 0 0.75rem;
     text-align: center;
@@ -3243,6 +3259,12 @@ td.cell-action {
     font-weight: 800;
 }
 
+/* 答える前は場所を取らない(スマホで答えるボタンを上に寄せるため)。 */
+.quiz-feedback:empty {
+    min-height: 0;
+    margin: 0;
+}
+
 .quiz-feedback.is-correct {
     color: var(--color-win);
 }
@@ -3263,6 +3285,19 @@ td.cell-action {
     justify-content: center;
     gap: 0.75rem;
     margin: 0.5rem 0;
+}
+
+/*
+  問題の画面の答える・次へのボタンは、画面に収まらない小さなスマホでは画面の下に止めて、スクロールせずに押せるようにする。
+  収まるときは止まらないので、見た目は変わらない。背景はカードと同じ色にして、下の候補の上に重ねる。
+*/
+.quiz-play .quiz-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 0.5rem 0;
+    background: var(--color-surface);
 }
 
 .quiz-next {

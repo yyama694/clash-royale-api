@@ -324,8 +324,9 @@
                 });
                 stats.hidden = name === 'play';
                 // 結果の下の方から最初の画面に戻ったときも、見出しから見えるようにする。開いた直後は動かさない。
+                // 問題の画面は戻るリンクを飛ばしてカードの上端から見せる(スマホで答えるボタンまで1画面に収めるため)。
                 if (changed || name !== 'start') {
-                    root.scrollIntoView({block: 'start'});
+                    (name === 'play' ? screens.play : root).scrollIntoView({block: 'start'});
                 }
             }
 
@@ -381,6 +382,7 @@
                 screen.querySelector('.quiz-quit').textContent = play.official ? msg.msgQuit : msg.msgQuitPractice;
                 screen.querySelector('.quiz-progress-bar').style.width = (index / play.size * 100) + '%';
                 screen.querySelector('.quiz-card').hidden = ordering;
+                screen.querySelector('.quiz-card').classList.toggle('is-compact', picking);
                 screen.querySelector('.quiz-choices').hidden = ordering || picking;
                 screen.querySelector('.quiz-order').hidden = !ordering;
                 screen.querySelector('.quiz-order-howto').hidden = false;
