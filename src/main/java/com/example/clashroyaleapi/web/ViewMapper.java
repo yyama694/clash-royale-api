@@ -977,15 +977,9 @@ public class ViewMapper {
     }
 
     public List<CardCatalogGroupView> toCardCatalog(List<CardService.CardGroup> groups, Locale locale) {
-        return groups.stream()
-                .map(group -> {
-                    boolean tower = group.rarity() == null;
-                    return new CardCatalogGroupView(
-                            tower ? labels.message("cards.group.tower", locale) : labels.rarity(group.rarity(), locale),
-                            group.cards().stream().map(card -> toCatalogItem(card, tower, null, null, locale))
-                                    .toList());
-                })
-                .toList();
+        return toCardCatalogGroups(groups, null, null, locale,
+                group -> group.rarity() == null ? labels.message("cards.group.tower", locale)
+                        : labels.rarity(group.rarity(), locale));
     }
 
     /**
@@ -994,13 +988,18 @@ public class ViewMapper {
      */
     public List<CardCatalogGroupView> toCardUsageRanking(List<CardService.CardGroup> groups, CardUsage usage,
             CardUsage weekAgo, Locale locale) {
+        return toCardCatalogGroups(groups, usage, weekAgo, locale,
+                group -> labels.message(group.rarity() == null ? "cards.group.tower" : "cards.group.cards", locale));
+    }
+
+    private List<CardCatalogGroupView> toCardCatalogGroups(List<CardService.CardGroup> groups, CardUsage usage,
+            CardUsage weekAgo, Locale locale, Function<CardService.CardGroup, String> groupName) {
         return groups.stream()
                 .map(group -> {
                     boolean tower = group.rarity() == null;
-                    return new CardCatalogGroupView(
-                            labels.message(tower ? "cards.group.tower" : "cards.group.cards", locale),
-                            group.cards().stream().map(card -> toCatalogItem(card, tower, usage, weekAgo, locale))
-                                    .toList());
+                    List<CardCatalogItemView> cards = group.cards().stream()
+                            .map(card -> toCatalogItem(card, tower, usage, weekAgo, locale)).toList();
+                    return new CardCatalogGroupView(groupName.apply(group), cards);
                 })
                 .toList();
     }
