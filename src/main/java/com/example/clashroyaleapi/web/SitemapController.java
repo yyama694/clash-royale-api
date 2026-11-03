@@ -258,12 +258,12 @@ public class SitemapController {
                 .flatMap(code -> Stream.of("/ranking/players?country=" + code, "/ranking?country=" + code));
     }
 
-    /** 日ごとのランキングの動き。内容が固定されたページなので、記録のある終わった日をすべて載せる。 */
     /** バランス調整ごとの画面。 */
     private Stream<String> balancePaths() {
         return balanceService.updates().stream().map(update -> "/balance/" + update.date());
     }
 
+    /** 日ごとのランキングの動き。内容が固定されたページなので、記録のある終わった日をすべて載せる。 */
     private Stream<String> movementDayPaths() {
         return rankingHistoryService.archiveDays().stream().map(day -> "/ranking/players/movements/" + day);
     }
