@@ -30,8 +30,8 @@ import java.util.stream.Stream;
 @Service
 public class QuizService {
 
-    /** 第1回の日。公開した日(2026-11-02にユーザーが数え直しを決定。隠し版は10/27から出していた)。 */
-    static final LocalDate FIRST_DAY = LocalDate.of(2026, 11, 2);
+    /** 第1回の日。公開した日(11/2にユーザーが「公開日を第1回」と決定。隠し版は10/27から出していた)。 */
+    static final LocalDate FIRST_DAY = LocalDate.of(2026, 11, 3);
 
     /**
      * 空を飛ぶカード(公式APIの英語名)。地上にしか当たらない呪文の問題には出さない。ゲームのデータに「空を飛ぶか」の

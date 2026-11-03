@@ -134,11 +134,11 @@ class QuizServiceTest {
 
     @Test
     void 日付はUTCで区切り日本時間9時に替わる() {
-        DailyQuiz before = service(Instant.parse("2026-11-02T23:59:59Z")).today();
-        DailyQuiz after = service(Instant.parse("2026-11-03T00:00:00Z")).today();
+        DailyQuiz before = service(Instant.parse("2026-11-03T23:59:59Z")).today();
+        DailyQuiz after = service(Instant.parse("2026-11-04T00:00:00Z")).today();
 
-        assertEquals(LocalDate.of(2026, 11, 2), before.date());
-        assertEquals(LocalDate.of(2026, 11, 3), after.date());
+        assertEquals(LocalDate.of(2026, 11, 3), before.date());
+        assertEquals(LocalDate.of(2026, 11, 4), after.date());
         assertEquals(1, before.number());
         assertEquals(2, after.number());
     }
@@ -149,7 +149,7 @@ class QuizServiceTest {
 
         DailyQuiz.Round round = service.todayRound();
 
-        assertEquals(new DailyQuiz.Round(LocalDate.of(2026, 11, 5), 4), round);
+        assertEquals(new DailyQuiz.Round(LocalDate.of(2026, 11, 5), 3), round);
         assertEquals(service.today().number(), round.number());
     }
 

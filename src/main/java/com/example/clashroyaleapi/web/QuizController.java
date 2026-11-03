@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.Locale;
 
-/** クラロワクイズ(設計_クイズ.md)。2026-10-27から隠し機能として出し、11/2に公開した。 */
+/** クラロワクイズ(設計_クイズ.md)。2026-10-27から隠し機能として出し、11/3に公開した。 */
 @Controller
 public class QuizController {
 
