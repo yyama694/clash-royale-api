@@ -113,6 +113,11 @@ echo "ユニークIP数: $(awk '{print $1}' /tmp/access-check-clean.log | sort -
 # (2026-09-30に、Metaのmeta-externalagentが/card/{id}を描画して、除外後12件のうち11件を占めていた)。
 grep '"POST /beacon' /tmp/access-check-window.log > /tmp/access-check-beacon-all.log || true
 grep -viE "$BOT_REGEX" /tmp/access-check-beacon-all.log | grep -vE "^($NOISE_REGEX) " > /tmp/access-check-beacon.log || true
+# クイズは1画面の中で進むので、操作(e=start・finish・practice・practice-finish・share、n=問題数)も/beaconに送る(2026-11-07追加)。
+# ページ表示ではないので、表示回数(PV)の集計からは外して別に数える。
+grep -E '[?&]e=' /tmp/access-check-beacon.log > /tmp/access-check-quiz-events.log || true
+grep -vE '[?&]e=' /tmp/access-check-beacon.log > /tmp/access-check-beacon-pages.log || true
+mv /tmp/access-check-beacon-pages.log /tmp/access-check-beacon.log
 
 # 検索エンジンから来た訪問(2026-10-04追加、TODO.mdの「ページビュー向上」12)。検索対策の効果はこれで測る。
 # リファラが検索エンジンのページ表示を拾い、同じIPからビーコンが来ていれば「実訪問」とする。
@@ -228,6 +233,22 @@ else
         echo "除外後: 0件(除外前も0件。ビーコンの仕組み自体が動いているか確認すること)"
     fi
 fi
+
+echo
+echo "== クイズの操作(ビーコンの e=。* の送信元を除く。件数 / 人=ユニークIP) =="
+touch /tmp/access-check-beacon-real-ips.txt
+if [ -s /tmp/access-check-quiz-events.log ]; then
+    awk 'NR == FNR {real[$1]; next} ($1 in real) {
+            e = $7; sub(/.*[?&]e=/, "", e); sub(/&.*/, "", e);
+            n = "?"; if ($7 ~ /[?&]n=/) {n = $7; sub(/.*[?&]n=/, "", n); sub(/&.*/, "", n)}
+            k = e " (" n "問)"; c[k]++; if (!((k, $1) in seen)) {seen[k, $1]; u[k]++}
+        }
+        END {if (length(c) == 0) print "  (なし)"; for (k in c) printf "  %s: %d件 / %d人\n", k, c[k], u[k]}' \
+        /tmp/access-check-beacon-real-ips.txt /tmp/access-check-quiz-events.log | sort
+else
+    echo "  (なし)"
+fi
+echo
 
 # 再訪(前日以前にも来た人。2026-10-15追加)。目印は2つあり、どちらか一方でも当たれば再訪の候補とする。
 # - 目印: ビーコンの r=1。ブラウザが初めて来た日時を覚えていて、別の日の訪問なら付ける。IPが変わっても分かるが、

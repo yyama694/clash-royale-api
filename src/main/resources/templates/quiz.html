@@ -355,6 +355,7 @@
                     return;
                 }
                 if (!attempt) {
+                    track('start', size);
                     attempt = {ids: idsOf(size), answers: []};
                     update(function (data) {
                         data.days[today] = data.days[today] || {};
@@ -366,6 +367,7 @@
             }
 
             function practice(size) {
+                track('practice', size);
                 play = {size: size, official: false, answers: [], answered: false};
                 showQuestion();
             }
@@ -562,6 +564,9 @@
                 play.answered = true;
                 play.answers.push(answer);
                 var finished = play.answers.length === play.size;
+                if (finished) {
+                    track(play.official ? 'finish' : 'practice-finish', play.size);
+                }
                 if (play.official) {
                     var answers = play.answers.slice();
                     var size = play.size;
@@ -877,10 +882,27 @@
                 Array.prototype.forEach.call(share.querySelectorAll('[data-share-text]'), function (button) {
                     button.dataset.shareText = text;
                 });
+                share.onclick = function (event) {
+                    if (event.target.closest('a, button')) {
+                        track('share', size);
+                    }
+                };
                 var x = share.querySelector('a[href^="https://x.com/"]');
                 var url = new URL(x.href);
                 url.searchParams.set('text', text);
                 x.href = url.toString();
+            }
+
+            // 1画面の中で進むので、ページ表示のビーコンだけでは遊ばれたかが分からない。同じ/beaconに操作の種類を付けて送る。
+            function track(event, size) {
+                var url = '/beacon?p=%2Fquiz&e=' + event + '&n=' + size;
+                try {
+                    if (!(navigator.sendBeacon && navigator.sendBeacon(url))) {
+                        fetch(url, {cache: 'no-store', keepalive: true});
+                    }
+                } catch (e) {
+                    // 計測の失敗でクイズを止めない。
+                }
             }
 
             // 公式の成績を終えた日が続いた数。今日まだなら昨日までで数える。
