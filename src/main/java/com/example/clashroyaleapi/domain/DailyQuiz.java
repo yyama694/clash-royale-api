@@ -19,8 +19,9 @@ import java.util.stream.IntStream;
 /**
  * クラロワクイズの「今日のクイズ」。日付(UTC)から毎回同じ問題を計算で作るので、どこにも保存しない。
  * 10問・20問・30問は、ここで作る30問の先頭から出す(設計_クイズ.md)。
- * 10問ごとに、エリクサーの4択6問・ヒットポイントの並べ替え2問・「呪文一撃で倒せるのはどれ?」2問を混ぜる
- * (どの問題数でも割合がそろうように。並べ替えや呪文の問題が作れなかった位置はエリクサーの問題にする)。
+ * 10問ごとに、エリクサーの4択5問・ヒットポイントの並べ替え2問・「呪文一撃で倒せるのはどれ?」2問・
+ * ヒーローとチャンピオンのスキルのコスト1問を混ぜる(どの問題数でも割合がそろうように。ほかの種類の問題が作れなかった位置は
+ * エリクサーの問題にする)。スキルの問題はスキルについての問題なので、同じカードのエリクサーの問題と同じ日に出ることがある。
  * 1日の中で同じカードは出さない(並べ替えと呪文の問題の候補と、エリクサーの問題のカードも重ならない)。
  * 並べ替えと呪文の問題には、カードとは別のユニット(ゴブリンシュタインのモンスターなど)も1枚分として出る。ユニットと元のカードは
  * 別のものとして扱うので、同じ問題に並ぶこともある(スピリットエンプレスの2つの形と同じ考え方)。
@@ -39,6 +40,16 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
     static final int HP_ORDERS_PER_BLOCK = 2;
 
     static final int SPELLS_PER_BLOCK = 2;
+
+    /** 10問ごとのスキルのコストの問題(2026-11-08にユーザーが決定。対象が26枚と少ないので1問)。 */
+    static final int ABILITIES_PER_BLOCK = 1;
+
+    /**
+     * スキルのコストの選択肢は、少なくとも1〜4にする(2026-11-08にユーザーが決定)。4より大きいコストのスキルがあれば、
+     * エリクサーの問題と同じく、正解を含む連続した4つに広げる。
+     */
+    static final int ABILITY_LOWEST = 1;
+    static final int ABILITY_MIN_HIGHEST = 4;
 
     static final int HP_ORDER_CARDS = 4;
 
@@ -103,6 +114,10 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
     public record Spell(int id, int damage, int buildingDamage, boolean groundOnly, boolean overTime) {
     }
 
+    /** スキルのコストの問題に出すスキル。id はカード、champion はチャンピオンのスキル、cost は発動に払うエリクサー。 */
+    public record Ability(int id, boolean champion, int cost) {
+    }
+
     /** 並べ替えと呪文の問題の候補。 */
     private record Candidate(QuizQuestion.HpCard card, boolean flying, boolean building) {
     }
@@ -118,6 +133,11 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
 
     public static DailyQuiz of(LocalDate date, LocalDate firstDay, List<Card> cards, List<Unit> units,
             List<Spell> spells) {
+        return of(date, firstDay, cards, units, spells, List.of());
+    }
+
+    public static DailyQuiz of(LocalDate date, LocalDate firstDay, List<Card> cards, List<Unit> units,
+            List<Spell> spells, List<Ability> abilities) {
         // 公式APIの並び順が変わっても同じ問題になるよう、IDの順にそろえてから並べ替える。
         List<Card> deck = new ArrayList<>(cards);
         deck.sort(Comparator.comparingInt(Card::id).thenComparing(Card::ground));
@@ -137,7 +157,8 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
         Map<Integer, QuizQuestion> placed = new HashMap<>();
         List<Integer> hpOrderSlots = new ArrayList<>();
         List<Integer> spellSlots = new ArrayList<>();
-        chooseSlots(count, random, hpOrderSlots, spellSlots);
+        List<Integer> abilitySlots = new ArrayList<>();
+        chooseSlots(count, random, hpOrderSlots, spellSlots, abilitySlots);
         List<QuizQuestion.HpCard> hpPool = pool.stream().map(Candidate::card).toList();
         for (int slot : hpOrderSlots) {
             hpOrder(hpPool, used, random).ifPresent(question -> placed.put(slot, question));
@@ -156,6 +177,18 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
                     break;
                 }
             }
+        }
+        List<Ability> abilityDeck = new ArrayList<>(abilities);
+        abilityDeck.sort(Comparator.comparingInt(Ability::id));
+        shuffle(abilityDeck, abilityDeck.size(), random);
+        int abilityHighest = Math.max(ABILITY_MIN_HIGHEST,
+                abilityDeck.stream().mapToInt(Ability::cost).max().orElse(ABILITY_MIN_HIGHEST));
+        // 1日の中で同じスキルは出さない(スキルの数より位置が多ければ、残りはエリクサーの問題にする)。
+        for (int i = 0; i < abilitySlots.size() && i < abilityDeck.size(); i++) {
+            Ability ability = abilityDeck.get(i);
+            List<Integer> choices = window(ability.cost(), ABILITY_LOWEST, abilityHighest, random);
+            placed.put(abilitySlots.get(i), new QuizQuestion.AbilityCost(ability.id(), ability.champion(), choices,
+                    ability.cost() - choices.getFirst()));
         }
         int lowest = deck.stream().mapToInt(Card::elixirCost).min().orElse(0);
         int highest = deck.stream().mapToInt(Card::elixirCost).max().orElse(0);
@@ -194,16 +227,22 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
         }
     }
 
-    /** 10問ごとに、並べ替えを出す位置を2つと呪文の問題を出す位置を2つ選ぶ。何問目に出るかは日ごとに変わる。 */
-    private static void chooseSlots(int count, Random random, List<Integer> hpOrderSlots, List<Integer> spellSlots) {
+    /**
+     * 10問ごとに、並べ替えを出す位置を2つ、呪文の問題を出す位置を2つ、スキルの問題を出す位置を1つ選ぶ。
+     * 何問目に出るかは日ごとに変わる。
+     */
+    private static void chooseSlots(int count, Random random, List<Integer> hpOrderSlots, List<Integer> spellSlots,
+            List<Integer> abilitySlots) {
         for (int start = 0; start < count; start += BLOCK) {
             List<Integer> block = IntStream.range(start, Math.min(count, start + BLOCK)).boxed()
                     .collect(Collectors.toCollection(ArrayList::new));
             int hpOrders = Math.min(HP_ORDERS_PER_BLOCK, block.size());
             int spells = Math.min(SPELLS_PER_BLOCK, block.size() - hpOrders);
-            shuffle(block, hpOrders + spells, random);
+            int abilities = Math.min(ABILITIES_PER_BLOCK, block.size() - hpOrders - spells);
+            shuffle(block, hpOrders + spells + abilities, random);
             hpOrderSlots.addAll(block.subList(0, hpOrders));
             spellSlots.addAll(block.subList(hpOrders, hpOrders + spells));
+            abilitySlots.addAll(block.subList(hpOrders + spells, hpOrders + spells + abilities));
         }
     }
 
@@ -310,13 +349,17 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
      * 当てはまる組のどれにするかを乱数で選び、正解の位置が偏らないようにする(1と9のような端は位置が決まってしまう)。
      */
     private static QuizQuestion elixirQuestion(Card card, int lowest, int highest, Random random) {
-        int cost = card.elixirCost();
+        List<Integer> choices = window(card.elixirCost(), lowest, highest, random);
+        return new QuizQuestion.Elixir(card.id(), card.ground(), choices, card.elixirCost() - choices.getFirst());
+    }
+
+    /** 正解 cost を含む、lowest〜highest からはみ出さない連続した4つの数字(幅が4に満たなければ範囲の数字すべて)。 */
+    private static List<Integer> window(int cost, int lowest, int highest, Random random) {
         int firstStart = Math.max(lowest, cost - (CHOICES - 1));
         int lastStart = Math.min(cost, highest - (CHOICES - 1));
         int start = lastStart < firstStart ? lowest : firstStart + random.nextInt(lastStart - firstStart + 1);
         int end = Math.min(highest, start + CHOICES - 1);
-        List<Integer> choices = IntStream.rangeClosed(start, end).boxed().toList();
-        return new QuizQuestion.Elixir(card.id(), card.ground(), choices, cost - start);
+        return IntStream.rangeClosed(start, end).boxed().toList();
     }
 
     /**

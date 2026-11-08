@@ -11,7 +11,7 @@ public sealed interface QuizQuestion {
 
     /** 並びは、はじめの画面で問題の種類の説明を出す順。 */
     enum Type {
-        ELIXIR("elixir"), HP_ORDER("hp"), SPELL("spell");
+        ELIXIR("elixir"), HP_ORDER("hp"), SPELL("spell"), ABILITY("ability");
 
         private final String code;
 
@@ -36,6 +36,22 @@ public sealed interface QuizQuestion {
         @Override
         public Type type() {
             return Type.ELIXIR;
+        }
+
+        public int correctChoice() {
+            return choices.get(answer);
+        }
+    }
+
+    /**
+     * ヒーロー・チャンピオンのスキルの発動に払うエリクサーを当てる4択(2026-11-08にユーザーが決定)。
+     * answer は正解の choices での位置。champion はチャンピオンのスキル(画像は通常の姿)、false ならヒーローのスキル(ヒーローの姿)。
+     */
+    record AbilityCost(int cardId, boolean champion, List<Integer> choices, int answer) implements QuizQuestion {
+
+        @Override
+        public Type type() {
+            return Type.ABILITY;
         }
 
         public int correctChoice() {

@@ -30,7 +30,8 @@ public record QuizView(String date, int number, String roundLabel, List<String> 
     /**
      * value は並べ替えと呪文の問題で答えた後に出す値(ヒットポイント)。condition はその値がどの姿の値かの注釈で、
      * 問題を出すときからカード名の下に出す(「1体あたり」「草のヒットポイント」など)。
-     * どちらもエリクサーの問題と、注釈の要らないカードでは null。
+     * どちらもエリクサーの問題と、注釈の要らないカードでは null。スキルのコストの問題では condition がスキル名で、
+     * 結果の「間違えた問題」にだけ出す(問題の画面ではスキル名を問題文で言う)。
      */
     public record Card(int id, String name, String iconUrl, String value, String condition) {
     }

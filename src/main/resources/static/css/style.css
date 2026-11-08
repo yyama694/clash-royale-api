@@ -3032,8 +3032,9 @@ td.cell-action {
     background: var(--color-lose-bg);
 }
 
-/* エリクサーの選択肢は、カード画像の水滴バッジ(.elixir-badge・.elixir-value)を大きくした見た目にする。 */
-.quiz-choice-elixir .quiz-choice-value {
+/* エリクサーとスキルのコストの選択肢は、カード画像の水滴バッジ(.elixir-badge・.elixir-value)を大きくした見た目にする。 */
+.quiz-choice-elixir .quiz-choice-value,
+.quiz-choice-ability .quiz-choice-value {
     display: block;
     width: 40px;
     height: 46px;

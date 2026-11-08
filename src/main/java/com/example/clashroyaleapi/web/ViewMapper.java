@@ -13,6 +13,7 @@ import com.example.clashroyaleapi.domain.BalanceUpdate;
 import com.example.clashroyaleapi.domain.BalanceUsage;
 import com.example.clashroyaleapi.domain.BattleExclusion;
 import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.CardAbility;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardLevel;
@@ -326,13 +327,17 @@ public class ViewMapper {
         return japanese ? formatted.replaceAll("\\s", "") : formatted;
     }
 
-    /** 画像は通常の姿だけを出す(限界突破・ヒーローの絵は使わない)。コストの水滴は答えになるので重ねない。 */
+    /**
+     * 画像は通常の姿を出す(限界突破の絵は使わない)。スキルのコストの問題だけ、ヒーローのスキルはヒーローの姿で出す。
+     * コストの水滴は答えになるので重ねない。
+     */
     public QuizView toQuiz(DailyQuiz quiz, Map<Integer, CardsResponse.Card> cards, CardStats stats, Locale locale) {
         List<QuizView.Question> questions = quiz.questions().stream()
                 .map(question -> switch (question) {
                     case QuizQuestion.Elixir elixir -> toElixirQuestion(elixir, cards.get(elixir.cardId()), stats, locale);
                     case QuizQuestion.HpOrder hpOrder -> toHpOrderQuestion(hpOrder, cards, stats, locale);
                     case QuizQuestion.SpellKill spellKill -> toSpellQuestion(spellKill, cards, stats, locale);
+                    case QuizQuestion.AbilityCost ability -> toAbilityQuestion(ability, cards.get(ability.cardId()), locale);
                 })
                 .toList();
         List<String> leads = quiz.questions().stream()
@@ -377,6 +382,26 @@ public class ViewMapper {
         return new QuizView.Question(key, type,
                 prompt != null ? prompt : labels.message("quiz." + type + ".prompt", locale), note,
                 List.of(new QuizView.Card(question.cardId(), labels.cardName(name, locale), iconUrl, null, null)),
+                question.choices().stream().map(String::valueOf).toList(), String.valueOf(question.answer()), null);
+    }
+
+    /**
+     * スキルのコストの問題。問題文でスキル名を言い(ability.<英語名>。10言語)、画像はヒーローのスキルならヒーローの姿、
+     * チャンピオンのスキルなら通常の姿にする。
+     */
+    private QuizView.Question toAbilityQuestion(QuizQuestion.AbilityCost question, CardsResponse.Card card,
+            Locale locale) {
+        String type = question.type().code();
+        String name = card == null ? null : card.name();
+        CardsResponse.Card.IconUrls icons = card == null ? null : card.iconUrls();
+        String iconUrl = icons == null ? null
+                : question.champion() ? icons.medium() : cardImages.formIconUrl(name, CardForm.HERO, icons.heroMedium());
+        String abilityName = name == null ? "" : labels.message("ability." + name, locale);
+        String prompt = labels.message("quiz." + type + ".prompt", locale, abilityName);
+        // 結果の「間違えた問題」で、カード自体のエリクサーの問題と見分けられるよう、カード名の下にスキル名を添える
+        return new QuizView.Question(type + ":" + question.cardId(), type, prompt, null,
+                List.of(new QuizView.Card(question.cardId(), labels.cardName(name, locale), iconUrl, null,
+                        name == null ? null : abilityName)),
                 question.choices().stream().map(String::valueOf).toList(), String.valueOf(question.answer()), null);
     }
 
@@ -499,6 +524,14 @@ public class ViewMapper {
      * 地上の形(スピリットエンプレス（地上）)はゲームでは別のカードなので、その名前を見出しにして通常の次に並べる。
      */
     public CardStatsView toCardStats(CardStats stats, String card, Locale locale) {
+        return toCardStats(stats, null, card, locale);
+    }
+
+    /**
+     * cardAbility はそのカードのヒーローかチャンピオンのスキル(無ければ null)。あればスキルの欄の見出しをスキル名
+     * (「猛吹雪(ヒーロー)」「ロイヤルレスキュー(スキル)」)にし、先頭に発動に払うエリクサーの行を出す。
+     */
+    public CardStatsView toCardStats(CardStats stats, CardAbility cardAbility, String card, Locale locale) {
         List<CardStats.Row> rows = stats.of(card);
         if (rows.isEmpty()) {
             return null;
@@ -516,10 +549,19 @@ public class ViewMapper {
         // 名前は地上の形があるときだけ引く(無いカードの名前を引くと、訳が無いという警告がログに出る)
         addStatsSection(sections, ground.isEmpty() ? null : labels.cardName(CardStats.groundCard(card), locale), null,
                 ground);
-        addStatsSection(sections, ability, null, byForm.get(CardStats.Form.CHAMPION));
+        String abilityName = cardAbility == null ? null : labels.message("ability." + card, locale);
+        if (cardAbility != null) {
+            String cost = String.valueOf(cardAbility.cost());
+            byForm.get(cardAbility.champion() ? CardStats.Form.CHAMPION : CardStats.Form.HERO)
+                    .addFirst(new CardStatsView.Row(labels.message("card.elixirCost", locale), cost, cost));
+        }
+        addStatsSection(sections, cardAbility != null && cardAbility.champion()
+                ? labels.message("cardStats.section.hero", locale, abilityName, ability) : ability, null,
+                byForm.get(CardStats.Form.CHAMPION));
         addStatsSection(sections, labels.message("card.evolution", locale),
                 labels.message("cardStats.evolution.lead", locale), byForm.get(CardStats.Form.EVOLUTION));
-        addStatsSection(sections, labels.message("cardStats.section.hero", locale, ability,
+        addStatsSection(sections, labels.message("cardStats.section.hero", locale,
+                cardAbility != null && !cardAbility.champion() ? abilityName : ability,
                 labels.message("card.hero", locale)), null, byForm.get(CardStats.Form.HERO));
         return new CardStatsView(labels.message("cardStats.notice", locale, utcNoon(stats.asOf()),
                 labels.message("stat.TID_BUTTON_TOURNAMENT_LEVEL", locale)),

@@ -90,6 +90,7 @@ public class QuizService {
      * (ViewMapper。2026-10-31にユーザーが決定)。
      * カードとは別にヒットポイントを持つユニット(cards/units.tsv。ゴブリンシュタインのモンスターなど)も、並べ替えに別のものとして出す。
      * 呪文の問題の呪文のダメージも、ステータスから出す(レベル16)。
+     * スキルのコストの問題は、ゲームの画面から読み取ったヒーローとチャンピオンのスキルのコスト(cards/abilities.tsv)で出す。
      */
     public DailyQuiz today() {
         CardStats stats = cardStatsService.stats();
@@ -118,7 +119,11 @@ public class QuizService {
                 .map(card -> spell(stats, card))
                 .flatMap(Optional::stream)
                 .toList();
-        return DailyQuiz.of(todayUtc(), FIRST_DAY, cards, units, spells);
+        List<DailyQuiz.Ability> abilities = cardStatsService.abilities().stream()
+                .filter(ability -> ids.containsKey(ability.card()))
+                .map(ability -> new DailyQuiz.Ability(ids.get(ability.card()), ability.champion(), ability.cost()))
+                .toList();
+        return DailyQuiz.of(todayUtc(), FIRST_DAY, cards, units, spells, abilities);
     }
 
     /** 今日の回。問題は作らない(トップページの案内に使う)。 */

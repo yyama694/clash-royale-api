@@ -2,6 +2,7 @@ package com.example.clashroyaleapi.service;
 
 import com.example.clashroyaleapi.client.ClashRoyaleApiClient;
 import com.example.clashroyaleapi.client.dto.CardsResponse;
+import com.example.clashroyaleapi.domain.CardAbility;
 import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.CardUnit;
 import com.example.clashroyaleapi.domain.DailyQuiz;
@@ -178,6 +179,7 @@ class QuizServiceTest {
                     case QuizQuestion.Elixir elixir -> Stream.of(elixir.cardId());
                     case QuizQuestion.HpOrder hpOrder -> hpOrder.cards().stream().map(QuizQuestion.HpCard::id);
                     case QuizQuestion.SpellKill spellKill -> spellKill.cards().stream().map(QuizQuestion.HpCard::id);
+                    case QuizQuestion.AbilityCost ability -> Stream.of(ability.cardId());
                 })
                 .toList();
     }
@@ -241,6 +243,24 @@ class QuizServiceTest {
         }
         assertFalse(candidates.contains(200));
         assertTrue(candidates.contains(8));
+    }
+
+    @Test
+    void スキルのコストの問題は公式APIのカードのIDで出し公式APIに無いカードのスキルは出さない() {
+        CardStatsService withAbilities = new CardStatsService(cardStatsService.stats(), List.of(), List.of(
+                new CardAbility("Card3", false, 2), new CardAbility("Card12", true, 1),
+                new CardAbility("Removed Card", false, 5)));
+        Map<Integer, Set<String>> seen = new HashMap<>();
+        for (int day = 0; day < 30; day++) {
+            Clock clock = Clock.fixed(Instant.parse("2026-10-26T12:00:00Z").plusSeconds(day * 86_400L), ZoneId.of("UTC"));
+            for (QuizQuestion question : new QuizService(apiClient, withAbilities, clock).today().questions()) {
+                if (question instanceof QuizQuestion.AbilityCost ability) {
+                    seen.computeIfAbsent(ability.cardId(), id -> new HashSet<>())
+                            .add(ability.champion() + ":" + ability.correctChoice());
+                }
+            }
+        }
+        assertEquals(Map.of(3, Set.of("false:2"), 12, Set.of("true:1")), seen);
     }
 
     private static DailyQuiz.Spell spell(CardStats stats, int id, String name) {

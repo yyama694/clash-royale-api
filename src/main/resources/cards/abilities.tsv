@@ -1,0 +1,31 @@
+# ヒーローとチャンピオンのスキルの、発動に払うエリクサー。ゲームのカード情報の画面から読み取った(2026-11-08。card-stats-capture スキル)。
+# ヒーローはヒーローのタブの1ページ目(スキルのアイコンの左上の数字)、チャンピオンは3ページ目(スキルの枠の左上の数字)。
+# スキル名は messages*.properties の ability.<card>(10言語。ゲームの言語を切り替えて読んだ)。
+# バランス調整でコストが変わったら、ここも直す。新しいヒーロー・チャンピオンが出たら足す(無いと QuizAbilityDataTest が落ちる)。
+# card(公式APIの英語名)<TAB>form(hero|champion)<TAB>発動に払うエリクサー
+Ice Golem	hero	2
+Dark Prince	hero	3
+Electro Wizard	hero	2
+Valkyrie	hero	3
+Goblins	hero	1
+Berserker	hero	3
+Knight	hero	2
+Tombstone	hero	5
+Mega Minion	hero	2
+Mini P.E.K.K.A	hero	1
+Bowler	hero	2
+Ice Wizard	hero	2
+Musketeer	hero	3
+Wizard	hero	1
+Barbarian Barrel	hero	1
+Balloon	hero	2
+Magic Archer	hero	2
+Giant	hero	2
+Little Prince	champion	3
+Skeleton King	champion	2
+Golden Knight	champion	1
+Mighty Miner	champion	1
+Goblinstein	champion	2
+Archer Queen	champion	1
+Monk	champion	1
+Boss Bandit	champion	1

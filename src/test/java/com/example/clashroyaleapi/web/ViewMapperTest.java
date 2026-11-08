@@ -8,6 +8,7 @@ import com.example.clashroyaleapi.client.dto.PlayerRankingResponse;
 import com.example.clashroyaleapi.client.dto.PlayerResponse;
 import com.example.clashroyaleapi.config.IcuMessageSource;
 import com.example.clashroyaleapi.domain.BattleResult;
+import com.example.clashroyaleapi.domain.CardAbility;
 import com.example.clashroyaleapi.domain.CardCollection;
 import com.example.clashroyaleapi.domain.CardForm;
 import com.example.clashroyaleapi.domain.CardStats;
@@ -895,6 +896,35 @@ class ViewMapperTest {
     }
 
     @Test
+    void ヒーローとチャンピオンのスキルの欄はスキル名を見出しにして先頭に発動のエリクサーを出す() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
+        CardStats stats = new CardStats(LocalDate.of(2026, 10, 25), Map.of(
+                "Musketeer", List.of(
+                        new CardStats.Row(CardStats.Form.NORMAL, "stat.TID_SPELL_ATTRIBUTE_HEALTH", "1153", "721", null),
+                        new CardStats.Row(CardStats.Form.HERO, "stat.TID_SPELL_ATTRIBUTE_LIFETIME", "{s:10}", "{s:10}",
+                                null)),
+                "Little Prince", List.of(
+                        new CardStats.Row(CardStats.Form.CHAMPION, "stat.TID_SPELL_ATTRIBUTE_HEALTH", "2118", "1325",
+                                null))));
+
+        CardStatsView hero = mapper.toCardStats(stats, new CardAbility("Musketeer", false, 3), "Musketeer",
+                Locale.JAPANESE);
+        CardStatsView champion = mapper.toCardStats(stats, new CardAbility("Little Prince", true, 3), "Little Prince",
+                Locale.JAPANESE);
+
+        assertEquals("マスケット砲台(ヒーロー)", hero.sections().get(1).heading());
+        assertEquals(new CardStatsView.Row("エリクサーコスト", "3", "3"), hero.sections().get(1).rows().get(0));
+        assertEquals(2, hero.sections().get(1).rows().size());
+        assertEquals("Trusty Turret (Hero)", mapper.toCardStats(stats, new CardAbility("Musketeer", false, 3),
+                "Musketeer", Locale.ENGLISH).sections().get(1).heading());
+        assertEquals("ロイヤルレスキュー(スキル)", champion.sections().get(0).heading());
+        assertEquals(new CardStatsView.Row("エリクサーコスト", "3", "3"), champion.sections().get(0).rows().get(0));
+        // スキルのコストが無いカードは今までどおり
+        assertEquals("スキル(ヒーロー)", mapper.toCardStats(stats, "Musketeer", Locale.JAPANESE).sections().get(1).heading());
+    }
+
+    @Test
     void 地上の形は別のカードの名前を見出しにして通常の次に並べ地上のエリクサーはステータスに出さない() {
         ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
                 mock(CountryNames.class), mock(TimeFormatter.class), mock(CardImageService.class));
@@ -999,6 +1029,33 @@ class ViewMapperTest {
         assertNull(question.note());
         // 30問に満たない日は、選べる問題数もあるだけにする。
         assertEquals(List.of(), view.sizes());
+    }
+
+    @Test
+    void クイズのスキルのコストはヒーローならヒーローの姿で出しスキル名を問題文で言う() {
+        ViewMapper mapper = new ViewMapper(new LabelResolver(IcuMessageSource.forBasename("messages")),
+                mock(CountryNames.class), mock(TimeFormatter.class), cardImages);
+        CardsResponse.Card golem = new CardsResponse.Card(26000038, "Ice Golem", 16, 1, 2, "rare",
+                new CardsResponse.Card.IconUrls("golem.png", null, "golem-hero.png"));
+        CardsResponse.Card prince = new CardsResponse.Card(26000093, "Little Prince", 6, 3, 3, "champion",
+                new CardsResponse.Card.IconUrls("prince.png", null, null));
+        DailyQuiz quiz = new DailyQuiz(LocalDate.of(2026, 11, 8), 6, List.of(
+                new QuizQuestion.AbilityCost(26000038, false, List.of(1, 2, 3, 4), 1),
+                new QuizQuestion.AbilityCost(26000093, true, List.of(2, 3, 4, 5), 1)));
+
+        QuizView view = mapper.toQuiz(quiz, Map.of(26000038, golem, 26000093, prince), stats(), Locale.JAPANESE);
+
+        QuizView.Question hero = view.questions().get(0);
+        assertEquals("ability:26000038", hero.key());
+        assertEquals("ability", hero.type());
+        assertEquals("スキル「猛吹雪」の発動に必要なエリクサーは?", hero.prompt());
+        assertEquals(List.of(new QuizView.Card(26000038, "アイスゴーレム", "golem-hero.png", null, "猛吹雪")), hero.cards());
+        assertEquals("1,2,3,4", hero.choicesText());
+        assertEquals("1", hero.answer());
+        QuizView.Question champion = view.questions().get(1);
+        assertEquals("prince.png", champion.cards().get(0).iconUrl());
+        assertEquals("スキル「ロイヤルレスキュー」の発動に必要なエリクサーは?", champion.prompt());
+        assertEquals(List.of("ヒーローとチャンピオンのスキルのエリクサーを当てよう"), view.leads());
     }
 
     @Test

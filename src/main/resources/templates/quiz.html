@@ -135,7 +135,7 @@
         </section>
 
         <!--/*
-          1問に1つの li。中の span がカード(エリクサーは1枚、並べ替えは最初に見せる並びの4枚、呪文は候補の4枚)。
+          1問に1つの li。中の span がカード(エリクサーとスキルのコストは1枚、並べ替えは最初に見せる並びの4枚、呪文は候補の4枚)。
           呪文の問題の呪文は li の data-subject-* に入れる。
         */-->
         <ol id="quiz-questions" hidden>
@@ -156,7 +156,7 @@
     <!--/*
       成績の保存(localStorage の quiz)。形は {v: 1, maxStreak, days: {"2026-10-26": {"10": 回}}}。
       回は問題数ごとの、その日の最初の1回(公式の成績)で、ids(出題した問題の key)・answers(答え)・終わったら marks("oox…")。
-      答えはエリクサーなら選んだ位置(数)、並べ替えなら並べたカードの最初の並びでの位置("2031")、
+      答えはエリクサーとスキルのコストなら選んだ位置(数)、並べ替えなら並べたカードの最初の並びでの位置("2031")、
       呪文なら選んだ候補の位置を小さい順に並べたもの("13"。何も選ばなければ "")で、正解と文字にして比べる。
       前の日以前の回は marks だけ残し、終わっていない回と400日より前の日は消す。
       2回目以降(練習)は保存しない。日付はページに埋めたUTCの日付で決め、端末の時計は使わない。
@@ -835,7 +835,10 @@
                     detail.textContent = format(msg.msgWrongSpell, [pickNames(q, q.answer), pickNames(q, String(answer))]);
                 } else {
                     item.className = 'quiz-wrong-choice';
-                    item.appendChild(cardLink(q.cards[0]));
+                    // スキルの問題は、カード自体のエリクサーの問題と見分けられるよう、名前の下にスキル名を添える
+                    item.appendChild(q.type === 'ability'
+                        ? cardLink(Object.assign({}, q.cards[0], {condition: null}), q.cards[0].condition)
+                        : cardLink(q.cards[0]));
                     detail.textContent = format(msg.msgWrongItem, [q.choices[Number(q.answer)], q.choices[answer]]);
                 }
                 item.appendChild(detail);

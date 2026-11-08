@@ -94,7 +94,8 @@ public class CardController {
         Map<Integer, CardsResponse.Card> cardsById = cardService.allById();
         model.addAttribute("card", card);
         model.addAttribute("pageTitle", pageSummaries.cardTitle(card.name(), locale));
-        model.addAttribute("cardStats", viewMapper.toCardStats(stats, card.englishName(), locale));
+        model.addAttribute("cardStats", viewMapper.toCardStats(stats,
+                cardStatsService.ability(card.englishName()).orElse(null), card.englishName(), locale));
         // 初回の集計が終わるまで(デプロイ直後の1時間ほど)は、使用率の欄ごと出さない。説明文もサイト共通のものになる。
         cardUsageService.current().ifPresent(usage -> {
             CardUsageView usageView = viewMapper.toCardUsage(usage, id, cardsById, locale);

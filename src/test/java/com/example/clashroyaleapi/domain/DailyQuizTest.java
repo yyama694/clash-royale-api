@@ -48,6 +48,11 @@ class DailyQuizTest {
     private static final DailyQuiz.Spell POISON = new DailyQuiz.Spell(28_000_009, 1176, 1176, false, true);
     private static final List<DailyQuiz.Spell> SPELLS = List.of(FIREBALL, LOG, EARTHQUAKE, POISON);
 
+    /** 実際のスキルと同じく、コストが1〜5のヒーロー18枚とチャンピオン8枚。 */
+    private static final List<DailyQuiz.Ability> ABILITIES = IntStream.range(0, 26)
+            .mapToObj(i -> new DailyQuiz.Ability(26_000_000 + i, i >= 18, i == 7 ? 5 : 1 + i % 3))
+            .toList();
+
     /** 空を飛ぶカードの役(IDが5で割り切れるもの)。 */
     private static boolean flying(int id) {
         return id % 5 == 0;
@@ -412,6 +417,78 @@ class DailyQuizTest {
         assertEquals(List.of(1, 3), question.answer());
     }
 
+    @Test
+    void スキルの問題は10問ごとに1問ずつ混ざりスキルが無ければエリクサーの問題になる() {
+        Set<List<Integer>> patterns = new HashSet<>();
+        for (int day = 0; day < 100; day++) {
+            List<QuizQuestion> questions = DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, SPELL_TARGETS,
+                    List.of(), SPELLS, ABILITIES).questions();
+
+            assertEquals(DailyQuiz.QUESTIONS_PER_DAY, questions.size());
+            for (int start = 0; start < DailyQuiz.QUESTIONS_PER_DAY; start += 10) {
+                List<QuizQuestion> block = questions.subList(start, start + 10);
+                assertEquals(1, block.stream().filter(QuizQuestion.AbilityCost.class::isInstance).count());
+                assertEquals(2, block.stream().filter(QuizQuestion.SpellKill.class::isInstance).count());
+                assertEquals(2, block.stream().filter(QuizQuestion.HpOrder.class::isInstance).count());
+                assertEquals(5, block.stream().filter(QuizQuestion.Elixir.class::isInstance).count());
+            }
+            patterns.add(IntStream.range(0, questions.size())
+                    .filter(i -> questions.get(i) instanceof QuizQuestion.AbilityCost).boxed().toList());
+        }
+        assertTrue(patterns.size() > 90, () -> "スキルの問題の位置の組み合わせが少ない: " + patterns.size());
+        DailyQuiz withoutAbilities = DailyQuiz.of(FIRST_DAY, FIRST_DAY, SPELL_TARGETS, List.of(), SPELLS);
+        assertEquals(DailyQuiz.QUESTIONS_PER_DAY, withoutAbilities.questions().size());
+        assertTrue(abilities(withoutAbilities).isEmpty());
+    }
+
+    @Test
+    void 一日の中で同じスキルは出ずスキルが位置より少なければ残りはエリクサーの問題になる() {
+        for (int day = 0; day < 100; day++) {
+            List<Integer> ids = abilities(DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, CARDS, List.of(),
+                    List.of(), ABILITIES)).stream().map(QuizQuestion.AbilityCost::cardId).toList();
+
+            assertEquals(3, ids.size());
+            assertEquals(3, new HashSet<>(ids).size());
+        }
+        DailyQuiz few = DailyQuiz.of(FIRST_DAY, FIRST_DAY, CARDS, List.of(), List.of(), ABILITIES.subList(0, 2));
+        assertEquals(2, abilities(few).size());
+        assertEquals(DailyQuiz.QUESTIONS_PER_DAY - 2, elixirs(few).size());
+    }
+
+    @Test
+    void スキルの選択肢は1から4で4より大きいコストがあれば正解を含む連続した4つに広げる() {
+        Set<List<Integer>> windows = new HashSet<>();
+        for (int day = 0; day < 200; day++) {
+            for (QuizQuestion.AbilityCost question : abilities(DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY,
+                    CARDS, List.of(), List.of(), ABILITIES))) {
+                DailyQuiz.Ability ability = ABILITIES.stream().filter(a -> a.id() == question.cardId())
+                        .findFirst().orElseThrow();
+                List<Integer> choices = question.choices();
+
+                assertEquals(ability.cost(), question.correctChoice());
+                assertEquals(ability.champion(), question.champion());
+                assertTrue(choices.equals(List.of(1, 2, 3, 4)) || choices.equals(List.of(2, 3, 4, 5)),
+                        () -> "選択肢: " + choices);
+                windows.add(choices);
+            }
+        }
+        assertEquals(2, windows.size());
+        // 一番高いコストが4以下なら、いつも1〜4
+        List<DailyQuiz.Ability> cheap = List.of(new DailyQuiz.Ability(1, false, 1), new DailyQuiz.Ability(2, false, 2),
+                new DailyQuiz.Ability(3, true, 3));
+        for (QuizQuestion.AbilityCost question : abilities(DailyQuiz.of(FIRST_DAY, FIRST_DAY, CARDS, List.of(),
+                List.of(), cheap))) {
+            assertEquals(List.of(1, 2, 3, 4), question.choices());
+        }
+    }
+
+    private static List<QuizQuestion.AbilityCost> abilities(DailyQuiz quiz) {
+        return quiz.questions().stream()
+                .filter(QuizQuestion.AbilityCost.class::isInstance)
+                .map(QuizQuestion.AbilityCost.class::cast)
+                .toList();
+    }
+
     private static List<QuizQuestion.SpellKill> spellKills(DailyQuiz quiz) {
         return quiz.questions().stream()
                 .filter(QuizQuestion.SpellKill.class::isInstance)
@@ -433,13 +510,14 @@ class DailyQuizTest {
                 .toList();
     }
 
-    /** エリクサーの問題のカードと、並べ替えの4枚。 */
+    /** エリクサーの問題のカードと、並べ替えと呪文の問題の4枚(スキルの問題はスキルについての問題なので数えない)。 */
     private static List<Integer> cardIds(DailyQuiz quiz) {
         return quiz.questions().stream()
                 .flatMap(question -> switch (question) {
                     case QuizQuestion.Elixir elixir -> Stream.of(elixir.cardId());
                     case QuizQuestion.HpOrder hpOrder -> hpOrder.cards().stream().map(QuizQuestion.HpCard::id);
                     case QuizQuestion.SpellKill spellKill -> spellKill.cards().stream().map(QuizQuestion.HpCard::id);
+                    case QuizQuestion.AbilityCost ability -> Stream.<Integer>empty();
                 })
                 .toList();
     }
