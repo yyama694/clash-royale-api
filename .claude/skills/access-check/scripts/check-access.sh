@@ -223,8 +223,8 @@ if [ -s /tmp/access-check-beacon.log ]; then
     awk 'NR == FNR {real[$1]; next}
          ($1 in real) && match($7, /[?&]from=[A-Za-z0-9_-]+/) {print substr($7, RSTART + 6, RLENGTH - 6), $1}' \
         /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log \
-      | awk '{n[$1]++; if (!(($1, $2) in seen)) {seen[$1, $2]; u[$1]++}}
-             END {if (length(n) == 0) print "  (なし)"; for (t in n) printf "  from=%s: %d件 / %d人\n", t, n[t], u[t]}'
+      | awk '{total++; n[$1]++; if (!(($1, $2) in seen)) {seen[$1, $2]; u[$1]++}}
+             END {if (total == 0) print "  (なし)"; for (t in n) printf "  from=%s: %d件 / %d人\n", t, n[t], u[t]}'
     echo "  X(from=x・xreply)の人数: $(awk 'NR == FNR {real[$1]; next} ($1 in real) && $7 ~ /[?&]from=(x|xreply)(&| |$)/ {print $1}' /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log | sort -u | wc -l)"
 else
     if [ -s /tmp/access-check-beacon-all.log ]; then
@@ -241,9 +241,9 @@ if [ -s /tmp/access-check-quiz-events.log ]; then
     awk 'NR == FNR {real[$1]; next} ($1 in real) {
             e = $7; sub(/.*[?&]e=/, "", e); sub(/&.*/, "", e);
             n = "?"; if ($7 ~ /[?&]n=/) {n = $7; sub(/.*[?&]n=/, "", n); sub(/&.*/, "", n)}
-            k = e " (" n "問)"; c[k]++; if (!((k, $1) in seen)) {seen[k, $1]; u[k]++}
+            k = e " (" n "問)"; total++; c[k]++; if (!((k, $1) in seen)) {seen[k, $1]; u[k]++}
         }
-        END {if (length(c) == 0) print "  (なし)"; for (k in c) printf "  %s: %d件 / %d人\n", k, c[k], u[k]}' \
+        END {if (total == 0) print "  (なし)"; for (k in c) printf "  %s: %d件 / %d人\n", k, c[k], u[k]}' \
         /tmp/access-check-beacon-real-ips.txt /tmp/access-check-quiz-events.log | sort
 else
     echo "  (なし)"
