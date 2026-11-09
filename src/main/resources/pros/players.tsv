@@ -1,7 +1,7 @@
 # プロ・クリエイターの一覧(/pros)に載せる人。並びは画面ではランク戦の世界順位の順に並べ直すので、ここでは種類ごとにまとめる。
 # 載せるのは、タグがその人のものだと確かめられた人だけ(有名な名前ほど同じ名前の別人が多い。2026-10-24に「Ian77」「けんつめし」は名前検索で各50人以上)。
 # 確かめ方: RoyaleAPIのプレイヤー画面の「Esports Information」(活動名・国・所属チーム・本人のSNS)か、本人の発信(動画の説明欄・Xなど)。
-# 種類: pro=所属チームがあるか、Liquipediaに選手のページがある人。creator=RoyaleAPIでの役割がCreatorか、チームが無くYouTube・Twitchのチャンネルを持つ人。
+# 種類: pro=所属チームがあるか、Liquipediaに選手のページがあるか、世界一決定戦(CRL World Finals)に出た人。creator=RoyaleAPIでの役割がCreatorか、チームが無くYouTube・Twitchのチャンネルを持つ人。
 # 同じ人が複数のアカウントを持つときは、活動名に近い名前のアカウント(主に使うもの)を1つだけ載せる。
 # タグ(先頭の#なし。#で始まる行はコメントになるため)<TAB>活動名<TAB>種類(pro/creator)<TAB>国(ISO 3166-1 alpha-2)<TAB>所属チーム(無ければ空)<TAB>チャンネル(YouTube>Twitch>Xの順で1つ。無ければ空)<TAB>確かめた所
 G9YV9GR8R	Mohamed Light	pro	EG	SKCalalas	https://www.youtube.com/channel/UCjFrTvMA5zvCnb9EAX9MNVw	https://royaleapi.com/player/G9YV9GR8R
@@ -27,7 +27,15 @@ UQ8GCGYVL	Hezzy	pro	BA	Flow	https://x.com/HezzyCr	https://royaleapi.com/player/U
 J0VU9CGP	Dominik	pro	DE		https://www.youtube.com/channel/UCRn5HhcK2biFS_aWQHLoOaw	https://royaleapi.com/player/J0VU9CGP
 9GJ0Q0LGG	BenZer Ridel	pro	ID		https://www.youtube.com/channel/UC7cjzcrASARXHYHc0GVoEdw	https://royaleapi.com/player/9GJ0Q0LGG
 Y90P8VUQY	Viiper	pro	FR		https://www.youtube.com/channel/UCymILwHUZt5XiC-AN2y-8cA	https://royaleapi.com/player/Y90P8VUQY
-8LJ92G8UG	Vitor75	creator	PT	SKCalalas	https://www.twitch.tv/vitor75cr	https://royaleapi.com/player/8LJ92G8UG
+8LJ92G8UG	Vitor75	pro	PT	SKCalalas	https://www.twitch.tv/vitor75cr	https://royaleapi.com/player/8LJ92G8UG
+U890Q9UQ	Sub	pro	BR	SKCalalas	https://x.com/SubTmm	https://royaleapi.com/player/U890Q9UQ と https://liquipedia.net/clashroyale/Sub (世界一決定戦2026の3位)
+2LJ0ULYCC	Guriko (ぐりこ)	pro	JP		https://www.youtube.com/channel/UCqvB8-10UkiTvqnpGK4Fz4A	https://royaleapi.com/player/2LJ0ULYCC と https://liquipedia.net/clashroyale/Griko (世界一決定戦2026の5〜6位。別のアカウントR✨Griko #RJ2UPC900もある)
+R09228V	Morten	pro	DE	SK Gaming	https://www.youtube.com/channel/UCn2AA9OCYnZZ1T82RaGUYPw	https://royaleapi.com/player/R09228V と https://liquipedia.net/clashroyale/Morten (世界一決定戦2026の4位)
+Y022GRCJQ	SandBox	pro	KR	SKCalalas	https://www.youtube.com/channel/UCUn9lldIkbsDE_DK55PlJMQ	https://royaleapi.com/player/Y022GRCJQ と https://liquipedia.net/clashroyale/SandBox (世界一決定戦2026の5〜6位)
+22LC8JG02	JorZ	pro	ES	SKCalalas	https://www.youtube.com/channel/UCyFrjF5de39STFSvLo0ZA1w	https://royaleapi.com/player/22LC8JG02 と https://liquipedia.net/clashroyale/JorZ (世界一決定戦2026に出場。大会用クランのアカウント#22PLJP9Q98ではなく、Liquipediaが示すこちらを載せる)
+U2YVYGGV2	Woo	pro	KR		https://www.youtube.com/channel/UCOb3GFujSvgKIO0lsx_PjQA	https://royaleapi.com/player/U2YVYGGV2 (世界一決定戦2026に出場。Liquipediaに選手のページは無い)
+CUG8Y9PVV	Midnight	pro	CN		https://x.com/CR_Midnight66	https://royaleapi.com/player/CUG8Y9PVV (世界一決定戦2026に出場。大会用クランのアカウント#220QCCPP9Gはランク戦の記録が無いので、ランク戦をしているこちらを載せる)
+C8CPUGRGP	Hermit	pro	CN			https://royaleapi.com/player/C8CPUGRGP (世界一決定戦2026に出場。大会用クランのアカウント#22PLRYLJRRはランク戦の記録が無いので、ランク戦をしているこちらを載せる。RoyaleAPIのXは本人と確かめられないので載せない)
 YJPLQRR09	Hunter	creator	US		https://www.youtube.com/channel/UCL6PpZ1j5Rnp6Dnc0ozdzjQ	https://royaleapi.com/player/YJPLQRR09
 9VVCQYC9Y	Ekra (エクラ)	creator	JP		https://www.youtube.com/channel/UC_QgIhDVgmRuKhl_n5Fa8-g	https://royaleapi.com/player/9VVCQYC9Y
 PCUP9YLVG	Kimchi	creator	JP		https://www.youtube.com/channel/UC_1mJc6vZyKKsebxtJZ8x_g	https://royaleapi.com/player/PCUP9YLVG
