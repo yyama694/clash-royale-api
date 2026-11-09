@@ -48,7 +48,9 @@ public class ProPlayerService {
     private static final Logger log = LoggerFactory.getLogger(ProPlayerService.class);
 
     private static final int MAX_CONCURRENT = 4;
-    private static final Duration REFRESH_AFTER = Duration.ofMinutes(2);
+    // 公式APIの応答のキャッシュ(2分)より長い。この画面の順位とデッキは分単位で新しい必要が薄く、
+    // 取り直すたびに全員分(1人2回)を呼ぶので、人数を増やしても呼び出しが増えすぎないようにする(2026-11-09)。
+    private static final Duration REFRESH_AFTER = Duration.ofMinutes(10);
 
     static final Comparator<Entry> ORDER = Comparator
             .comparing((Entry entry) -> !entry.available())
@@ -105,7 +107,7 @@ public class ProPlayerService {
 
     /**
      * 全員の状態を、ランク戦の世界順位の順に。順位の無い人はトロフィーの多い順に後ろへ、取得できなかった人は最後に並べる。
-     * 前の結果が{@link #REFRESH_AFTER}(公式APIの応答のキャッシュと同じ2分)より古ければ、それを返しつつ裏で取り直す。
+     * 前の結果が{@link #REFRESH_AFTER}より古ければ、それを返しつつ裏で取り直す。
      */
     public List<Entry> current() {
         Snapshot last = snapshot.get();

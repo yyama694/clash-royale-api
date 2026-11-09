@@ -88,7 +88,7 @@ class ProPlayerServiceTest {
         when(playerService.findPlayer("#AAA")).thenReturn(player("#AAA", 14000, 5), player("#AAA", 14000, 2));
         assertEquals(5, proPlayerService.current().getFirst().rank());
 
-        clock.advance(Duration.ofMinutes(1));
+        clock.advance(Duration.ofMinutes(9));
         assertEquals(5, proPlayerService.current().getFirst().rank());
         assertTrue(refreshes.isEmpty());
 
@@ -109,7 +109,7 @@ class ProPlayerServiceTest {
                 .thenThrow(new ApiUnavailableException("boom", null));
         proPlayerService.current();
 
-        clock.advance(Duration.ofMinutes(2));
+        clock.advance(Duration.ofMinutes(10));
         proPlayerService.current();
         refreshes.getFirst().run();
 
