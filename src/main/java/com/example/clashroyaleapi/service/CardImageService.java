@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 /**
  * 進化・ヒーローの画像を、公式の画像が使えるときだけ公式のURLで、使えないときは手元の代わりの画像で出す。
  * 新しい進化・ヒーローは、公式の画像が遅れて来ることがある。URLだけ先に公式APIに載って置き場所では404のもの
- * (2026-10のエレクトロジャイアントの進化とエレクトロウィザードのヒーロー)と、対戦では使われているのに公式APIに
+ * (2026-10のエレクトロジャイアントの進化とエレクトロウィザードのヒーロー、2026-11の鏡の進化)と、対戦では使われているのに公式APIに
  * URLすら無いもの(2026-11のジャイアントの進化)があった。404のURLは裏で定期的に確かめて覚えておき、画面の表示を
  * 待たせない。後から公式に置かれれば、次の確認で公式の画像に戻る。
  *
@@ -38,7 +38,8 @@ public class CardImageService {
     static final Map<FormIcon, String> SUBSTITUTES = Map.of(
             new FormIcon("Electro Giant", CardForm.EVOLUTION), "/images/cards/electro-giant-evolution.png",
             new FormIcon("Electro Wizard", CardForm.HERO), "/images/cards/electro-wizard-hero.png",
-            new FormIcon("Giant", CardForm.EVOLUTION), "/images/cards/giant-evolution.png");
+            new FormIcon("Giant", CardForm.EVOLUTION), "/images/cards/giant-evolution.png",
+            new FormIcon("Mirror", CardForm.EVOLUTION), "/images/cards/mirror-evolution.png");
 
     private static final Map<String, String> GROUND_ICONS = Map.of(
             "Spirit Empress", "/images/cards/spirit-empress-ground.png");
