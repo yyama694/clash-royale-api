@@ -223,7 +223,9 @@ if [ -s /tmp/access-check-beacon.log ]; then
         /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log \
       | awk '{total++; n[$1]++; if (!(($1, $2) in seen)) {seen[$1, $2]; u[$1]++}}
              END {if (total == 0) print "  (なし)"; for (t in n) printf "  from=%s: %d件 / %d人\n", t, n[t], u[t]}'
-    echo "  X(from=x・xreply)の人数: $(awk 'NR == FNR {real[$1]; next} ($1 in real) && $7 ~ /[?&]from=(x|xreply)(&| |$)/ {print $1}' /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log | sort -u | wc -l)"
+    # 投稿経由とリプライ経由は日別の記録(daily.csvのx_post・x_reply)に分けて残す(2026-11-10から)。両方から来た人は両方に数えるので、内訳の和が人数より多い日がある。
+    x_people() { awk -v re="$1" 'NR == FNR {real[$1]; next} ($1 in real) && $7 ~ re {print $1}' /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log | sort -u | wc -l; }
+    echo "  X(from=x・xreply)の人数: $(x_people '[?&]from=(x|xreply)(&| |$)')(投稿 from=x: $(x_people '[?&]from=x(&| |$)')人・リプライ from=xreply: $(x_people '[?&]from=xreply(&| |$)')人)"
 else
     if [ -s /tmp/access-check-beacon-all.log ]; then
         echo "除外後: 0件(本人・既知ノイズのIPからのビーコンしか無かった)"

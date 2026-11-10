@@ -79,7 +79,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    - **実訪問**: ビーコンの送信元のうち、データセンター・クラウド由来(`*`付き、逆引きなしでもAlibaba等と分かるもの)を除いた人数。人かどうか判断できないものは「1(不明)」のように書く。
    - **うち再訪**: 実訪問のうち、前日以前にも来たことがある人数(2026-10-15に列を追加し、9/22以降の行もIPの一致とメモの記録からさかのぼって埋めた)。出力の「再訪」の目印か前の来訪のどちらかがある人に、メモから分かる人を足す。同じ日に何度も来た人は数えない。メモに「10/13以来2日ぶり」のように書く。
    - **PV**: 実訪問に数えた送信元のビーコン件数の合計(ビーコンはページ表示1回につき1件)。出力の「送信元IP別」の件数を足す。実訪問で「不明」とした送信元の分は「7+1(不明)」のように分けて書く(2026-09-29にユーザーが依頼)。
-   - **Xからの流入**: 出力の「X(from=x・xreply)の人数」(ビーコンで確かめたX経由の人数。データセンター由来を除く)。10/22の行からこの定義で、それより前の行は人間候補の`?from=x`と`?from=xreply`のリクエスト件数(すぐ閉じた人や同じ人の二重取得も数えていた)。
+   - **Xからの流入**: 出力の「X(from=x・xreply)の人数」(ビーコンで確かめたX経由の人数。データセンター由来を除く)。10/22の行からこの定義で、それより前の行は人間候補の`?from=x`と`?from=xreply`のリクエスト件数(すぐ閉じた人や同じ人の二重取得も数えていた)。11/10の行から、セルに投稿経由とリプライ経由の内訳を「14(投稿10・リプライ5)」のように書く(同じ行の括弧の中。両方から来た人は両方に数えるので、内訳の和が人数より多い日がある)。リプライ1件で10人以上連れてくる日があり、合計だけでは投稿とリプライのどちらが効いたか分からなかったため(2026-11-10にユーザーが依頼)。
    - **検索から**: 「検索エンジン経由の訪問」の「実訪問」の人数(2026-10-04に列を追加し、ビーコン導入後の9/22以降の行もさかのぼって埋めた)。
    - **メモ**: 実訪問者の回線とどのページを見たか、など一言。
    - 日の途中で集計したときは日付に「※HH:MMまで」を付ける。次に集計したとき、その行を1日分の数字で置き換える。
@@ -91,7 +91,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    主要指標(実訪問・うち再訪・PV・Xからの流入・検索から)の日別グラフを、Dashboardの型のArtifact(`https://claude.ai/artifact/ForKbCRDkW7A6SoWZNwyL9`)に置いている。直近7日の1日平均と前の7日との比較、実訪問の7日移動平均も出す。下の「画面別のPV」(2026-11-10追加)は、画面ごとの直近7日と前の7日の表と、PVの多い8画面の日別の小さなグラフ。確認は不要。
    - 画面別の元データは`history/screens.csv`(スクリプトが書く)で、データセットは`datasets/screens`。daily.csvと同じ①〜④で、`datasets/screens`の`source.url`と`updated.at`も差し替える(2つのCSVは別々にアップロードする)。10/12〜11/9の分は11/10に、VMに残っていたログから一度に数えて埋めた(10/11より前はログが無い)
    - ページ(`files/index.html`)を直すときは、ArtifactDataの`out_dir`では保存できない(保存先の制限で拒否される)ので、`str_replace`で直す。型の決まりで、`str_replace`の前に毎回`update`で`edit: {via: "claude", at: <今のUTC>}`を書く
-   - 元データは`history/daily.csv`(このスキルのフォルダ。列は`date,visitors,visitors_unknown,revisits,pv,pv_unknown,x,search,partial_until`)。日別ドキュメントの表と同じ値を、1行=日本時間の1日で古い順に書く。「22+1(不明)」は`visitors`=22・`visitors_unknown`=1のように分け、日の途中の集計は`partial_until`に「16:34」のように時刻を入れる(グラフで薄く出し、平均には入れない)。1日分で置き換えたら空にする。
+   - 元データは`history/daily.csv`(このスキルのフォルダ。列は`date,visitors,visitors_unknown,revisits,pv,pv_unknown,x,x_post,x_reply,search,partial_until`)。日別ドキュメントの表と同じ値を、1行=日本時間の1日で古い順に書く。`x_post`・`x_reply`は「X(from=x・xreply)の人数」の行の括弧の中の投稿経由・リプライ経由の人数(10/22〜11/8の分は11/10にVMのログから数えて埋めた。それより前は空欄)。「22+1(不明)」は`visitors`=22・`visitors_unknown`=1のように分け、日の途中の集計は`partial_until`に「16:34」のように時刻を入れる(グラフで薄く出し、平均には入れない)。1日分で置き換えたら空にする。
    - 差し替え方: ①CSVを直す ②Artifactツールで`url`=上のURL・`file_path`=CSV・`asset: true`でアップロードする(`.tsv`は受け付けない) ③ArtifactDataで`datasets/daily`を読み、返ってきた`version`を`if_version`に付けて`update`し、`source.url`をアップロード結果の`/_blob/<id>`に、`updated.at`を今のUTCの時刻にする ④古いファイルはArtifactツールの`action: "delete"`(`url`と`path`=古いid)で消す
    - 両方をユーザーの画面に開く: `Start-Process chrome "https://claude.ai/code/artifact/07ff8c83-6635-4dcf-a087-058d5554133c"; Start-Process chrome "https://claude.ai/artifact/ForKbCRDkW7A6SoWZNwyL9"`
    - CSVは記録として、masterに直接コミットしてよい(`ranking-live`の`history/players.tsv`と同じ扱い)。スクリプトが書いた`history/screens.csv`も一緒にコミットする
@@ -110,7 +110,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
 - **実ブラウザ表示(ビーコン): N件 / ユニークN IP**(データセンター由来を除いた実訪問の数え方も添える)
 - <実訪問者の回線(逆引き)と、どのページを見たか>
 - <再訪の人数と、前回いつ来た人か>
-- <X経由の流入。ビーコンの「流入元タグ別」の人数と、`?from=x`・`?from=xreply`の内訳>
+- <X経由の流入。投稿経由(`?from=x`)とリプライ経由(`?from=xreply`)の人数と、それぞれどのページに入ってきたか>
 - <検索エンジン経由の実訪問の人数と、どのページに入ってきたか>
 - 参考: 日次集計 N件 / N IP、既知のノイズ除外後 N件 / N IP(クローラーが大半)
 
