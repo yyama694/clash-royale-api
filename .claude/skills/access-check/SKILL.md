@@ -88,7 +88,9 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    - 更新したら、ドキュメントをユーザーの画面に開く。確認は不要(2026-09-28にユーザーが依頼)。開くときはPowerShellの`Start-Process chrome "https://claude.ai/code/artifact/07ff8c83-6635-4dcf-a087-058d5554133c"`を使う(2026-10-13から。Artifactツールの`open`では画面に表示されないことがあった)。
 
 8. **グラフ(「アクセス推移グラフ」)のデータも差し替え、日別ドキュメントと両方を開く(2026-10-31にユーザーが依頼)**。
-   主要指標(実訪問・うち再訪・PV・Xからの流入・検索から)の日別グラフを、Dashboardの型のArtifact(`https://claude.ai/artifact/ForKbCRDkW7A6SoWZNwyL9`)に置いている。直近7日の1日平均と前の7日との比較、実訪問の7日移動平均も出す。確認は不要。
+   主要指標(実訪問・うち再訪・PV・Xからの流入・検索から)の日別グラフを、Dashboardの型のArtifact(`https://claude.ai/artifact/ForKbCRDkW7A6SoWZNwyL9`)に置いている。直近7日の1日平均と前の7日との比較、実訪問の7日移動平均も出す。下の「画面別のPV」(2026-11-10追加)は、画面ごとの直近7日と前の7日の表と、PVの多い8画面の日別の小さなグラフ。確認は不要。
+   - 画面別の元データは`history/screens.csv`(スクリプトが書く)で、データセットは`datasets/screens`。daily.csvと同じ①〜④で、`datasets/screens`の`source.url`と`updated.at`も差し替える(2つのCSVは別々にアップロードする)。10/12〜11/9の分は11/10に、VMに残っていたログから一度に数えて埋めた(10/11より前はログが無い)
+   - ページ(`files/index.html`)を直すときは、ArtifactDataの`out_dir`では保存できない(保存先の制限で拒否される)ので、`str_replace`で直す。型の決まりで、`str_replace`の前に毎回`update`で`edit: {via: "claude", at: <今のUTC>}`を書く
    - 元データは`history/daily.csv`(このスキルのフォルダ。列は`date,visitors,visitors_unknown,revisits,pv,pv_unknown,x,search,partial_until`)。日別ドキュメントの表と同じ値を、1行=日本時間の1日で古い順に書く。「22+1(不明)」は`visitors`=22・`visitors_unknown`=1のように分け、日の途中の集計は`partial_until`に「16:34」のように時刻を入れる(グラフで薄く出し、平均には入れない)。1日分で置き換えたら空にする。
    - 差し替え方: ①CSVを直す ②Artifactツールで`url`=上のURL・`file_path`=CSV・`asset: true`でアップロードする(`.tsv`は受け付けない) ③ArtifactDataで`datasets/daily`を読み、返ってきた`version`を`if_version`に付けて`update`し、`source.url`をアップロード結果の`/_blob/<id>`に、`updated.at`を今のUTCの時刻にする ④古いファイルはArtifactツールの`action: "delete"`(`url`と`path`=古いid)で消す
    - 両方をユーザーの画面に開く: `Start-Process chrome "https://claude.ai/code/artifact/07ff8c83-6635-4dcf-a087-058d5554133c"; Start-Process chrome "https://claude.ai/artifact/ForKbCRDkW7A6SoWZNwyL9"`
