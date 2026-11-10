@@ -1,0 +1,37 @@
+# 本番の死活監視。落ちていたらこのワークフローが失敗し、GitHubから失敗の通知メールが届く。
+# 定期実行はGitHub側の混み具合で数分〜十数分遅れることがある。
+name: uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check pages
+        shell: bash
+        run: |
+          # トップは公式APIのランキング、プレイヤー情報画面は公式APIのプレイヤーと対戦履歴を使う。
+          # デプロイの再起動(約30秒の503)や、まれな502で通知しないよう、1分おきに3回まで試す。
+          urls=(
+            "https://princess-tower.duckdns.org/"
+            "https://princess-tower.duckdns.org/player/G9YV9GR8R"
+          )
+          failed=0
+          for url in "${urls[@]}"; do
+            ok=0
+            for attempt in 1 2 3; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -A "princess-tower-uptime-check" "$url" || true)
+              echo "$url attempt $attempt: $code"
+              if [ "$code" = "200" ]; then ok=1; break; fi
+              [ "$attempt" -lt 3 ] && sleep 60
+            done
+            [ "$ok" = 1 ] || failed=1
+          done
+          exit $failed
