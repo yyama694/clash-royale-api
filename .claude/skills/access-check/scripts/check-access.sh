@@ -38,7 +38,10 @@ else
     END_EPOCH=$END_EPOCH_FULLDAY
 fi
 
-ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$HOST" bash -s -- "$JST_DATE" "$START_EPOCH" "$END_EPOCH" "$NOISE_IPS_B64" <<'REMOTE'
+REMOTE_OUT=$(mktemp)
+trap 'rm -f "$REMOTE_OUT"' EXIT
+SSH_STATUS=0
+ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$HOST" bash -s -- "$JST_DATE" "$START_EPOCH" "$END_EPOCH" "$NOISE_IPS_B64" > "$REMOTE_OUT" <<'REMOTE' || SSH_STATUS=$?
 set -euo pipefail
 JST_DATE="$1"; START_EPOCH="$2"; END_EPOCH="$3"; NOISE_REGEX=$(echo "$4" | base64 -d)
 
@@ -211,11 +214,6 @@ if [ -s /tmp/access-check-beacon.log ]; then
         printf '%s %3d %-16s %s\n' "$mark" "$cnt" "$ip" "$name"
         printf '%s\t%s\t%s\t%s\n' "$mark" "$cnt" "$ip" "$name" >> /tmp/access-check-beacon-senders.txt
     done
-    echo "-- 表示されたページ別 --"
-    cat /tmp/access-check-beacon.log \
-      | grep -ohE 'p=[^& ]+' | sed 's/^p=//' \
-      | sed -E 's#%2F#/#g; s#/player/[^/?]+#/player/{tag}#; s#/clan/[^/?]+#/clan/{tag}#; s#/card/[^/?]+#/card/{id}#' \
-      | sort | uniq -c | sort -rn | head -20 || true
     # ビーコンにはページのURLのfrom=がそのまま載る(/beacon?p=...&from=xreply)。入ってきたページの
     # 表示ごとに1件なので、ページのURLで数えるのと違ってクローラーが混ざらない。
     echo "-- 流入元タグ(?from=)別(* の送信元を除く。件数=入ってきたページの表示、人=ユニークIP) --"
@@ -233,10 +231,99 @@ else
         echo "除外後: 0件(除外前も0件。ビーコンの仕組み自体が動いているか確認すること)"
     fi
 fi
+touch /tmp/access-check-beacon-real-ips.txt
+
+# 画面(機能)ごとの表示回数(2026-11-10追加)。名前は画面一覧.mdに揃える。実訪問・PVと同じく * の送信元を除くので、件数の合計はPVと同じになる。
+# ビーコンの p= はパスだけなので、使用率順・国別・カードでの絞り込みはRefererに載るページのURLで見分ける
+# (Referrer-Policyがstrict-origin-when-cross-originで、同じサイトへのsendBeaconには表示中のURLが全部載る)。
+# 行頭が @screen の行は、ローカル側でhistory/screens.csvに書き、画面には出さない。
+echo
+echo "== 画面別(ビーコン。* の送信元を除く。件数=表示回数、人=ユニークIP。件数の合計はPVと同じ) =="
+awk -F'"' '
+function screen(p) {
+    if (p == "/") return "トップページ";
+    if (p == "/ranking/players") return "個人ランキング画面";
+    if (p == "/ranking/players/movements") return "ランキングの動き画面";
+    if (p ~ /^\/ranking\/players\/movements\/[^\/]+$/) return "日ごとのランキングの動き画面";
+    if (p == "/ranking/players/seasons") return "シーズンの一覧画面";
+    if (p ~ /^\/ranking\/players\/seasons\/[^\/]+$/) return "シーズンの最終順位画面";
+    if (p == "/ranking") return "クランランキング画面";
+    if (p == "/player/search") return "プレイヤー名検索結果画面";
+    if (p ~ /^\/player\/[^\/]+\/battles\/[^\/]+$/) return "対戦詳細画面";
+    if (p ~ /^\/player\/[^\/]+$/) return "プレイヤー情報画面";
+    if (p == "/clan/search") return "クラン名検索結果画面";
+    if (p ~ /^\/clan\/[^\/]+$/) return "クラン情報画面";
+    if (p == "/cards") return "カード一覧画面";
+    if (p ~ /^\/card\/[^\/]+$/) return "カード詳細画面";
+    if (p == "/decks") return "トッププレイヤーのデッキ画面";
+    if (p == "/decks/popular") return "人気のデッキ画面";
+    if (p == "/decks/win-rates") return "デッキの勝率画面";
+    if (p == "/pros") return "プロ・クリエイターのデッキ画面";
+    if (p == "/balance") return "バランス調整画面(一覧)";
+    if (p ~ /^\/balance\/[^\/]+$/) return "バランス調整画面(調整ごと)";
+    if (p == "/favorites") return "お気に入り画面";
+    if (p == "/about") return "このサイトについて・お問い合わせ";
+    if (p == "/privacy") return "プライバシーポリシー";
+    if (p == "/quiz") return "クイズ画面";
+    return "";
+}
+function feature(name, s, cond, code) {
+    if (!(s in fparent)) {fparent[s]; forder[++nf] = s};
+    fname[s] = name;
+    if (cond) {fc[s]++; if (!((s, ip) in fseen)) {fseen[s, ip]; fu[s]++}; if (code != "") fcode[s, code]++};
+}
+BEGIN {
+    nscreens = split("トップページ|個人ランキング画面|ランキングの動き画面|日ごとのランキングの動き画面|シーズンの一覧画面|シーズンの最終順位画面|クランランキング画面|プレイヤー情報画面|プレイヤー名検索結果画面|対戦詳細画面|クラン情報画面|クラン名検索結果画面|カード一覧画面|カード詳細画面|トッププレイヤーのデッキ画面|人気のデッキ画面|デッキの勝率画面|プロ・クリエイターのデッキ画面|バランス調整画面(一覧)|バランス調整画面(調整ごと)|お気に入り画面|このサイトについて・お問い合わせ|プライバシーポリシー|クイズ画面", all, "|");
+}
+FILENAME == ARGV[1] {real[$1]; next}
+{
+    split($1, a, " "); ip = a[1];
+    if (!(ip in real)) next;
+    split($2, r, " "); url = r[2];
+    p = ""; if (match(url, /[?&]p=[^&]*/)) p = substr(url, RSTART + 3, RLENGTH - 3);
+    gsub(/%2[Ff]/, "/", p);
+    s = screen(p);
+    if (s == "") {other[p]++; s = "その他"};
+    total++; c[s]++;
+    if (!((s, ip) in seen)) {seen[s, ip]; u[s]++};
+    if (!(ip in people)) {people[ip]; npeople++};
+
+    if (s != "トップページ" && s != "個人ランキング画面" && s != "クランランキング画面" && s != "カード一覧画面" \
+        && s != "トッププレイヤーのデッキ画面" && s != "人気のデッキ画面") next;
+    ref = $4; refpath = ref; refquery = "";
+    sub(/^https?:\/\/[^\/]+/, "", refpath);
+    if (index(refpath, "?") > 0) {refquery = substr(refpath, index(refpath, "?")); refpath = substr(refpath, 1, index(refpath, "?") - 1)};
+    if (refpath == "") refpath = "/";
+    if (ref !~ /^https?:\/\// || refpath != p) {noref++; next};
+    code = ""; if (match(refquery, /[?&]country=[A-Za-z]+/)) code = toupper(substr(refquery, RSTART + 9, RLENGTH - 9));
+    if (s == "カード一覧画面") feature("使用率順(?sort=usage)", s, refquery ~ /[?&]sort=usage(&|$)/, "");
+    else if (s == "トッププレイヤーのデッキ画面" || s == "人気のデッキ画面") feature("カードで絞り込み(?card=)", s, refquery ~ /[?&]card=/, "");
+    else feature("国別(?country=)", s, code != "", code);
+}
+END {
+    if (total == 0) {print "  (なし)"; exit};
+    for (s in c) printf "%d\t%d\t%s\n", c[s], u[s], s | "sort -t\"\t\" -k1,1nr -k2,2nr";
+    close("sort -t\"\t\" -k1,1nr -k2,2nr");
+    printf "  合計: %d件 / %d人\n", total, npeople;
+    for (p in other) printf "  その他の内訳: %s %d件\n", (p == "" ? "(p=なし)" : p), other[p];
+    zero = "";
+    for (i = 1; i <= nscreens; i++) if (!(all[i] in c)) zero = zero (zero == "" ? "" : "、") all[i];
+    if (zero != "") print "  表示0の画面: " zero;
+    if (nf > 0) {
+        print "  -- 機能の内訳(ビーコンのRefererに載った画面のURLから) --";
+        for (i = 1; i <= nf; i++) {
+            s = forder[i]; codes = "";
+            for (k in fcode) {split(k, kk, SUBSEP); if (kk[1] == s) codes = codes (codes == "" ? "" : ", ") kk[2] " " fcode[k]};
+            printf "  %sのうち%s: %d件 / %d人%s\n", s, fname[s], fc[s], fu[s], (codes == "" ? "" : "(" codes ")");
+        }
+    }
+    if (noref > 0) printf "  (Refererが無く、内訳を判定できなかった表示: %d件)\n", noref;
+    for (s in c) printf "@screen\t%s\t%d\t%d\n", s, c[s], u[s];
+}' /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log \
+  | awk -F'\t' '/^@screen\t/ {print; next} NF == 3 {printf "  %4d件 / %3d人  %s\n", $1, $2, $3; next} {print}'
 
 echo
 echo "== クイズの操作(ビーコンの e=。* の送信元を除く。件数 / 人=ユニークIP) =="
-touch /tmp/access-check-beacon-real-ips.txt
 if [ -s /tmp/access-check-quiz-events.log ]; then
     awk 'NR == FNR {real[$1]; next} ($1 in real) {
             e = $7; sub(/.*[?&]e=/, "", e); sub(/&.*/, "", e);
@@ -308,3 +395,26 @@ else
     echo "(なし)"
 fi
 REMOTE
+
+grep -v $'^@screen\t' "$REMOTE_OUT" || true
+if [ "$SSH_STATUS" -ne 0 ]; then
+    echo "(VM側の集計が途中で失敗した: 終了コード $SSH_STATUS。screens.csvは書き換えていない)" >&2
+    exit "$SSH_STATUS"
+fi
+
+# 画面別の件数を1日ずつ残す(グラフの元データのdaily.csvと同じ扱いで、masterに直接コミットしてよい)。
+# 同じ日を集計し直したら、その日の行を置き換える。日の途中の集計はpartial_untilに日本時間の時刻を入れる。
+SCREENS_CSV="$SCRIPT_DIR/../history/screens.csv"
+[ -f "$SCREENS_CSV" ] || echo "date,screen,pv,visitors,partial_until" > "$SCREENS_CSV"
+PARTIAL_UNTIL=""
+if [ "$END_EPOCH" -lt "$END_EPOCH_FULLDAY" ]; then
+    PARTIAL_UNTIL=$(TZ=$JST_TZ date -d "@$END_EPOCH" +%H:%M)
+fi
+{
+    head -1 "$SCREENS_CSV"
+    { tail -n +2 "$SCREENS_CSV" | awk -F, -v d="$JST_DATE" '$1 != d'
+      { grep $'^@screen\t' "$REMOTE_OUT" || true; } | sort -t$'\t' -k3,3nr \
+        | awk -F'\t' -v d="$JST_DATE" -v until="$PARTIAL_UNTIL" '{printf "%s,%s,%d,%d,%s\n", d, $2, $3, $4, until}'
+    } | sort -t, -k1,1 -s
+} > "$SCREENS_CSV.tmp"
+mv "$SCREENS_CSV.tmp" "$SCREENS_CSV"
