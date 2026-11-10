@@ -142,6 +142,7 @@ public class SitemapController {
      * noindexの対戦詳細は、すべてのボットに巡回させない。Googlebotの取得の半分がここに使われ、
      * カード詳細やランキングがほとんど巡回されていなかった(2026-10-27)。
      * ShapBotは1日200万件を超えて取りに来るので、間隔も空けさせる。
+     * ClaudeBotも1日約61万件(全体の4割)でCPU1つのVMを使い切っていたので、2秒に1件にさせる(2026-11-09)。
      * 名指しのグループがあると「*」のグループは読まれないため、共通の禁止もそちらに書き直している。
      */
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
@@ -155,6 +156,12 @@ public class SitemapController {
 
                 User-agent: ShapBot
                 Crawl-delay: 5
+                Disallow: /favorites
+                Disallow: /beacon
+                Disallow: /player/*/battles/
+
+                User-agent: ClaudeBot
+                Crawl-delay: 2
                 Disallow: /favorites
                 Disallow: /beacon
                 Disallow: /player/*/battles/
