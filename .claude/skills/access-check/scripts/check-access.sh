@@ -107,6 +107,72 @@ awk -F'"' '$6 ~ /Googlebot/ { split($2, r, " "); p = r[2]; sub(/\?.*/, "", p);
         else if (p ~ /^\/clan\//) t = "クラン"; else if (p ~ /^\/card\//) t = "カード詳細"; else if (p ~ /^\/cards/) t = "カード一覧";
         else if (p ~ /^\/decks/) t = "デッキ"; else if (p ~ /^\/ranking/) t = "ランキング"; else if (p ~ /^\/robots|^\/sitemap/) t = "robots.txt・sitemap";
         else if (p == "/") t = "トップ"; else t = "その他"; print t }' /tmp/access-check-window.log | sort | uniq -c | sort -rn
+# 確かめ用のページをすり抜けている分や、UAを替えて来ている分を見分けるため、ブラウザを名乗るアクセス
+# (BOT_REGEXに当たらないUA)を、UAの種類ごとに人らしさの手がかりと並べる(2026-11-12追加)。
+# 人はCSSとビーコンを取りに来るので、CSS・ビーコンのIP数がIP数よりずっと少ない種類はボットが多い。
+KIND_FN='
+function kind(ua) {
+    if (ua ~ /Edg\/|OPR\//) return "Edge・Opera";
+    if (ua ~ /Macintosh; Intel Mac OS X 10_15_7.*Chrome\//) return "MacのChrome";
+    if (ua ~ /Windows NT.*Chrome\//) return "WindowsのChrome";
+    if (ua ~ /iPhone|iPad/) return "iPhone/iPad";
+    if (ua ~ /Android/) return "Android";
+    if (ua ~ /Macintosh/ && ua ~ /Safari/ && ua !~ /Chrome/) return "MacのSafari";
+    if (ua ~ /Firefox/) return "Firefox";
+    if (ua ~ /Linux.*Chrome\//) return "LinuxのChrome";
+    return "その他";
+}'
+grep -viE "$BOT_REGEX" /tmp/access-check-window.log > /tmp/access-check-browser.log || true
+echo "-- ブラウザを名乗るアクセス(UAの種類別。件数 / IP数 / うち/player/・/clan/ / Refererなし / HTTP/1.1 / CSSを取ったIP / ビーコンを送ったIP) --"
+awk -F'"' "$KIND_FN"'
+{
+    split($1, a, " "); ip = a[1]; split($2, r, " "); path = r[2]; k = kind($6);
+    n[k]++; if (!((k, ip) in seen)) { seen[k, ip]; ips[k]++ }
+    if (path ~ /^\/(player|clan)\//) pc[k]++;
+    if ($4 == "-") noref[k]++;
+    if (r[3] == "HTTP/1.1") h1[k]++;
+    if (path ~ /^\/css\// && !((k, ip) in css)) { css[k, ip]; cssips[k]++ }
+    if (path ~ /^\/beacon/ && !((k, ip) in bc)) { bc[k, ip]; bcips[k]++ }
+}
+END { for (k in n) printf "%9d %8d %9d %9d %9d %6d %6d  %s\n", n[k], ips[k], pc[k], noref[k], h1[k], cssips[k], bcips[k], k }' /tmp/access-check-browser.log | sort -rn
+# 確かめ用のページの条件(UA・Referer)を決めるため、/player/・/clan/を、通信の版とRefererの送り元で分ける。
+echo "-- ブラウザを名乗る/player/・/clan/のGET(UAの種類 × 通信の版 × Referer。上位15) --"
+awk -F'"' "$KIND_FN"'
+$2 ~ /^GET \/(player|clan)\// {
+    split($2, r, " "); v = (r[3] == "HTTP/2.0") ? "HTTP/2" : r[3];
+    ref = $4; if (ref == "-") rc = "Refererなし"; else if (ref ~ /^https?:\/\/princess-tower\.duckdns\.org\//) rc = "Referer=自サイト"; else rc = "Referer=外部";
+    c[kind($6) " / " v " / " rc]++ }
+END { for (k in c) printf "%9d  %s\n", c[k], k }' /tmp/access-check-browser.log | sort -rn | awk 'NR <= 15'
+# 毎回同じ形のUAを数字だけ変えて名乗っているかを見る(数字をNにまとめた形の上位)。
+echo "-- /player/・/clan/を取ったブラウザのUAの形(数字をNにまとめた上位8) --"
+awk -F'"' '$2 ~ /^GET \/(player|clan)\// { ua = $6; gsub(/[0-9]+/, "N", ua); c[substr(ua, 1, 140)]++ }
+    END { for (k in c) printf "%9d  %s\n", c[k], k }' /tmp/access-check-browser.log | sort -rn | awk 'NR <= 8'
+# 確かめ用のページの後に同じIPが同じURLを読み直していれば、JSを動かした(人か、JSを動かすボット)。
+# Refererを付けて来たものは確かめ用のページの対象外なので、Refererの送り元も出す。
+echo "-- MacのChromeを名乗る/player/・/clan/のGETのうち、アプリまで届いたもの --"
+grep -E '"GET /(player|clan)/' /tmp/access-check-window.log | awk -F'"' '
+$6 ~ /Macintosh; Intel Mac OS X 10_15_7.*Chrome\// && $6 !~ /Edg\/|OPR\// {
+    split($1, a, " "); ip = a[1]; split($2, r, " "); path = r[2]; split($3, s, " ");
+    if (s[1] == 200 && s[2] >= 600 && s[2] <= 900) { ch[ip, path]; chip[ip]; next }
+    app++; if (!(ip in appip)) { appip[ip]; appips++ }
+    if ((ip, path) in ch) reload++; else if (ip in chip) otherurl++;
+    ref = $4; if (ref == "-") rk = "Refererなし"; else { sub(/^https?:\/\//, "", ref); sub(/[\/?].*/, "", ref); rk = "Referer: " ref }
+    refc[rk]++; proto[rk, r[3]]++; st[s[1]]++;
+}
+END {
+    printf "  %d件 / %d IP。うち確かめ用のページの後に同じURLを読み直した: %d件、同じIPが別のURLで確かめ用のページを受けていた: %d件\n", app, appips, reload, otherurl;
+    for (k in refc) printf "  %8d %s(HTTP/1.1 %d・HTTP/2 %d)\n", refc[k], k, proto[k, "HTTP/1.1"], proto[k, "HTTP/2.0"] | "sort -rn | head -8";
+    close("sort -rn | head -8");
+    printf "  ステータス:"; for (k in st) printf " %s=%d", k, st[k]; print "";
+}'
+echo "-- 確かめ用のページを受けた送信元(件数の多い/16。件数 / IP数) --"
+awk -F'"' '$6 ~ /Macintosh; Intel Mac OS X 10_15_7.*Chrome\// && $2 ~ /^GET \/(player|clan)\// {
+    split($3, s, " "); if (s[1] != 200 || s[2] < 600 || s[2] > 900) next;
+    split($1, a, " "); ip = a[1];
+    if (ip ~ /:/) { split(ip, o, ":"); p = o[1] ":" o[2] "::/32" } else { split(ip, o, "."); p = o[1] "." o[2] ".0.0/16" }
+    c[p]++; if (!((p, ip) in u)) { u[p, ip]; ui[p]++ }; tot++; if (!(ip in all)) { all[ip]; alln++ }
+}
+END { printf "  合計 %d件 / %d IP\n", tot, alln; for (p in c) printf "  %8d %7d %s\n", c[p], ui[p], p | "sort -rn | head -10" }' /tmp/access-check-window.log
 echo "-- VMの負荷(実行した時点) --"
 uptime
 vmstat 5 2 | tail -1 | awk '{print "CPU: user " $13 "% / system " $14 "% / idle " $15 "% / iowait " $16 "%(5秒間)"}'
