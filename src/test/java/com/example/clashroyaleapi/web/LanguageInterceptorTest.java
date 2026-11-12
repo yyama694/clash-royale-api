@@ -1,5 +1,6 @@
 package com.example.clashroyaleapi.web;
 
+import com.example.clashroyaleapi.config.HumanCheckProperties;
 import com.example.clashroyaleapi.config.PlayerIndexProperties;
 import com.example.clashroyaleapi.config.WebConfig;
 
@@ -23,7 +24,7 @@ class LanguageInterceptorTest {
 
     private final GlobalModelAttributes modelAttributes =
             new GlobalModelAttributes(new PlayerIndexProperties("data", false));
-    private final LocaleResolver localeResolver = new WebConfig(modelAttributes).localeResolver();
+    private final LocaleResolver localeResolver = new WebConfig(modelAttributes, new HumanCheckProperties(true, true, 10)).localeResolver();
     private final LanguageInterceptor interceptor = new LanguageInterceptor(localeResolver, modelAttributes);
 
     @Test

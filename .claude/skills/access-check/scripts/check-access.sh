@@ -93,13 +93,15 @@ awk -F'"' -v named='ClaudeBot|GPTBot|OAI-SearchBot|ChatGPT-User|Applebot|meta-ex
     { print "ボット以外のUA" }' /tmp/access-check-window.log | sort | uniq -c | sort -rn | head -12
 # 正体を隠したボット(MacのChromeを名乗る)には、Apacheが確かめ用のページ(約700バイト)を返す(2026-11-10、運用.md)。
 # 効いているかは、差し替えた件数と、同じUAでアプリまで届いた件数、通信の版(本物のChromeはh2)で見る。
-echo "-- 正体を隠したボット対策(MacのChromeを名乗る/player/・/clan/のGET) --"
-awk -F'"' '$6 ~ /Macintosh; Intel Mac OS X 10_15_7.*Chrome\// && $2 ~ /^GET \/(player|clan)\// {
-        split($3, s, " "); split($2, r, " ");
-        if (s[1] == 200 && s[2] >= 600 && s[2] <= 900) ch++; else app++;
-        proto[r[3]]++ }
-    END { printf "確かめ用のページを返した: %d件 / アプリまで届いた: %d件\n", ch, app;
-          for (p in proto) printf "  %s: %d件\n", p, proto[p] }' /tmp/access-check-window.log
+# 確かめ用のページは、11/10〜11/12夜はApacheが200・600〜900バイトで、それ以降はアプリ(HumanCheckInterceptor)が403で返す。
+echo "-- 正体を隠したボット対策(ブラウザを名乗る/player/・/clan/のGET。スマホは通行証の対象外) --"
+{ grep -E '"GET /(player|clan)/' /tmp/access-check-window.log | grep -viE "$BOT_REGEX" | awk -F'"' '{
+        split($3, s, " "); split($2, r, " "); m = ($6 ~ /iPhone|iPad|Android/) ? "スマホ" : "スマホ以外";
+        if (s[1] == 200 && s[2] >= 600 && s[2] <= 900) k = "Apacheの確かめ用のページ";
+        else if (s[1] == 403) k = "アプリの確かめ用のページ";
+        else k = "アプリの処理まで届いた";
+        c[m " / " k]++; proto[r[3]]++ }
+    END { for (x in c) printf "  %8d %s\n", c[x], x; for (p in proto) printf "  %8d (%s)\n", proto[p], p }'; } || true
 # 10/27にrobots.txtで対戦詳細を止めた効果を見るため、Googlebotが何の画面を取っているかを出す(2026-11-12追加)。
 echo "-- Googlebotが取った画面(UAがGooglebot、ページの種類別) --"
 awk -F'"' '$6 ~ /Googlebot/ { split($2, r, " "); p = r[2]; sub(/\?.*/, "", p);

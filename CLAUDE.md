@@ -110,8 +110,9 @@
 
 - 公式APIのキー、OCIの認証情報(APIキー・SSH秘密鍵・config)はコミットしない。
 - 外部に開けるポートは22・80・443だけ。アプリの8080番はApache経由でだけ届く。
-- **Cookieやサーバー側の状態を変えるPOSTは`CrossSiteRequestGuard`の対象にする**(`WebConfig#addInterceptors`。今は`/favorites/**`と「これは自分」の`/me/**`)。Spring Securityを入れていないので、他サイトからの送信(CSRF)はここで拒否している。`SameSite=Lax`だけでは足りない。
+- **Cookieやサーバー側の状態を変えるPOSTは`CrossSiteRequestGuard`の対象にする**(`WebConfig#addInterceptors`。今は`/favorites/**`と「これは自分」の`/me/**`と、通行証を発行する`/human-check`)。Spring Securityを入れていないので、他サイトからの送信(CSRF)はここで拒否している。`SameSite=Lax`だけでは足りない。
   - **画面からはfetchで送る**(JSが動かないときだけフォーム送信)。フォームで画面ごと送ると、一部の環境ではブラウザが他サイトからの送信として扱い、正しい利用者まで拒否する(10/14に常連の「これは自分」が403になった。`大問題点.md`)。
+- **プレイヤー・クランの画面は、通行証(Cookie`pt`)を持つ閲覧者にだけ出す**(`HumanCheckInterceptor`。2026-11-12)。正体を隠したボットがUA・Referer・固定のCookieを1日で真似してきたため、IPの範囲と期限にサーバーの鍵で署名した値にし、確かめ用のページのJSが計算を解いたときだけ出す。名乗っているクローラー・リンクのプレビュー・自分たちのツール(curl・`princess-tower-`・`ranking-live/`)は通す。**サイトを取りに行くツールを足すときは、この例外に当たるUAを付ける**。IPはApacheが外から来た`X-Forwarded-For`を消してから付けた値で、Apacheの設定を作り直すときはこれを落とさない(落とすとIPを偽って通行証を使い回せる。`運用.md`)。
 
 ## 画面についての決めごと
 

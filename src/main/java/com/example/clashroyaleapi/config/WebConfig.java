@@ -1,7 +1,9 @@
 package com.example.clashroyaleapi.config;
 
+import com.example.clashroyaleapi.domain.HumanPass;
 import com.example.clashroyaleapi.web.CrossSiteRequestGuard;
 import com.example.clashroyaleapi.web.GlobalModelAttributes;
+import com.example.clashroyaleapi.web.HumanCheckInterceptor;
 import com.example.clashroyaleapi.web.LanguageInterceptor;
 import com.example.clashroyaleapi.web.SupportedLanguages;
 import com.example.clashroyaleapi.web.WebConstants;
@@ -11,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.i18n.LocaleContext;
 import org.springframework.context.i18n.SimpleLocaleContext;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -19,6 +22,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.CookieLocaleResolver;
 import org.springframework.web.servlet.resource.VersionResourceResolver;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Optional;
@@ -36,10 +45,23 @@ public class WebConfig implements WebMvcConfigurer {
 
     private static final Duration STATIC_CACHE_MAX_AGE = Duration.ofDays(365);
 
-    private final GlobalModelAttributes modelAttributes;
+    // 通行証の確かめ(HumanCheckInterceptor)の対象。正体を隠したボットが取りに来るのはこの2つだけ(2026-11-12)。
+    private static final String[] HUMAN_CHECK_PATHS = {"/player/**", "/clan/**"};
 
-    public WebConfig(GlobalModelAttributes modelAttributes) {
+    private final GlobalModelAttributes modelAttributes;
+    private final HumanCheckProperties humanCheckProperties;
+
+    public WebConfig(GlobalModelAttributes modelAttributes, HumanCheckProperties humanCheckProperties) {
         this.modelAttributes = modelAttributes;
+        this.humanCheckProperties = humanCheckProperties;
+    }
+
+    /** 署名の鍵は起動ごとに作る。保存しないので、再起動すると全員が1回だけ確かめ直しになる。 */
+    @Bean
+    public HumanPass humanPass() {
+        byte[] key = new byte[32];
+        new SecureRandom().nextBytes(key);
+        return new HumanPass(key, humanCheckProperties.difficulty(), Clock.systemUTC());
     }
 
     /** 表示言語は ?lang= > Cookie(言語メニューで選んだ言語) > Accept-Language > 英語 の順に決める。 */
@@ -80,8 +102,21 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // ボットのリクエストに余計な処理をさせないよう、ほかより先に確かめる。
+        if (humanCheckProperties.enabled()) {
+            registry.addInterceptor(new HumanCheckInterceptor(humanPass(), humanCheckProperties.exemptMobile(), humanCheckPage()))
+                    .addPathPatterns(HUMAN_CHECK_PATHS);
+        }
         registry.addInterceptor(new LanguageInterceptor(localeResolver(), modelAttributes));
-        registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**", "/me/**");
+        registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**", "/me/**", "/human-check");
+    }
+
+    private static String humanCheckPage() {
+        try (InputStream in = new ClassPathResource("human-check/page.html").getInputStream()) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /**

@@ -1,0 +1,60 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Princess Tower</title>
+<style>body{font-family:system-ui,sans-serif;margin:2em;color:#334}</style></head>
+<body>
+<p id="w">確認しています… / Checking your browser…</p>
+<p id="m" hidden>Cookieを有効にしてから、もう一度開いてください。 / Please enable cookies and reload this page.</p>
+<noscript><p>このページの表示にはJavaScriptが必要です。 / JavaScript is required to view this page.</p></noscript>
+<script>
+(async function () {
+    var challenge = "__CHALLENGE__", bits = __DIFFICULTY__;
+    function fail() {
+        document.getElementById("w").hidden = true;
+        document.getElementById("m").hidden = false;
+    }
+    // 通行証を受け取っても付かずに何度も戻ってくる(Cookieを拒否しているなど)ときは、読み直しを繰り返さない。
+    var tries = 0;
+    try {
+        var last = JSON.parse(sessionStorage.getItem("pt-tries") || "null");
+        tries = last && Date.now() - last.t < 30000 ? last.n : 0;
+        sessionStorage.setItem("pt-tries", JSON.stringify({t: Date.now(), n: tries + 1}));
+    } catch (e) {}
+    if (!navigator.cookieEnabled || tries >= 2) {
+        fail();
+        return;
+    }
+    function zeroBits(buffer) {
+        var bytes = new Uint8Array(buffer), n = 0;
+        for (var i = 0; i < bytes.length; i++) {
+            if (bytes[i] !== 0) return n + Math.clz32(bytes[i]) - 24;
+            n += 8;
+        }
+        return n;
+    }
+    try {
+        var encoder = new TextEncoder();
+        for (var start = 0; start < 1 << 24; start += 64) {
+            var batch = [];
+            for (var a = start; a < start + 64; a++) {
+                batch.push(crypto.subtle.digest("SHA-256", encoder.encode(challenge + ":" + a)));
+            }
+            var digests = await Promise.all(batch);
+            for (var k = 0; k < digests.length; k++) {
+                if (zeroBits(digests[k]) >= bits) {
+                    var res = await fetch("/human-check", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                        body: "c=" + encodeURIComponent(challenge) + "&a=" + (start + k)
+                    });
+                    if (res.ok) location.reload(); else fail();
+                    return;
+                }
+            }
+        }
+        fail();
+    } catch (e) {
+        fail();
+    }
+})();
+</script>
+</body></html>
