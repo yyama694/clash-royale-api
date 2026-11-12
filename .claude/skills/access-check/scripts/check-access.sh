@@ -91,6 +91,25 @@ awk -F'"' -v named='ClaudeBot|GPTBot|OAI-SearchBot|ChatGPT-User|Applebot|meta-ex
     match($6, named) { print substr($6, RSTART, RLENGTH); next }
     $6 ~ bot { print "その他のボット"; next }
     { print "ボット以外のUA" }' /tmp/access-check-window.log | sort | uniq -c | sort -rn | head -12
+# 正体を隠したボット(MacのChromeを名乗る)には、Apacheが確かめ用のページ(約700バイト)を返す(2026-11-10、運用.md)。
+# 効いているかは、差し替えた件数と、同じUAでアプリまで届いた件数、通信の版(本物のChromeはh2)で見る。
+echo "-- 正体を隠したボット対策(MacのChromeを名乗る/player/・/clan/のGET) --"
+awk -F'"' '$6 ~ /Macintosh; Intel Mac OS X 10_15_7.*Chrome\// && $2 ~ /^GET \/(player|clan)\// {
+        split($3, s, " "); split($2, r, " ");
+        if (s[1] == 200 && s[2] >= 600 && s[2] <= 900) ch++; else app++;
+        proto[r[3]]++ }
+    END { printf "確かめ用のページを返した: %d件 / アプリまで届いた: %d件\n", ch, app;
+          for (p in proto) printf "  %s: %d件\n", p, proto[p] }' /tmp/access-check-window.log
+# 10/27にrobots.txtで対戦詳細を止めた効果を見るため、Googlebotが何の画面を取っているかを出す(2026-11-12追加)。
+echo "-- Googlebotが取った画面(UAがGooglebot、ページの種類別) --"
+awk -F'"' '$6 ~ /Googlebot/ { split($2, r, " "); p = r[2]; sub(/\?.*/, "", p);
+        if (p ~ /^\/player\/[^\/]+\/battles\//) t = "対戦詳細"; else if (p ~ /^\/player\//) t = "プレイヤー";
+        else if (p ~ /^\/clan\//) t = "クラン"; else if (p ~ /^\/card\//) t = "カード詳細"; else if (p ~ /^\/cards/) t = "カード一覧";
+        else if (p ~ /^\/decks/) t = "デッキ"; else if (p ~ /^\/ranking/) t = "ランキング"; else if (p ~ /^\/robots|^\/sitemap/) t = "robots.txt・sitemap";
+        else if (p == "/") t = "トップ"; else t = "その他"; print t }' /tmp/access-check-window.log | sort | uniq -c | sort -rn
+echo "-- VMの負荷(実行した時点) --"
+uptime
+vmstat 5 2 | tail -1 | awk '{print "CPU: user " $13 "% / system " $14 "% / idle " $15 "% / iowait " $16 "%(5秒間)"}'
 
 echo
 echo "== 日次集計(UAベースの簡易ボット除外のみ) =="
@@ -226,6 +245,17 @@ if [ -s /tmp/access-check-beacon.log ]; then
     # 投稿経由とリプライ経由は日別の記録(daily.csvのx_post・x_reply)に分けて残す(2026-11-10から)。両方から来た人は両方に数えるので、内訳の和が人数より多い日がある。
     x_people() { awk -v re="$1" 'NR == FNR {real[$1]; next} ($1 in real) && $7 ~ re {print $1}' /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log | sort -u | wc -l; }
     echo "  X(from=x・xreply)の人数: $(x_people '[?&]from=(x|xreply)(&| |$)')(投稿 from=x: $(x_people '[?&]from=x(&| |$)')人・リプライ from=xreply: $(x_people '[?&]from=xreply(&| |$)')人)"
+    # 投稿ごとの「来た人」(X運用記録.mdの提案と結果)は、着地URLの&v=で分けて数える。Refererが着地URL。
+    echo "-- X経由のビーコンの明細(* の送信元を除く。時刻はUTC。着地URLの&v=で投稿に割り当てる) --"
+    awk 'NR == FNR {real[$1]; next}
+         ($1 in real) && $7 ~ /[?&]from=(x|xreply)(&| |$)/ {
+             ref = $0; sub(/^[^"]*"[^"]*" [0-9]+ [^ ]+ "/, "", ref); sub(/".*/, "", ref); sub(/^https:\/\/[^\/]+/, "", ref);
+             ua = $0; sub(/.*" "/, "", ua); sub(/"$/, "", ua);
+             if (ua ~ /Twitter for iPhone/) k = "iPhoneのXアプリ"; else if (ua ~ /TwitterAndroid/) k = "AndroidのXアプリ";
+             else if (ua ~ /iPhone|iPad/) k = "iPhone/iPad"; else if (ua ~ /Android/) k = "Android"; else k = "PC・その他";
+             r = ($7 ~ /[?&]r=1/) ? " r=1" : "";
+             printf "  %s %-16s %-14s%s %s\n", substr($4, 2), $1, k, r, ref}' \
+        /tmp/access-check-beacon-real-ips.txt /tmp/access-check-beacon.log | sort -t' ' -k1,1 || true
 else
     if [ -s /tmp/access-check-beacon-all.log ]; then
         echo "除外後: 0件(本人・既知ノイズのIPからのビーコンしか無かった)"
