@@ -80,6 +80,13 @@ indexnow:
   # 前日(UTC)の動きのページが確定した後。起動の2分後にも1回送る(デプロイで溜まった分を送るため)。
   cron: ${INDEXNOW_CRON:0 30 0 * * *}
 
+# プレイヤー・クランの画面の前に置く、通行証の確かめ(HumanCheckInterceptor。正体を隠したボット対策)。
+# 止めるときや、ボットがスマホを名乗りはじめたときは、/etc/clash-royale-api/env の環境変数で変える(運用.md)。
+human-check:
+  enabled: ${HUMAN_CHECK_ENABLED:true}
+  exempt-mobile: ${HUMAN_CHECK_EXEMPT_MOBILE:true}
+  difficulty: ${HUMAN_CHECK_DIFFICULTY:10}
+
 clashroyale:
   api:
     base-url: https://api.clashroyale.com/v1
