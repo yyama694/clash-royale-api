@@ -45,6 +45,10 @@ ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$HOST" bash -s -- "$JST_DATE" "$START_EP
 set -euo pipefail
 JST_DATE="$1"; START_EPOCH="$2"; END_EPOCH="$3"; NOISE_REGEX=$(echo "$4" | base64 -d)
 
+# ボットのリクエストでログにNUL等の制御文字が混ざると、grepはそれ以降を「binary file matches」として
+# 1行も出さなくなる(2026-11-13に11/11が12件になって判明)。ログを読むgrepはすべてテキストとして扱わせる。
+grep() { command grep -a "$@"; }
+
 # Apacheログの"dd/Mon/yyyy:HH:MM:SS"を年月日時分秒の数値(YYYYMMDDHHMMSS)に変換して
 # 比較する。月ごとに1回だけdateを呼べば済むよう、範囲の開始・終了だけ変換しておく。
 START_KEY=$(date -u -d "@$START_EPOCH" +%Y%m%d%H%M%S)
