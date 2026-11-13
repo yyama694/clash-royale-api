@@ -28,18 +28,15 @@ import java.util.stream.Stream;
  * 待たせない。後から公式に置かれれば、次の確認で公式の画像に戻る。
  *
  * 代わりの画像(`static/images/cards/`)はファンWiki(clashroyale.fandom.com)のカード画像を公式と同じ285x420に
- * 収めたもので、枠の光り方が公式と少し違う。公式の画像が出るようになったら、画像と対応表から消してよい。
+ * 収めたもので、枠の光り方が公式と少し違う。公式の画像が出るようになったら、画像と対応表から消してよい
+ * (上の4つは2026-11-13に公式の画像が揃ったので消した。新しい形が来たときのために仕組みは残す)。
  */
 @Service
 public class CardImageService {
 
     private static final Logger log = LoggerFactory.getLogger(CardImageService.class);
 
-    static final Map<FormIcon, String> SUBSTITUTES = Map.of(
-            new FormIcon("Electro Giant", CardForm.EVOLUTION), "/images/cards/electro-giant-evolution.png",
-            new FormIcon("Electro Wizard", CardForm.HERO), "/images/cards/electro-wizard-hero.png",
-            new FormIcon("Giant", CardForm.EVOLUTION), "/images/cards/giant-evolution.png",
-            new FormIcon("Mirror", CardForm.EVOLUTION), "/images/cards/mirror-evolution.png");
+    static final Map<FormIcon, String> SUBSTITUTES = Map.of();
 
     private static final Map<String, String> GROUND_ICONS = Map.of(
             "Spirit Empress", "/images/cards/spirit-empress-ground.png");

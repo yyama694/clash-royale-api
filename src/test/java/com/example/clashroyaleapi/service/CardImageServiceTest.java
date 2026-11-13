@@ -74,7 +74,6 @@ class CardImageServiceTest {
 
     @Test
     void 代わりの画像はすべて置いてある() {
-        assertFalse(CardImageService.SUBSTITUTES.isEmpty());
         for (String path : CardImageService.SUBSTITUTES.values()) {
             assertNotNull(getClass().getResource("/static" + path), path);
         }
