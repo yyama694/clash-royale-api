@@ -214,14 +214,17 @@ grep -vE '[?&]e=' /tmp/access-check-beacon.log > /tmp/access-check-beacon-pages.
 mv /tmp/access-check-beacon-pages.log /tmp/access-check-beacon.log
 # 計算を解くボット(2026-11-13 17時から)は、確かめ用のページの計算を解いてビーコンまで送る。UAは「X11; Linux x86_64」の
 # Chromeで、住宅・携帯回線のIPを数ページごとに替えるため、逆引きやデータセンター判定では外れない。
-# POST /human-checkをしたこのUAの送り元のビーコンを、実訪問・PV・画面別から外して別に数える
-# (人のLinuxのパソコンは1日0〜1人なので巻き込みは小さい)。外さないと11/13は実訪問が9千人超になり、逆引きにも時間がかかった。
-awk -F'"' '$2 ~ /^POST \/human-check/ && $6 ~ /X11; Linux x86_64/ && $6 ~ /Chrome\// {split($1, a, " "); print a[1]}' \
+# このUAのビーコンを、実訪問・PV・画面別から外して別に数える(人のLinuxのパソコンは1日0〜1人なので巻き込みは小さい)。
+# 外さないと11/13は実訪問が9千人超になり、逆引きにも時間がかかった。
+# 最初は「その日にPOST /human-checkをした送り元」で外したが、同じボットは確かめ用のページの無いカード詳細なども巡回し、
+# そのIPが/human-checkを送るのは日付が変わった後のこともあって約45 IPが漏れたので、ビーコンのUAで外す(2026-11-16)。
+awk -F'"' '$2 ~ /^POST \/human-check/ && $6 ~ /X11; Linux x86_64\)/ && $6 ~ /Chrome\// {split($1, a, " "); print a[1]}' \
     /tmp/access-check-window.log | sort -u > /tmp/access-check-solver-ips.txt
-awk 'NR == FNR {s[$1]; next} ($1 in s)' /tmp/access-check-solver-ips.txt /tmp/access-check-beacon.log > /tmp/access-check-solver-beacon.log || true
-awk 'NR == FNR {s[$1]; next} !($1 in s)' /tmp/access-check-solver-ips.txt /tmp/access-check-beacon.log > /tmp/access-check-beacon-human.log || true
+is_solver='$6 ~ /X11; Linux x86_64\)/ && $6 ~ /Chrome\//'
+awk -F'"' "$is_solver" /tmp/access-check-beacon.log > /tmp/access-check-solver-beacon.log || true
+awk -F'"' "!($is_solver)" /tmp/access-check-beacon.log > /tmp/access-check-beacon-human.log || true
 mv /tmp/access-check-beacon-human.log /tmp/access-check-beacon.log
-awk 'NR == FNR {s[$1]; next} !($1 in s)' /tmp/access-check-solver-ips.txt /tmp/access-check-quiz-events.log > /tmp/access-check-quiz-human.log || true
+awk -F'"' "!($is_solver)" /tmp/access-check-quiz-events.log > /tmp/access-check-quiz-human.log || true
 mv /tmp/access-check-quiz-human.log /tmp/access-check-quiz-events.log
 
 # 検索エンジンから来た訪問(2026-10-04追加、TODO.mdの「ページビュー向上」12)。検索対策の効果はこれで測る。
@@ -303,7 +306,7 @@ echo
 echo "== 実ブラウザ表示(ビーコン /beacon) =="
 # 除外後が0件でも「仕組みが動いていない」のか「本人の分しか無かった」のかを見分けられるよう、除外前の件数も出す。
 echo "除外前(ボットのUA・本人・既知ノイズ込み): $(wc -l < /tmp/access-check-beacon-all.log)件 / ユニーク$(awk '{print $1}' /tmp/access-check-beacon-all.log | sort -u | wc -l) IP"
-echo "解くボット(POST /human-checkをしたLinuxのChrome。下の件数・画面別・再訪から外した): ビーコン$(wc -l < /tmp/access-check-solver-beacon.log)件 / $(awk '{print $1}' /tmp/access-check-solver-beacon.log | sort -u | wc -l) IP(/human-checkの送り元 $(wc -l < /tmp/access-check-solver-ips.txt) IP)"
+echo "解くボット(ビーコンのUAがLinuxのChrome。下の件数・画面別・再訪から外した): ビーコン$(wc -l < /tmp/access-check-solver-beacon.log)件 / $(awk '{print $1}' /tmp/access-check-solver-beacon.log | sort -u | wc -l) IP(/human-checkの送り元 $(wc -l < /tmp/access-check-solver-ips.txt) IP)"
 : > /tmp/access-check-beacon-senders.txt
 if [ -s /tmp/access-check-beacon.log ]; then
     echo "件数: $(wc -l < /tmp/access-check-beacon.log)"
