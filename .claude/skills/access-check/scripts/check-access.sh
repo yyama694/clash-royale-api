@@ -456,14 +456,44 @@ echo
 # 再訪(前日以前にも来た人。2026-10-15追加)。目印は2つあり、どちらか一方でも当たれば再訪の候補とする。
 # - 目印: ビーコンの r=1。ブラウザが初めて来た日時を覚えていて、別の日の訪問なら付ける。IPが変わっても分かるが、
 #   Xアプリ内のブラウザとSafariのように保存領域が別になると分からない(iPhoneのSafariは7日使わないと消す)。
-# - 前の来訪: 同じIPから前日以前にビーコンが来ていた日。ログが残る約5週間分だけ見る。入口が変わっても
+# - 前の来訪: 同じIPから前日以前にビーコンが来ていた日。記録が残る約5週間分だけ見る。入口が変わっても
 #   同じ回線なら分かるが、携帯回線やVPNはIPが変わるので取りこぼす(9/29→9/30のドコモの人で実例あり)。
+# 前日以前のビーコンは、日次集計(clash-royale-access-stats.sh)がUTCの日ごとに残したファイルから読む。以前は
+# 約5週間分の全ログ(11月で約5GB)を毎回読み直していた(2026-11-16に変更)。範囲の開始を含むUTCの日は、
+# 日次集計(日本時間10:00)の前だとまだファイルが無いので、そのときだけその日の分をログから取る。
 echo
 echo "== 再訪(前日以前にも来た人) =="
 if [ -s /tmp/access-check-beacon.log ]; then
-    mapfile -t ALL_LOG_FILES < <(sudo find /var/log/httpd -maxdepth 1 -name 'access_log*' | sort)
-    sudo zcat -f "${ALL_LOG_FILES[@]}" | { LC_ALL=C grep -F '"POST /beacon' || true; } \
-      | { grep -viE "$BOT_REGEX" || true; } | { grep -vE "^($NOISE_REGEX) " || true; } \
+    BEACON_DIR=/var/log/clash-royale-api/beacons
+    FIRST_DAY=$(date -u -d "@$START_EPOCH" +%Y-%m-%d)
+    declare -A HAVE_DAY=()
+    PAST_FILES=()
+    while read -r f; do
+        d=${f##*/beacon-}; d=${d%.log}
+        if [[ ! "$d" > "$FIRST_DAY" ]]; then HAVE_DAY[$d]=1; PAST_FILES+=("$f"); fi
+    done < <(sudo find "$BEACON_DIR" -maxdepth 1 -name 'beacon-*.log' 2> /dev/null | sort)
+    FIRST_DAY_LOGS=()
+    if [ -z "${HAVE_DAY[$FIRST_DAY]:-}" ]; then
+        mapfile -t FIRST_DAY_LOGS < <(sudo find /var/log/httpd -maxdepth 1 -name 'access_log*' -newermt "@$(date -u -d "$FIRST_DAY" +%s)" | sort)
+    fi
+    if [ "${#PAST_FILES[@]}" -eq 0 ]; then
+        echo "(前日以前のビーコンの記録がまだ無い。日次集計がbeacons/に残していく)"
+    else
+        OLDEST_DAY=${PAST_FILES[0]##*/beacon-}; OLDEST_DAY=${OLDEST_DAY%.log}
+        MISSING=""
+        d_epoch=$(date -u -d "$OLDEST_DAY" +%s)
+        while d=$(date -u -d "@$d_epoch" +%Y-%m-%d); [[ "$d" < "$FIRST_DAY" ]]; do
+            [ -n "${HAVE_DAY[$d]:-}" ] || MISSING="$MISSING $d"
+            d_epoch=$((d_epoch + 86400))
+        done
+        echo "(前日以前のビーコンは、日次集計の記録 $OLDEST_DAY〜 から読んだ。日付はUTC$([ "${#FIRST_DAY_LOGS[@]}" -eq 0 ] || echo "。$FIRST_DAY はまだ記録が無いのでログから読んだ")$([ -z "$MISSING" ] || echo "。記録が無い日:$MISSING"))"
+    fi
+    {
+        [ "${#PAST_FILES[@]}" -eq 0 ] || sudo cat "${PAST_FILES[@]}"
+        if [ "${#FIRST_DAY_LOGS[@]}" -gt 0 ]; then
+            sudo zcat -f "${FIRST_DAY_LOGS[@]}" | { LC_ALL=C grep -F "[$DAY_FROM:" || true; } | { LC_ALL=C grep -F '"POST /beacon' || true; }
+        fi
+    } | { grep -viE "$BOT_REGEX" || true; } | { grep -vE "^($NOISE_REGEX) " || true; } \
       | awk -v start="$START_KEY" '
         BEGIN {
             split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec", months, " ");

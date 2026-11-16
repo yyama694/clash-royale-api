@@ -8,7 +8,7 @@
 `GoogleOther`(GoogleのUA。`Googlebot`という文字列を含まないため、それまでの`BOT_REGEX`では
 除外できていなかった)からのアクセスが、192.178.4.x台のIPから2026-09-21・22の2日間だけで
 1,600件超あり、「既知のノイズ除外後」の数字のほとんどを占めていた(2026-09-22時点)。
-`scripts/check-access.sh`と本番VMの`/usr/local/bin/clash-royale-access-stats.sh`双方の
+`scripts/check-access.sh`と本番VMの`/usr/local/bin/clash-royale-access-stats.sh`(正本は`scripts/clash-royale-access-stats.sh`)双方の
 `BOT_REGEX`に`GoogleOther`・`Google-Extended`を追加して修正済み。IPアドレス自体は
 Google側の割り当てで変わり得るため、`known_noise.md`にIPとして追記するのではなくUA文字列側で
 除外する方針とした。
@@ -103,7 +103,7 @@ Metaのクローラー(`meta-externalagent`、`57.141.16.x`台。逆引きなし
 判別は容易(2026-09-21、当日のアクセス数の大半(49件ずつ)を占めていた)。
 
 送信元IPが次々に変わるため、2026-09-29から`BOT_REGEX`に`libredtail`を加えてUAで除外している
-(`scripts/check-access.sh`と本番VMの`/usr/local/bin/clash-royale-access-stats.sh`の両方)。
+(`scripts/check-access.sh`と本番VMの`/usr/local/bin/clash-royale-access-stats.sh`(正本は`scripts/clash-royale-access-stats.sh`)の両方)。
 上のIPはその前に見つけたもので、残していても害はない。
 
 ## データセンター由来の一括除外(2026-09-22導入)
