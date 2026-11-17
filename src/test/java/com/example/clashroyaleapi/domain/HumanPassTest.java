@@ -93,6 +93,37 @@ class HumanPassTest {
     }
 
     @Test
+    void ボタン待ちの印は通行証としては使えず_押すと通行証に替わる() {
+        HumanPass humanPass = at(NOW);
+        String challenge = humanPass.challenge("203.0.113.10").orElseThrow();
+        String awaitingPress = humanPass.solveAwaitingPress("203.0.113.10", challenge, answer(challenge, DIFFICULTY)).orElseThrow();
+        assertTrue(humanPass.isAwaitingPress("203.0.113.250", awaitingPress));
+        assertFalse(humanPass.isValidPass("203.0.113.10", awaitingPress));
+        String pass = humanPass.press("203.0.113.250", awaitingPress).orElseThrow();
+        assertTrue(humanPass.isValidPass("203.0.113.10", pass));
+        // 通行証や問題を、ボタン待ちの印の代わりには使えない。
+        assertEquals(Optional.empty(), humanPass.press("203.0.113.10", pass));
+        assertEquals(Optional.empty(), humanPass.press("203.0.113.10", challenge));
+        assertEquals(Optional.empty(), humanPass.press("203.0.113.10", null));
+    }
+
+    @Test
+    void ボタン待ちの印は10分で切れ_別のIPの範囲では押せない() {
+        String challenge = at(NOW).challenge("203.0.113.10").orElseThrow();
+        String awaitingPress = at(NOW).solveAwaitingPress("203.0.113.10", challenge, answer(challenge, DIFFICULTY)).orElseThrow();
+        assertTrue(at(NOW.plus(Duration.ofMinutes(10))).press("203.0.113.10", awaitingPress).isPresent());
+        assertFalse(at(NOW.plus(Duration.ofMinutes(10)).plusSeconds(1)).press("203.0.113.10", awaitingPress).isPresent());
+        assertFalse(at(NOW).press("198.51.100.10", awaitingPress).isPresent());
+    }
+
+    @Test
+    void 答えが条件を満たさなければボタン待ちの印も出さない() {
+        HumanPass humanPass = at(NOW);
+        String challenge = humanPass.challenge("203.0.113.10").orElseThrow();
+        assertEquals(Optional.empty(), humanPass.solveAwaitingPress("203.0.113.10", challenge, wrongAnswer(challenge)));
+    }
+
+    @Test
     void 問題そのものは通行証として使えない() {
         String challenge = at(NOW).challenge("203.0.113.10").orElseThrow();
         // 問題の時刻(NOW)がまだ来ていない時点なら期限の条件は満たすが、署名の種類が違うので通らない。

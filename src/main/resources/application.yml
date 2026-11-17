@@ -86,6 +86,7 @@ human-check:
   enabled: ${HUMAN_CHECK_ENABLED:true}
   exempt-mobile: ${HUMAN_CHECK_EXEMPT_MOBILE:true}
   difficulty: ${HUMAN_CHECK_DIFFICULTY:10}
+  button: ${HUMAN_CHECK_BUTTON:true}
 
 clashroyale:
   api:

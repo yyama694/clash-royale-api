@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="__LANG__"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Princess Tower</title>
+<style>
+:root{color-scheme:light dark}
+body{font-family:system-ui,sans-serif;margin:2em;color:#1f2430;background:#eef1f8}
+button{font:inherit;font-weight:600;padding:.7em 1.6em;border:0;border-radius:12px;background:#2b4bd1;color:#fff;cursor:pointer}
+button:hover{background:#223a9e}
+button:disabled{opacity:.6;cursor:default}
+@media (prefers-color-scheme:dark){body{color:#e7eaf2;background:#161a23}button{background:#3451c7}}
+</style></head>
+<body>
+<p><strong>Princess Tower</strong></p>
+<div id="a"><p>{{humanCheck.prompt}}</p><p><button id="b" type="button">{{humanCheck.button}}</button></p></div>
+<p id="m" hidden>{{humanCheck.failed}}</p>
+<script>
+(function () {
+    var shown = performance.now(), button = document.getElementById("b");
+    button.addEventListener("click", async function (event) {
+        // 人の操作かを確かめるためのボタンなので、スクリプトが起こしたクリックでは進めない。
+        if (!event.isTrusted) return;
+        button.disabled = true;
+        try {
+            var waited = Math.min(Math.round(performance.now() - shown), 9999999);
+            var res = await fetch("/human-check/press?d=" + waited, {method: "POST"});
+            // 400は「ボタン待ち」の期限切れ(10分)や回線の切り替わり。読み直すと、最初の確かめからやり直しになる。
+            if (res.ok || res.status === 400) {
+                location.reload();
+                return;
+            }
+        } catch (e) {}
+        document.getElementById("a").hidden = true;
+        document.getElementById("m").hidden = false;
+    });
+    button.focus();
+})();
+</script>
+</body></html>

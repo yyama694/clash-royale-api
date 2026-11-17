@@ -9,6 +9,7 @@ import com.example.clashroyaleapi.web.SupportedLanguages;
 import com.example.clashroyaleapi.web.WebConstants;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.i18n.LocaleContext;
@@ -30,6 +31,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -51,9 +53,13 @@ public class WebConfig implements WebMvcConfigurer {
     private final GlobalModelAttributes modelAttributes;
     private final HumanCheckProperties humanCheckProperties;
 
-    public WebConfig(GlobalModelAttributes modelAttributes, HumanCheckProperties humanCheckProperties) {
+    private final MessageSource messageSource;
+
+    public WebConfig(GlobalModelAttributes modelAttributes, HumanCheckProperties humanCheckProperties,
+            MessageSource messageSource) {
         this.modelAttributes = modelAttributes;
         this.humanCheckProperties = humanCheckProperties;
+        this.messageSource = messageSource;
     }
 
     /** 署名の鍵は起動ごとに作る。保存しないので、再起動すると全員が1回だけ確かめ直しになる。 */
@@ -104,15 +110,19 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // ボットのリクエストに余計な処理をさせないよう、ほかより先に確かめる。
         if (humanCheckProperties.enabled()) {
-            registry.addInterceptor(new HumanCheckInterceptor(humanPass(), humanCheckProperties.exemptMobile(), humanCheckPage()))
+            Map<String, String> buttonPages = humanCheckProperties.button()
+                    ? HumanCheckInterceptor.buttonPages(humanCheckResource("button.html"), messageSource)
+                    : Map.of();
+            registry.addInterceptor(new HumanCheckInterceptor(humanPass(), humanCheckProperties.exemptMobile(),
+                            humanCheckResource("page.html"), buttonPages))
                     .addPathPatterns(HUMAN_CHECK_PATHS);
         }
         registry.addInterceptor(new LanguageInterceptor(localeResolver(), modelAttributes));
-        registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**", "/me/**", "/human-check");
+        registry.addInterceptor(new CrossSiteRequestGuard()).addPathPatterns("/favorites/**", "/me/**", "/human-check", "/human-check/press");
     }
 
-    private static String humanCheckPage() {
-        try (InputStream in = new ClassPathResource("human-check/page.html").getInputStream()) {
+    private static String humanCheckResource(String name) {
+        try (InputStream in = new ClassPathResource("human-check/" + name).getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

@@ -7,6 +7,7 @@ import com.example.clashroyaleapi.config.WebConfig;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -24,7 +25,7 @@ class LanguageInterceptorTest {
 
     private final GlobalModelAttributes modelAttributes =
             new GlobalModelAttributes(new PlayerIndexProperties("data", false));
-    private final LocaleResolver localeResolver = new WebConfig(modelAttributes, new HumanCheckProperties(true, true, 10)).localeResolver();
+    private final LocaleResolver localeResolver = new WebConfig(modelAttributes, new HumanCheckProperties(true, true, 10, true), new StaticMessageSource()).localeResolver();
     private final LanguageInterceptor interceptor = new LanguageInterceptor(localeResolver, modelAttributes);
 
     @Test

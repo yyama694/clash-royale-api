@@ -3,6 +3,7 @@ package com.example.clashroyaleapi.web;
 import com.example.clashroyaleapi.domain.HumanPass;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -11,6 +12,8 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,8 +28,9 @@ class HumanCheckInterceptorTest {
     private static final HumanPass HUMAN_PASS = new HumanPass("0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.US_ASCII),
             4, Clock.fixed(Instant.parse("2026-11-12T12:00:00Z"), ZoneOffset.UTC));
     private static final String PAGE = "<p>__CHALLENGE__ / __DIFFICULTY__</p>";
+    private static final Map<String, String> BUTTON_PAGES = Map.of("en", "<button>Open</button>", "ja", "<button>表示</button>");
 
-    private final HumanCheckInterceptor interceptor = new HumanCheckInterceptor(HUMAN_PASS, true, PAGE);
+    private final HumanCheckInterceptor interceptor = new HumanCheckInterceptor(HUMAN_PASS, true, PAGE, BUTTON_PAGES);
 
     private static MockHttpServletRequest get(String userAgent, String ip) {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/player/2VG8GV9UV");
@@ -38,11 +42,15 @@ class HumanCheckInterceptorTest {
     }
 
     private static String passFor(String ip) throws Exception {
+        return HUMAN_PASS.press(ip, awaitingPressFor(ip)).orElseThrow();
+    }
+
+    private static String awaitingPressFor(String ip) throws Exception {
         String challenge = HUMAN_PASS.challenge(ip).orElseThrow();
         for (int a = 0; ; a++) {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest((challenge + ":" + a).getBytes(StandardCharsets.UTF_8));
             if ((digest[0] & 0xf0) == 0) {
-                return HUMAN_PASS.solve(ip, challenge, Integer.toString(a)).orElseThrow();
+                return HUMAN_PASS.solveAwaitingPress(ip, challenge, Integer.toString(a)).orElseThrow();
             }
         }
     }
@@ -74,6 +82,60 @@ class HumanCheckInterceptorTest {
     }
 
     @Test
+    void 計算を解いただけの閲覧者には_その人の言語のボタンのページを返す() throws Exception {
+        Cookie awaitingPress = new Cookie(HumanCheckInterceptor.COOKIE, awaitingPressFor("203.0.113.10"));
+        MockHttpServletRequest japanese = get(CHROME, "203.0.113.10");
+        japanese.setCookies(awaitingPress);
+        japanese.addPreferredLocale(Locale.JAPANESE);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(japanese, response, null));
+        assertEquals(403, response.getStatus());
+        assertEquals("no-store", response.getHeader("Cache-Control"));
+        assertEquals("<button>表示</button>", response.getContentAsString());
+
+        // ページを用意していない言語には英語のページを返す。
+        MockHttpServletRequest thai = get(CHROME, "203.0.113.10");
+        thai.setCookies(awaitingPress);
+        thai.addPreferredLocale(Locale.forLanguageTag("th"));
+        MockHttpServletResponse english = new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(thai, english, null));
+        assertEquals("<button>Open</button>", english.getContentAsString());
+    }
+
+    @Test
+    void ボタン待ちの印は別のIPの範囲では使えず_最初の確かめに戻る() throws Exception {
+        MockHttpServletRequest other = get(CHROME, "198.51.100.77");
+        other.setCookies(new Cookie(HumanCheckInterceptor.COOKIE, awaitingPressFor("203.0.113.10")));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        assertFalse(interceptor.preHandle(other, response, null));
+        assertTrue(response.getContentAsString().startsWith("<p>"), response.getContentAsString());
+    }
+
+    @Test
+    void ボタンの段を置かないときは_ボタン待ちの印があっても最初の確かめを返す() throws Exception {
+        HumanCheckInterceptor withoutButton = new HumanCheckInterceptor(HUMAN_PASS, true, PAGE, Map.of());
+        MockHttpServletRequest request = get(CHROME, "203.0.113.10");
+        request.setCookies(new Cookie(HumanCheckInterceptor.COOKIE, awaitingPressFor("203.0.113.10")));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        assertFalse(withoutButton.preHandle(request, response, null));
+        assertTrue(response.getContentAsString().startsWith("<p>"), response.getContentAsString());
+    }
+
+    @Test
+    void ボタンのページは対応言語ごとに文言を入れて作る() {
+        StaticMessageSource messages = new StaticMessageSource();
+        for (Locale locale : SupportedLanguages.SUPPORTED) {
+            messages.addMessage("humanCheck.button", locale, "<" + locale.getLanguage() + "> & go");
+        }
+        Map<String, String> pages = HumanCheckInterceptor.buttonPages(
+                "<html lang=__LANG__><button>{{humanCheck.button}}</button>", messages);
+        assertEquals(SupportedLanguages.languageCodes().size(), pages.size());
+        // 文言はHTMLとして解釈されないようにする。
+        assertEquals("<html lang=ja><button>&lt;ja&gt; &amp; go</button>", pages.get("ja"));
+        assertEquals("<html lang=ko><button>&lt;ko&gt; &amp; go</button>", pages.get("ko"));
+    }
+
+    @Test
     void 名乗っているクローラーと自分たちのツールは通す() throws Exception {
         for (String ua : new String[] {
                 "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
@@ -91,7 +153,7 @@ class HumanCheckInterceptorTest {
     @Test
     void スマホは設定で対象外にできる() throws Exception {
         assertTrue(interceptor.preHandle(get(IPHONE, "203.0.113.10"), new MockHttpServletResponse(), null));
-        HumanCheckInterceptor strict = new HumanCheckInterceptor(HUMAN_PASS, false, PAGE);
+        HumanCheckInterceptor strict = new HumanCheckInterceptor(HUMAN_PASS, false, PAGE, BUTTON_PAGES);
         assertFalse(strict.preHandle(get(IPHONE, "203.0.113.10"), new MockHttpServletResponse(), null));
     }
 

@@ -22,12 +22,14 @@ import java.util.regex.Pattern;
  * 真似もIPをまたいだ使い回しもできないようにする。通行証は、確かめ用のページのJSが小さな計算
  * (SHA-256の先頭が{@code difficulty}ビット0になる答えを探す)を解いたときだけ出す。
  *
- * 値の形はどちらも「発行時刻または期限(エポック秒).署名」。鍵は起動ごとに作り直すので、
+ * 値の形はどれも「発行時刻または期限(エポック秒).署名」で、署名に種類(問題・ボタン待ち・通行証)を入れてあるので、
+ * 互いに代わりには使えない。鍵は起動ごとに作り直すので、
  * 再起動すると全員が1回だけ確かめ直しになる(鍵を保存する場所を持たないため)。
  */
 public final class HumanPass {
 
     static final Duration CHALLENGE_TTL = Duration.ofMinutes(10);
+    public static final Duration PRESS_TTL = Duration.ofMinutes(10);
     public static final Duration PASS_TTL = Duration.ofDays(30);
     private static final Pattern IPV4 = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3}");
     private static final Pattern IPV6_CHARS = Pattern.compile("[0-9A-Fa-f:.]+");
@@ -54,17 +56,43 @@ public final class HumanPass {
 
     /** 問題が本物・期限内・同じIPの範囲で、答えが条件を満たしていれば、通行証を返す。 */
     public Optional<String> solve(String ip, String challenge, String answer) {
-        if (answer == null || answer.isEmpty() || answer.length() > 20
-                || !valid("c", ip, challenge, CHALLENGE_TTL.toSeconds(), true)
-                || leadingZeroBits(sha256(challenge + ":" + answer)) < difficulty) {
+        return solved(ip, challenge, answer) ? Optional.of(pass(ip)) : Optional.empty();
+    }
+
+    /**
+     * 問題を解いた閲覧者に、通行証の代わりに「ボタン待ち」の印を返す(2026-11-17)。計算を解くボットが現れたため、
+     * 解いた後に人の操作(ボタン)を1回はさむ。印は発行したIPの範囲でだけ、{@link #PRESS_TTL}の間有効。
+     */
+    public Optional<String> solveAwaitingPress(String ip, String challenge, String answer) {
+        if (!solved(ip, challenge, answer)) {
             return Optional.empty();
         }
-        long expiresAt = clock.instant().plus(PASS_TTL).getEpochSecond();
-        return Optional.of(expiresAt + "." + sign("p", ip, expiresAt));
+        long issuedAt = clock.instant().getEpochSecond();
+        return Optional.of(issuedAt + "." + sign("s", ip, issuedAt));
+    }
+
+    public boolean isAwaitingPress(String ip, String value) {
+        return valid("s", ip, value, PRESS_TTL.toSeconds(), true);
+    }
+
+    /** 「ボタン待ち」の印が本物・期限内・同じIPの範囲なら、通行証を返す。 */
+    public Optional<String> press(String ip, String awaitingPress) {
+        return isAwaitingPress(ip, awaitingPress) ? Optional.of(pass(ip)) : Optional.empty();
     }
 
     public boolean isValidPass(String ip, String pass) {
         return valid("p", ip, pass, 0, false);
+    }
+
+    private boolean solved(String ip, String challenge, String answer) {
+        return answer != null && !answer.isEmpty() && answer.length() <= 20
+                && valid("c", ip, challenge, CHALLENGE_TTL.toSeconds(), true)
+                && leadingZeroBits(sha256(challenge + ":" + answer)) >= difficulty;
+    }
+
+    private String pass(String ip) {
+        long expiresAt = clock.instant().plus(PASS_TTL).getEpochSecond();
+        return expiresAt + "." + sign("p", ip, expiresAt);
     }
 
     // 問題は「発行時刻から ttl 秒以内」、通行証は「期限より前」を有効とする。
