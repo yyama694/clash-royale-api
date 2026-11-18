@@ -37,6 +37,7 @@ $VmConfigPaths  = 'etc/systemd/system/clash-royale-api.service etc/systemd/journ
                   'etc/httpd/conf.d/princess-tower-proxy.conf etc/httpd/conf.d/princess-tower-proxy-le-ssl.conf ' +
                   'etc/httpd/conf.d/block-scrapers.conf var/www/princess-tower/server-unavailable.html ' +
                   'etc/logrotate.d/httpd etc/firewalld/zones ' +
+                  'etc/sysconfig/sysstat etc/systemd/system/sysstat-collect.timer.d ' +
                   'etc/cron.d/clash-royale-access-stats etc/cron.d/clash-royale-daily-backup ' +
                   'usr/local/bin/clash-royale-access-stats.sh usr/local/bin/clash-royale-daily-backup.sh ' +
                   'var/log/clash-royale-api/daily-access-stats.log'
