@@ -4,16 +4,26 @@ import com.example.clashroyaleapi.domain.PlayerNameMatch;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.scheduling.support.CronExpression;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -179,6 +189,151 @@ class PlayerIndexCompactorTest {
         assertEquals(List.of("#AAA"), tagsFound("josefina"));
         assertEquals(Integer.toString(PlayerNameIndex.NORMALIZATION_VERSION),
                 Files.readString(dir.resolve("by-name.version"), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void 流す形は全行をメモリに載せる従来の方法と同じ結果になる() throws IOException {
+        for (long seed = 1; seed <= 300; seed++) {
+            Random random = new Random(seed);
+            Map<String, String> baseNames = new TreeMap<>();
+            List<String> base = randomBase(random, baseNames);
+            List<String> updates = randomUpdates(random, baseNames);
+            boolean baseExists = seed % 10 != 0;
+            boolean withDiffs = seed % 5 != 0;
+            Path inMemory = prepare("m" + seed, baseExists ? base : null, updates);
+            Path streamed = prepare("s" + seed, baseExists ? base : null, updates);
+            StringWriter inMemoryDiffs = withDiffs ? new StringWriter() : null;
+            StringWriter streamedDiffs = withDiffs ? new StringWriter() : null;
+
+            int expectedRows = PlayerIndexCompactor.mergeInMemory(inMemory.resolve("0001.tsv"),
+                    inMemory.resolve("split.tsv"), inMemoryDiffs);
+            int rows = PlayerIndexCompactor.mergeSorted(streamed.resolve("0001.tsv"),
+                    streamed.resolve("split.tsv"), streamedDiffs);
+
+            String message = "seed=" + seed;
+            assertEquals(expectedRows, rows, message);
+            assertEquals(Files.readString(inMemory.resolve("0001.tsv"), StandardCharsets.UTF_8),
+                    Files.readString(streamed.resolve("0001.tsv"), StandardCharsets.UTF_8), message);
+            if (withDiffs) {
+                assertEquals(sortedLines(inMemoryDiffs), sortedLines(streamedDiffs), message);
+            }
+            assertFalse(Files.exists(streamed.resolve("0001.tsv.tmp")), message);
+        }
+    }
+
+    @Test
+    void 元のファイルがタグ順でなければ流す形は何も置き換えず_従来の方法に切り替えて同じ結果になる() throws IOException {
+        // 想定外の状態: 降順に並び、同じタグが重なっている。従来の方法は、重なった行は後の行を残して並べ直す。
+        List<String> base = List.of("#B\tb\t2026-11-10T00:00:00Z", "#A\ta\t2026-11-10T00:00:00Z",
+                "#A\ta2\t2026-11-11T00:00:00Z", "#C\tc\t2026-11-10T00:00:00Z");
+        List<String> updates = List.of("#A\tnew\t2026-11-12T00:00:00Z", "#D\td\t2026-11-12T00:00:00Z");
+        Path inMemory = prepare("m", base, updates);
+        Path refused = prepare("r", base, updates);
+        Path switched = prepare("s", base, updates);
+        StringWriter inMemoryDiffs = new StringWriter();
+        StringWriter switchedDiffs = new StringWriter();
+
+        PlayerIndexCompactor.mergeInMemory(inMemory.resolve("0001.tsv"), inMemory.resolve("split.tsv"), inMemoryDiffs);
+        int refusedRows = PlayerIndexCompactor.mergeSorted(refused.resolve("0001.tsv"), refused.resolve("split.tsv"),
+                new StringWriter());
+        int switchedRows = PlayerIndexCompactor.mergeShard(switched.resolve("0001.tsv"), switched.resolve("split.tsv"),
+                switchedDiffs);
+
+        assertEquals(PlayerIndexCompactor.NOT_SORTED, refusedRows);
+        assertEquals(Files.readAllLines(refused.resolve("0001.tsv"), StandardCharsets.UTF_8), base);
+        assertFalse(Files.exists(refused.resolve("0001.tsv.tmp")));
+        assertEquals(Files.readString(inMemory.resolve("0001.tsv"), StandardCharsets.UTF_8),
+                Files.readString(switched.resolve("0001.tsv"), StandardCharsets.UTF_8));
+        assertEquals(List.of("#A\tnew\t2026-11-12T00:00:00Z", "#B\tb\t2026-11-10T00:00:00Z",
+                "#C\tc\t2026-11-10T00:00:00Z", "#D\td\t2026-11-12T00:00:00Z"),
+                Files.readAllLines(switched.resolve("0001.tsv"), StandardCharsets.UTF_8));
+        assertEquals(4, switchedRows);
+        assertEquals(sortedLines(inMemoryDiffs), sortedLines(switchedDiffs));
+    }
+
+    @Test
+    void 既定の実行時刻はUTCの1時台から3時間ごとの5分() throws IOException {
+        String yml = new String(new ClassPathResource("application.yml").getInputStream().readAllBytes(),
+                StandardCharsets.UTF_8);
+        Matcher matcher = Pattern.compile("compact-cron: \\$\\{PLAYER_INDEX_COMPACT_CRON:([^}]+)}").matcher(yml);
+        assertTrue(matcher.find());
+        CronExpression cron = CronExpression.parse(matcher.group(1));
+
+        List<String> times = new ArrayList<>();
+        ZonedDateTime time = ZonedDateTime.parse("2026-11-19T10:17:28Z");
+        for (int i = 0; i < 8; i++) {
+            time = cron.next(time);
+            times.add(time.toInstant().toString());
+        }
+
+        assertEquals(List.of("2026-11-19T13:05:00Z", "2026-11-19T16:05:00Z", "2026-11-19T19:05:00Z",
+                "2026-11-19T22:05:00Z", "2026-11-20T01:05:00Z", "2026-11-20T04:05:00Z", "2026-11-20T07:05:00Z",
+                "2026-11-20T10:05:00Z"), times);
+    }
+
+    private static final String[] TAG_CHARS = {"0", "2", "8", "9", "P", "Y", "L", "Q", "G", "R", "J", "C", "U", "V"};
+    private static final String[] NAMES = {"Alice", "alice", "José", "ゆうき", "😀Smile", "A B", "<c3>OLD　NAME", "",
+            "Ünal", "Kılıç"};
+    // 同じ確認日時(新旧が決まらない)と、空の確認日時も混ぜる。
+    private static final String[] TIMES = {"2026-11-10T00:00:00Z", "2026-11-10T00:00:01Z", "2026-11-11T12:00:00Z",
+            "2026-11-12T00:00:00Z", "2026-11-13T09:30:00Z", ""};
+    // 3列でない行・タグが空の行は、どちらの方法でも捨てられる。
+    private static final String[] BROKEN = {"", "garbage", "#X\tonly-two", "#Y\ta\tb\tc", "\tname\t2026-11-10T00:00:00Z"};
+
+    private static String randomTag(Random random) {
+        StringBuilder tag = new StringBuilder("#");
+        for (int i = 0; i < 3; i++) {
+            tag.append(TAG_CHARS[random.nextInt(TAG_CHARS.length)]);
+        }
+        return tag.toString();
+    }
+
+    // タグ順の元のファイルの行(壊れた行をところどころに挟む)。baseNamesにタグと名前を入れる。
+    private static List<String> randomBase(Random random, Map<String, String> baseNames) {
+        int size = random.nextInt(400);
+        while (baseNames.size() < size) {
+            baseNames.put(randomTag(random), NAMES[random.nextInt(NAMES.length)]);
+        }
+        List<String> lines = new ArrayList<>();
+        for (Map.Entry<String, String> entry : baseNames.entrySet()) {
+            lines.add(entry.getKey() + "\t" + entry.getValue() + "\t" + TIMES[random.nextInt(TIMES.length)]);
+            if (random.nextInt(20) == 0) {
+                lines.add(BROKEN[random.nextInt(BROKEN.length)]);
+            }
+        }
+        return lines;
+    }
+
+    // 振り分けたinboxの行。元にあるタグ(同じ名前・別の名前)と新しいタグを混ぜ、同じタグが何度も出る。
+    private static List<String> randomUpdates(Random random, Map<String, String> baseNames) {
+        List<String> baseTags = new ArrayList<>(baseNames.keySet());
+        List<String> lines = new ArrayList<>();
+        int size = random.nextInt(300);
+        for (int i = 0; i < size; i++) {
+            if (random.nextInt(25) == 0) {
+                lines.add(BROKEN[random.nextInt(BROKEN.length)]);
+                continue;
+            }
+            boolean existing = !baseTags.isEmpty() && random.nextBoolean();
+            String tag = existing ? baseTags.get(random.nextInt(baseTags.size())) : randomTag(random);
+            String name = existing && random.nextInt(5) < 2 ? baseNames.get(tag) : NAMES[random.nextInt(NAMES.length)];
+            lines.add(tag + "\t" + name + "\t" + TIMES[random.nextInt(TIMES.length)]);
+        }
+        return lines;
+    }
+
+    // 元のファイル(baseがnullなら作らない)と、振り分けた行を、新しいフォルダに置く。
+    private Path prepare(String name, List<String> base, List<String> updates) throws IOException {
+        Path folder = Files.createDirectories(dir.resolve(name));
+        if (base != null) {
+            Files.write(folder.resolve("0001.tsv"), base, StandardCharsets.UTF_8);
+        }
+        Files.write(folder.resolve("split.tsv"), updates, StandardCharsets.UTF_8);
+        return folder;
+    }
+
+    private static List<String> sortedLines(StringWriter diffs) {
+        return diffs.toString().lines().sorted().toList();
     }
 
     private List<String> tagsFound(String name) {
