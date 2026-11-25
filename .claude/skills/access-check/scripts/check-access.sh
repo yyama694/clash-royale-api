@@ -159,7 +159,7 @@ echo "-- MacのChromeを名乗る/player/・/clan/のGETのうち、アプリま
 grep -E '"GET /(player|clan)/' /tmp/access-check-window.log | awk -F'"' '
 $6 ~ /Macintosh; Intel Mac OS X 10_15_7.*Chrome\// && $6 !~ /Edg\/|OPR\// {
     split($1, a, " "); ip = a[1]; split($2, r, " "); path = r[2]; split($3, s, " ");
-    if (s[1] == 200 && s[2] >= 600 && s[2] <= 900) { ch[ip, path]; chip[ip]; next }
+    if (s[1] == 403 && s[2] >= 1300 && s[2] <= 2000) { ch[ip, path]; chip[ip]; next }
     app++; if (!(ip in appip)) { appip[ip]; appips++ }
     if ((ip, path) in ch) reload++; else if (ip in chip) otherurl++;
     ref = $4; if (ref == "-") rk = "Refererなし"; else { sub(/^https?:\/\//, "", ref); sub(/[\/?].*/, "", ref); rk = "Referer: " ref }
@@ -173,7 +173,7 @@ END {
 }'
 echo "-- 確かめ用のページを受けた送信元(件数の多い/16。件数 / IP数) --"
 awk -F'"' '$6 ~ /Macintosh; Intel Mac OS X 10_15_7.*Chrome\// && $2 ~ /^GET \/(player|clan)\// {
-    split($3, s, " "); if (s[1] != 200 || s[2] < 600 || s[2] > 900) next;
+    split($3, s, " "); if (s[1] != 403 || s[2] < 1300 || s[2] > 2000) next;
     split($1, a, " "); ip = a[1];
     if (ip ~ /:/) { split(ip, o, ":"); p = o[1] ":" o[2] "::/32" } else { split(ip, o, "."); p = o[1] "." o[2] ".0.0/16" }
     c[p]++; if (!((p, ip) in u)) { u[p, ip]; ui[p]++ }; tot++; if (!(ip in all)) { all[ip]; alln++ }
@@ -182,6 +182,53 @@ END { printf "  合計 %d件 / %d IP\n", tot, alln; for (p in c) printf "  %8d %
 echo "-- VMの負荷(実行した時点) --"
 uptime
 vmstat 5 2 | tail -1 | awk '{print "CPU: user " $13 "% / system " $14 "% / idle " $15 "% / iowait " $16 "%(5秒間)"}'
+
+# 害悪ボットの動きを毎回の報告に載せる(2026-11-25にユーザーが依頼)。11/24に手で数えた項目(1.258)をそのまま出す。
+# 応答の大きさで見分ける: 確かめ用のページ(計算)は約1,380バイト、ボタンのページは1,949バイト(どちらもアプリの403)、
+# ApacheのUA拒否(block-scrapers.conf。Lightpandaなど)は199バイトの403。ページを直して大きさが変わったらここも直す。
+echo
+echo "== 害悪ボットの動き =="
+echo "-- 名前で見分けている害悪ボット(件数 / IP数 / うち403) --"
+awk -F'"' 'match($6, /Lightpanda|WebSiphon|ClashGegnerfenster/) { k = substr($6, RSTART, RLENGTH); split($1, a, " "); split($3, s, " ");
+        n[k]++; if (s[1] == 403) d[k]++; if (!((k, a[1]) in u)) { u[k, a[1]]; ip[k]++ } }
+    END { if (length(n) == 0) print "  (なし)"; for (k in n) printf "  %9d %8d %9d  %s\n", n[k], ip[k], d[k], k }' /tmp/access-check-window.log | sort -rn
+echo "-- /player/・/clan/のGETへの応答(ブラウザを名乗るもの。名乗っているクローラーは確かめ用のページの対象外なので除く。件数 / IP数) --"
+awk -F'"' '$2 ~ /^GET \/(player|clan)\// && $6 !~ /Lightpanda|WebSiphon|ClashGegnerfenster/ { split($3, s, " "); split($1, a, " ");
+        if (s[1] == 403 && s[2] >= 1300 && s[2] <= 1500) k = "確かめ用のページ(計算)で止めた";
+        else if (s[1] == 403 && s[2] >= 1900 && s[2] <= 2000) k = "ボタンのページで止めた";
+        else if (s[1] == 403) k = "その他の403";
+        else if (s[1] == 200) k = "アプリの画面を返した(200)";
+        else k = "その他(" s[1] ")";
+        n[k]++; if (!((k, a[1]) in u)) { u[k, a[1]]; ip[k]++ } }
+    END { for (k in n) printf "  %9d %8d  %s\n", n[k], ip[k], k }' /tmp/access-check-browser.log | sort -rn
+echo "-- 確かめ用のページ(計算)で止めた件数の時間別(日本時間) --"
+awk -F'"' '$2 ~ /^GET \/(player|clan)\// { split($3, s, " "); if (s[1] != 403 || s[2] < 1300 || s[2] > 1500) next;
+        if (match($1, /:([0-9]{2}):[0-9]{2}:[0-9]{2} /, m)) c[(m[1] + 9) % 24]++ }
+    END { line = ""; for (h = 0; h < 24; h++) if (h in c) line = line sprintf(" %02d時=%d", h, c[h]); print " " line }' /tmp/access-check-browser.log
+echo "-- ボタンの段: 計算を解いた(POST /human-checkで204。UAの種類別の件数 / IP数) --"
+awk -F'"' "$KIND_FN"'
+$2 ~ /^POST \/human-check HTTP/ { split($3, s, " "); if (s[1] != 204) next; split($1, a, " "); k = kind($6);
+    n[k]++; tot++; if (!((k, a[1]) in u)) { u[k, a[1]]; ip[k]++ } if (!(a[1] in all)) { all[a[1]]; alln++ } }
+END { printf "  合計 %d件 / %d IP\n", tot, alln; for (k in n) printf "  %9d %8d  %s\n", n[k], ip[k], k | "sort -rn"; close("sort -rn") }' /tmp/access-check-window.log
+echo "-- ボタンの段: 押した(POST /human-check/pressで204。押すまでの秒数。人は1秒〜数十秒にばらける) --"
+awk -F'"' "$KIND_FN"'
+$2 ~ /^POST \/human-check\/press\?d=/ { split($3, s, " "); if (s[1] != 204) next; split($1, a, " "); split($2, r, " ");
+    dv = r[2]; sub(/.*[?&]d=/, "", dv); sub(/&.*/, "", dv);
+    tot++; if (!(a[1] in all)) { all[a[1]]; alln++ } list = list sprintf(" %.1f秒(%s)", dv / 1000, kind($6)) }
+END { printf "  %d件 / %d IP\n", tot, alln; if (tot > 0 && tot <= 30) print " " list; else if (tot > 30) print "  (30件を超えたので明細は省略。自動で押されている疑い)" }' /tmp/access-check-window.log
+# CPUは1分ごとのsarの記録から、範囲の平均と張り付いていた分数を出す(実行した時点の値だけでは1日の様子が分からないため)。
+echo "-- VMのCPU(sarの1分ごとの記録。範囲の平均) --"
+SAR_FROM_DAY=$(date -u -d "@$START_EPOCH" +%Y%m%d); SAR_TO_DAY=$(date -u -d "@$END_EPOCH" +%Y%m%d)
+{
+    for day in $(printf '%s\n' "$SAR_FROM_DAY" "$SAR_TO_DAY" | sort -u); do
+        f=/var/log/sa/sa$day; [ -f "$f" ] || continue
+        s=00:00:00; e=23:59:59
+        [ "$day" = "$SAR_FROM_DAY" ] && s=$(date -u -d "@$START_EPOCH" +%H:%M:%S)
+        [ "$day" = "$SAR_TO_DAY" ] && e=$(date -u -d "@$END_EPOCH" +%H:%M:%S)
+        LC_ALL=C sar -u -f "$f" -s "$s" -e "$e" 2>/dev/null || true
+    done
+} | awk '$1 ~ /^[0-9][0-9]:/ && $2 == "all" { n++; idle += $NF; if ($NF < 5) full++ }
+    END { if (n) printf "  使用率の平均 %.0f%%(%d分の記録)。空きが5%%未満だった分: %d分\n", 100 - idle / n, n, full; else print "  (記録なし)" }'
 
 echo
 echo "== 日次集計(UAベースの簡易ボット除外のみ) =="
