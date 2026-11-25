@@ -190,8 +190,10 @@ echo
 echo "== 害悪ボットの動き =="
 echo "-- 名前で見分けている害悪ボット(件数 / IP数 / うち403) --"
 awk -F'"' 'match($6, /Lightpanda|WebSiphon|ClashGegnerfenster/) { k = substr($6, RSTART, RLENGTH); split($1, a, " "); split($3, s, " ");
-        n[k]++; if (s[1] == 403) d[k]++; if (!((k, a[1]) in u)) { u[k, a[1]]; ip[k]++ } }
-    END { if (length(n) == 0) print "  (なし)"; for (k in n) printf "  %9d %8d %9d  %s\n", n[k], ip[k], d[k], k }' /tmp/access-check-window.log | sort -rn
+        n[k]++; tot++; if (s[1] == 403) d[k]++; if (!((k, a[1]) in u)) { u[k, a[1]]; ip[k]++ } }
+    # 1件も無い日に length(n) で数えると、gawkはnを配列でなく値として扱い、続く for (k in n) で止まる(11/23・11/24の集計が
+    # 終了コード2で止まった)。件数は別の変数で数える。
+    END { if (!tot) print "  (なし)"; for (k in n) printf "  %9d %8d %9d  %s\n", n[k], ip[k], d[k], k }' /tmp/access-check-window.log | sort -rn
 echo "-- /player/・/clan/のGETへの応答(ブラウザを名乗るもの。名乗っているクローラーは確かめ用のページの対象外なので除く。件数 / IP数) --"
 awk -F'"' '$2 ~ /^GET \/(player|clan)\// && $6 !~ /Lightpanda|WebSiphon|ClashGegnerfenster/ { split($3, s, " "); split($1, a, " ");
         if (s[1] == 403 && s[2] >= 1300 && s[2] <= 1500) k = "確かめ用のページ(計算)で止めた";
@@ -658,7 +660,10 @@ if [ -s /tmp/access-check-search.log ]; then
     {
         if (($1 in pf) || ($1 in machine) || !match($7, /[?&]p=[^&]*/)) next;
         p = substr($7, RSTART + 3, RLENGTH - 3); gsub(/%2[Ff]/, "/", p); t = ts($4);
-        for (i = 1; i <= n; i++) if (pp[i] == p && t >= pt[i] && t - pt[i] <= 600 && !(($1, i) in seen)) { seen[$1, i]; print $1, substr($4, 2), p, t - pt[i] }
+        if (($1, p) in seen) next;
+        best = -1;
+        for (i = 1; i <= n; i++) if (pp[i] == p && t >= pt[i] && t - pt[i] <= 600 && (best < 0 || t - pt[i] < best)) best = t - pt[i];
+        if (best >= 0) { seen[$1, p]; print $1, substr($4, 2), p, best }
     }' /tmp/access-check-prefetch-ips.txt /tmp/access-check-machine-ips.txt /tmp/access-check-search.log /tmp/access-check-beacon.log \
         > /tmp/access-check-search-prefetch.log
     if [ -s /tmp/access-check-search-prefetch.log ]; then
