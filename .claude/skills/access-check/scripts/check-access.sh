@@ -318,6 +318,33 @@ xargs -r -P 16 -n 1 bash -c '
     printf "%s\t%s\n" "$1" "$name"' _ < /tmp/access-check-ips.txt > /tmp/access-check-rdns.txt
 rdns_of() { grep -m1 -P "^$1\t" /tmp/access-check-rdns.txt | cut -f2; }
 
+# 逆引きが引けない送信元は約4割あり、その大半は一般の携帯・固定回線だった(T-Mobile・Jio・ソフトバンクなど。
+# 2026-11-25に11/18〜11/25の送信元で確かめた)。逆引きだけではデータセンターと見分けられないので、回線の事業者(AS)も引く。
+# 表はiptoasn.comの公開データ(IPの範囲→AS番号・事業者名)をVMに置いて引くので、訪問者のIPを外に送らない。
+# 7日ごとに取り直し、取れなければ事業者なしで続ける。
+ASN_DB=/tmp/access-check-ip2asn-v4.tsv
+if [ ! -s "$ASN_DB" ] || [ -n "$(find "$ASN_DB" -mtime +7 2> /dev/null)" ]; then
+    curl -fsS --max-time 60 https://iptoasn.com/data/ip2asn-v4.tsv.gz 2> /dev/null | gunzip -c > "$ASN_DB.tmp" 2> /dev/null \
+        && [ -s "$ASN_DB.tmp" ] && mv "$ASN_DB.tmp" "$ASN_DB" || rm -f "$ASN_DB.tmp"
+fi
+: > /tmp/access-check-asn.txt
+if [ -s "$ASN_DB" ]; then
+    awk -F'\t' '
+    function num(ip,   o) { if (split(ip, o, ".") != 4) return -1; return ((o[1] * 256 + o[2]) * 256 + o[3]) * 256 + o[4] }
+    FNR == NR { if ($3 == 0) next; n++; lo[n] = num($1); hi[n] = num($2); as[n] = $3; desc[n] = $5; next }
+    {
+        x = num($1); r = "-";
+        if (x >= 0) {
+            a = 1; b = n;
+            while (a <= b) { m = int((a + b) / 2); if (lo[m] <= x) { if (x <= hi[m]) { r = "AS" as[m] " " desc[m]; break } a = m + 1 } else b = m - 1 }
+        }
+        printf "%s\t%s\n", $1, r;
+    }' "$ASN_DB" /tmp/access-check-ips.txt > /tmp/access-check-asn.txt
+else
+    echo "(回線の事業者の表(iptoasn.com)を取れなかったので、事業者での判定はしていない)"
+fi
+asn_of() { grep -m1 -P "^$1\t" /tmp/access-check-asn.txt | cut -f2; }
+
 # ホスティング事業者・クラウドを示すホスト名の断片。当たった=人間の家庭回線ではない。
 # `v22025112337...` のような数字だけの長いホスト名はVPSの自動採番(Contabo系)の典型。
 DC_REGEX='ovh\.|ovh\.net|your-server\.de|hetzner|amazonaws|digitalocean|linode|vultr|choopa|contabo|scaleway|leaseweb|m247|oraclecloud|azure|googleusercontent|hostwinds|colocrossing|datacenter|\.cloud\.|vps|dedicated|servers?\.|srv[0-9]*\.[a-z]+$|srv\.(de|net|com)|\bv[0-9]{8,}\.|p14\.io|hwclouds|pfcloud'
@@ -325,17 +352,20 @@ DC_REGEX='ovh\.|ovh\.net|your-server\.de|hetzner|amazonaws|digitalocean|linode|v
 # UAはブラウザを偽装していても逆引きは自分のドメインのままなので、ここで捕まえられる。
 SCANNER_REGEX='googlebot|crawl-|censys|shodan|internet-measurement|internet-census|bufferover\.run|criminalip|deepfield|infrawat|no-reverse-dns-configured|rwth-aachen|uni-[a-z]+\.de|scan\.|\bscanner|netsystemsresearch|binaryedge|onyphe|driftnet|stretchoid|alphastrike|securitytrails|leakix|palo ?alto|expanse|group-ib'
 grep -P "\t.*($DC_REGEX|$SCANNER_REGEX)" /tmp/access-check-rdns.txt | cut -f1 | sort -u > /tmp/access-check-dc-ips.txt || true
-
-# 逆引きが引けないIP。一般のISP(固定回線・モバイルとも)はほぼ必ずPTRを設定しているため、
-# 「逆引きなし」はデータセンター・スキャナーの強い目印になる(検索経由の判定にだけ使う)。
-grep -P '\t-$' /tmp/access-check-rdns.txt | cut -f1 | sort -u > /tmp/access-check-nordns-ips.txt || true
+# 回線の事業者がホスティング・クラウドなら、逆引きが何であれデータセンター由来とみる(2026-11-25追加)。
+# iCloudプライベートリレーの出口(Cloudflare・Fastly・Akamai)は人の閲覧なので入れない(Akamaiのうちlinodeはホスティング)。
+# VPNの事業者のうち、ホスティング事業者の回線を使うもの(M247・Datacampなど)はここで外れる。
+HOSTING_ASN_REGEX='\bAS15169 |amazon|google-cloud|microsoft|azure|\bovh\b|hetzner|digitalocean|linode|vultr|choopa|contabo|m247|datacamp|cdn77|hostroyale|hostkey|leaseweb|alibaba|aliyun|tencent|hwclouds|huawei cloud|oracle|scaleway|online s\.a\.s|ionos|hostinger|hostwinds|colocrossing|psychz|quadranet|zenlayer|g-core|gcore|selectel|timeweb|vdsina|aeza|kamatera|ucloud|bj-guanghuan|nwcd|worldstream|nforce|cloudzy|hosting|\bservers?\b|\bvps\b|data ?cent(er|re)'
+grep -iP "\t.*($HOSTING_ASN_REGEX)" /tmp/access-check-asn.txt | cut -f1 | sort -u > /tmp/access-check-hosting-ips.txt || true
+# 逆引きが引けないことは、もう機械の目印にしない(2026-11-25)。以前は「一般のISPはほぼ必ずPTRを設定している」として
+# 検索経由の判定から外していたが、11/18〜11/25のビーコンの送信元では人の4割にPTRが無く、検索から来た人の約半分を落としていた。
 
 # t.co経由を装う分散スキャナー群の目印(2026-09-22発見)。多数の別IPが揃って
 # 同じ古いChromeのUAを名乗る。実在ユーザーの分布としては起こり得ない。
 STALE_UA='Chrome/103\.0\.0\.0 Safari'
 grep -E "$STALE_UA" /tmp/access-check-clean.log | awk '{print $1}' | sort -u > /tmp/access-check-staleua-ips.txt || true
 
-cat /tmp/access-check-dc-ips.txt /tmp/access-check-staleua-ips.txt /tmp/access-check-nordns-ips.txt \
+cat /tmp/access-check-dc-ips.txt /tmp/access-check-hosting-ips.txt /tmp/access-check-staleua-ips.txt \
   | sort -u > /tmp/access-check-machine-ips.txt
 
 echo
@@ -369,11 +399,28 @@ if [ -s /tmp/access-check-beacon.log ]; then
     echo "ユニークIP数: $(wc -l < /tmp/access-check-beacon-ips.txt)"
     # JSを実行するヘッドレスブラウザ型のボットもビーコンを送るため(Hetznerで実例あり)、
     # 送信元ごとに逆引きを出し、データセンター・スキャナー由来には * を付ける。
-    echo "-- 送信元IP別(* はデータセンター・スキャナー由来) --"
+    # 人かどうかを手で判断する材料を、送信元ごとに{ }で並べる(2026-11-25)。端末の種類(ビーコンのUA)、その日の入口
+    # (検索・X・AIのRefererか?utm_source=chatgpt)、ボタンの段を押したか。11/18〜11/25に人と判断した決め手はこの3つと事業者だった。
+    awk -F'"' "$KIND_FN"'
+    FILENAME == ARGV[1] { b[$1]; next }
+    {
+        split($1, a, " "); ip = a[1]; if (!(ip in b)) next;
+        split($2, r, " "); split($3, s, " ");
+        if (r[1] == "POST" && r[2] ~ /^\/beacon/ && !(ip in k)) k[ip] = ($6 ~ /Twitter for iPhone|TwitterAndroid/) ? "Xアプリ" : kind($6);
+        if (r[1] == "GET" && r[2] !~ /^\/(beacon|css\/|js\/|images\/|favicon)/) {
+            if ($4 ~ /^https?:\/\/([a-z0-9-]+\.)*(google|bing|duckduckgo|yahoo|yandex|ecosia|naver|baidu|qwant|seznam|startpage)\.[a-z.]+(\/|$)|search\.brave\.com|googlequicksearchbox/) e[ip, "検索から"];
+            if ($4 ~ /^https?:\/\/(t\.co|x\.com|twitter\.com)\//) e[ip, "Xから"];
+            if ($4 ~ /chatgpt\.com|perplexity\.ai|gemini\.google|copilot\.microsoft|claude\.ai/ || r[2] ~ /utm_source=chatgpt/) e[ip, "AIから"];
+        }
+        if (r[2] ~ /^\/human-check\/press/ && s[1] == 204) e[ip, "ボタンを押した"];
+    }
+    END { for (ip in k) { h = k[ip]; for (x in e) { split(x, xx, SUBSEP); if (xx[1] == ip) h = h "・" xx[2] } print ip "\t" h } }' \
+        /tmp/access-check-beacon-ips.txt /tmp/access-check-window.log > /tmp/access-check-sender-hints.txt
+    echo "-- 送信元IP別(* はデータセンター・スキャナー由来。逆引きのホスト名か、[ ]の中の回線の事業者で判定。{ }は端末・入口・ボタン) --"
     awk '{print $1}' /tmp/access-check-beacon.log | sort | uniq -c | while read -r cnt ip; do
-        name=$(rdns_of "$ip")
-        if printf '%s' "$name" | grep -qP "$DC_REGEX|$SCANNER_REGEX"; then mark='*'; else mark=' '; fi
-        printf '%s %3d %-16s %s\n' "$mark" "$cnt" "$ip" "$name"
+        name="$(rdns_of "$ip") [$(asn_of "$ip")]"
+        if printf '%s' "$name" | grep -qP "$DC_REGEX|$SCANNER_REGEX" || grep -qxF "$ip" /tmp/access-check-hosting-ips.txt; then mark='*'; else mark=' '; fi
+        printf '%s %3d %-16s %s {%s}\n' "$mark" "$cnt" "$ip" "$name" "$(grep -m1 -P "^$ip\t" /tmp/access-check-sender-hints.txt | cut -f2)"
         printf '%s\t%s\t%s\t%s\n' "$mark" "$cnt" "$ip" "$name" >> /tmp/access-check-beacon-senders.txt
     done
     # ビーコンにはページのURLのfrom=がそのまま載る(/beacon?p=...&from=xreply)。入ってきたページの
@@ -586,14 +633,48 @@ if [ -s /tmp/access-check-search.log ]; then
     while read -r ip time path host; do
         if grep -qxF "$ip" /tmp/access-check-machine-ips.txt; then mark='*'; else mark=' '; fi
         if grep -qxF "$ip" /tmp/access-check-beacon-ips.txt; then shown='ビーコンあり'; else shown='ビーコンなし'; fi
-        printf '%s %-16s %s %s %s %s (%s)\n' "$mark" "$ip" "$time" "$shown" "$host" "$path" "$(rdns_of "$ip")"
+        printf '%s %-16s %s %s %s %s (%s [%s])\n' "$mark" "$ip" "$time" "$shown" "$host" "$path" "$(rdns_of "$ip")" "$(asn_of "$ip")"
     done < /tmp/access-check-search.log
-    echo "-- 実訪問(データセンター以外で、ビーコンあり) --"
+    # Googleの先読み(Chromeが検索結果のページを、Googleの中継サーバー(逆引きがgooglezip・google-proxy)を通して先に取っておく)
+    # から開いた人は、HTMLは中継サーバーのIPに、ビーコンだけ本人の回線のIPに残り、同じIPでは結び付かない。
+    # 先読みから10分以内に同じページのビーコンが別のIPから届いたら、その人も検索から来た人に数える(2026-11-25追加。
+    # 11/18〜11/24で5人。ページで結び付けるので、プレイヤー・クラン・カード詳細のように人ごとに違うページだけを見る)。
+    awk '{print $1}' /tmp/access-check-search.log | sort -u | while read -r ip; do
+        case "$(rdns_of "$ip")" in *googlezip*|*google-proxy*) echo "$ip" ;; esac
+    done > /tmp/access-check-prefetch-ips.txt
+    awk '
+    function ts(s,   m, mon) {
+        if (!match(s, /([0-9]{2})\/([A-Za-z]{3})\/([0-9]{4}):([0-9]{2}):([0-9]{2}):([0-9]{2})/, m)) return 0;
+        mon = (index("JanFebMarAprMayJunJulAugSepOctNovDec", m[2]) + 2) / 3;
+        return mktime(sprintf("%d %d %d %d %d %d", m[3], mon, m[1], m[4], m[5], m[6]), 1);
+    }
+    FILENAME == ARGV[1] { pf[$1]; next }
+    FILENAME == ARGV[2] { machine[$1]; next }
+    FILENAME == ARGV[3] {
+        if (!($1 in pf)) next;
+        p = $3; sub(/\?.*/, "", p); if (p !~ /^\/(player|clan|card)\//) next;
+        n++; pt[n] = ts($2); pp[n] = p; next;
+    }
+    {
+        if (($1 in pf) || ($1 in machine) || !match($7, /[?&]p=[^&]*/)) next;
+        p = substr($7, RSTART + 3, RLENGTH - 3); gsub(/%2[Ff]/, "/", p); t = ts($4);
+        for (i = 1; i <= n; i++) if (pp[i] == p && t >= pt[i] && t - pt[i] <= 600 && !(($1, i) in seen)) { seen[$1, i]; print $1, substr($4, 2), p, t - pt[i] }
+    }' /tmp/access-check-prefetch-ips.txt /tmp/access-check-machine-ips.txt /tmp/access-check-search.log /tmp/access-check-beacon.log \
+        > /tmp/access-check-search-prefetch.log
+    if [ -s /tmp/access-check-search-prefetch.log ]; then
+        echo "-- Googleの先読みから開いた人(先読みの後、同じページのビーコンが本人の回線から届いた。時刻はUTC) --"
+        while read -r ip time path sec; do
+            printf '  %-16s %s %s(先読みの%s秒後) (%s [%s])\n' "$ip" "$time" "$path" "$sec" "$(rdns_of "$ip")" "$(asn_of "$ip")"
+        done < /tmp/access-check-search-prefetch.log
+    fi
+    echo "-- 実訪問(データセンター以外で、ビーコンあり。先読みから開いた人を含む) --"
     awk '{print $1}' /tmp/access-check-search.log | sort -u \
       | grep -vxFf /tmp/access-check-machine-ips.txt \
       | grep -xFf /tmp/access-check-beacon-ips.txt > /tmp/access-check-search-real-ips.txt || true
-    echo "人数(ユニークIP): $(wc -l < /tmp/access-check-search-real-ips.txt)"
-    echo "検索から開いたページ数: $(awk 'NR == FNR {real[$1]; next} ($1 in real)' /tmp/access-check-search-real-ips.txt /tmp/access-check-search.log | wc -l)"
+    awk '{print $1}' /tmp/access-check-search-prefetch.log | sort -u > /tmp/access-check-search-prefetch-ips.txt
+    echo "人数(ユニークIP): $(sort -u /tmp/access-check-search-real-ips.txt /tmp/access-check-search-prefetch-ips.txt | wc -l)(うち先読みから開いた人 $(grep -vxFf /tmp/access-check-search-real-ips.txt /tmp/access-check-search-prefetch-ips.txt | wc -l))"
+    # 先読みのページは、本人の回線からも検索から開いて数えた人の分を足さない(同じページを二重に数えるため)。
+    echo "検索から開いたページ数: $(( $(awk 'NR == FNR {real[$1]; next} ($1 in real)' /tmp/access-check-search-real-ips.txt /tmp/access-check-search.log | wc -l) + $(awk 'FILENAME == ARGV[1] {real[$1]; next} !($1 in real)' /tmp/access-check-search-real-ips.txt /tmp/access-check-search-prefetch.log | wc -l) ))"
     echo "-- 検索エンジン別(全件) --"
     awk '{print $4}' /tmp/access-check-search.log | sort | uniq -c | sort -rn
 else
