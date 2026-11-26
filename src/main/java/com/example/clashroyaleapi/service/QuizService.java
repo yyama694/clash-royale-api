@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,6 +58,39 @@ public class QuizService {
     /** 地上にしか当たらない呪文。アースクエイクはステータスに攻撃目標の行が無いので、名前で持つ。 */
     static final Set<String> GROUND_ONLY_SPELLS = Set.of("The Log", "Barbarian Barrel", "Earthquake");
 
+    /** 「何発で倒せる?」を出し始める日(UTC)。公開した後の日の途中で問題が変わらないよう、翌日から出す。 */
+    static final LocalDate HITS_FROM = LocalDate.of(2026, 11, 27);
+
+    /** 「何発で倒せる?」の1発のダメージ。この3つのうちちょうど1つがあるカードだけが攻撃する側になる。 */
+    static final List<String> HIT_DAMAGES = List.of("stat.TID_SPELL_ATTRIBUTE_DAMAGE",
+            "stat.TID_SPELL_ATTRIBUTE_RANGED_DAMAGE", "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE");
+
+    /** 体力が半分になると別の動きになるカード(キャノンカート・ダイナマイトゴブリン)。倒される側にも出さない。 */
+    private static final String KAMIKAZE = "stat.TID_KAMIKAZE_TRIGGER_HEALTH";
+
+    /**
+     * これがあるカードは攻撃する側に出さない。1発目や当たり方が違う(突進・ダッシュ・ジャンプ・連続攻撃・連鎖・貫通・
+     * 出したときのダメージ)、体力が減ると別の動きになる(自爆)ため、「同じダメージを何発」で数えられない。
+     */
+    static final Set<String> HITS_EXCLUDED_ATTACKS = Set.of("stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE",
+            "stat.TID_SPELL_ATTRIBUTE_DASH_DAMAGE", "stat.TID_SPELL_ATTRIBUTE_JUMP_DAMAGE",
+            "stat.TID_SPELL_ATTRIBUTE_COMBO_DAMAGE", "stat.TID_TYPE_CHAINED_ATTACKS",
+            "stat.TID_SPELL_ATTRIBUTE_BULLET_RANGE", "stat.TID_SPELL_ATTRIBUTE_SPAWN_DAMAGE", KAMIKAZE);
+
+    /** 攻撃の間隔。これが無いカード(ファイアスピリット・ウォールブレイカーなど、1回当たって消える)は攻撃する側に出さない。 */
+    private static final String HIT_SPEED = "stat.TID_SPELL_ATTRIBUTE_HIT_SPEED";
+
+    /**
+     * 個別に外すカード。三銃士は近くの相手には別のダメージで殴る。ローニンは攻撃を受けると反撃する。
+     * バトルヒーラーは攻撃するたびに自分が回復するので、倒される側の何発が変わる。
+     */
+    static final Set<String> HITS_EXCLUDED_ATTACKERS = Set.of("Three Musketeers", "Ronin");
+    static final Set<String> HITS_EXCLUDED_DEFENDERS = Set.of("Battle Healer", "Ronin");
+
+    /** 何発がちょうど割り切れる近く(1発のこの割合(%)以内)の組は、値の読み違いで答えがずれうるので出さない。 */
+    static final int HITS_MARGIN_PERCENT = 3;
+
+    private static final String TARGET = "stat.TID_SPELL_ATTRIBUTE_TARGET";
     private static final String AREA_DAMAGE = "stat.TID_SPELL_ATTRIBUTE_AREA_DAMAGE";
     private static final String DAMAGE = "stat.TID_SPELL_ATTRIBUTE_DAMAGE";
     private static final String DAMAGE_PER_SECOND = "stat.TID_SPELL_ATTRIBUTE_DAMAGE_PER_SECOND";
@@ -123,7 +157,9 @@ public class QuizService {
                 .filter(ability -> ids.containsKey(ability.card()))
                 .map(ability -> new DailyQuiz.Ability(ids.get(ability.card()), ability.champion(), ability.cost()))
                 .toList();
-        return DailyQuiz.of(todayUtc(), FIRST_DAY, cards, units, spells, abilities);
+        LocalDate today = todayUtc();
+        List<DailyQuiz.Matchup> matchups = today.isBefore(HITS_FROM) ? List.of() : matchups(stats, apiCards);
+        return DailyQuiz.of(today, FIRST_DAY, cards, units, spells, abilities, matchups);
     }
 
     /** 今日の回。問題は作らない(トップページの案内に使う)。 */
@@ -133,6 +169,84 @@ public class QuizService {
 
     private LocalDate todayUtc() {
         return LocalDate.now(clock.withZone(ZoneOffset.UTC));
+    }
+
+    /**
+     * 「何発で倒せる?」に出せる組。攻撃が当たる組(攻撃目標が建物なら建物だけ、地上なら空を飛ぶカード以外)で、
+     * 何発(ヒットポイント÷1発のダメージの切り上げ)がレベル11とレベル16で同じで、HITS_MIN〜HITS_MAX の組。
+     * シールドのあるカードは倒される側に出さない(シールドとヒットポイントでダメージの通り方が違う)。
+     * 地上の形(スピリットエンプレス（地上）)は公式APIのカードに無いので出ない。
+     */
+    static List<DailyQuiz.Matchup> matchups(CardStats stats, List<CardsResponse.Card> apiCards) {
+        record Side(CardsResponse.Card card, int health16, int health11) {
+        }
+        List<Side> sides = new ArrayList<>();
+        for (CardsResponse.Card card : apiCards) {
+            OptionalInt health16 = wholeNumber(stats.value16(card.name(), CardStats.HEALTH));
+            OptionalInt health11 = wholeNumber(stats.value11(card.name(), CardStats.HEALTH));
+            if (health16.isPresent() && health11.isPresent()) {
+                sides.add(new Side(card, health16.getAsInt(), health11.getAsInt()));
+            }
+        }
+        List<DailyQuiz.Matchup> matchups = new ArrayList<>();
+        for (Side attacker : sides) {
+            String name = attacker.card().name();
+            List<String> damageKeys = HIT_DAMAGES.stream().filter(key -> stats.has(name, key)).toList();
+            if (damageKeys.size() != 1 || !stats.has(name, HIT_SPEED) || HITS_EXCLUDED_ATTACKERS.contains(name)
+                    || HITS_EXCLUDED_ATTACKS.stream().anyMatch(key -> stats.has(name, key))) {
+                continue;
+            }
+            OptionalInt damage16 = wholeNumber(stats.value16(name, damageKeys.getFirst()));
+            OptionalInt damage11 = wholeNumber(stats.value11(name, damageKeys.getFirst()));
+            if (damage16.isEmpty() || damage11.isEmpty()) {
+                continue;
+            }
+            String target = stats.value16(name, TARGET).orElse("");
+            for (Side defender : sides) {
+                String defenderName = defender.card().name();
+                if (defender == attacker || HITS_EXCLUDED_DEFENDERS.contains(defenderName)
+                        || stats.has(defenderName, CardStats.SHIELD_HEALTH) || stats.has(defenderName, KAMIKAZE)
+                        || !canHit(target, stats.has(defenderName, CardStats.LIFETIME), FLYING.contains(defenderName))) {
+                    continue;
+                }
+                int hits = ceilDiv(defender.health16(), damage16.getAsInt());
+                if (hits < DailyQuiz.HITS_MIN || hits > DailyQuiz.HITS_MAX
+                        || hits != ceilDiv(defender.health11(), damage11.getAsInt())
+                        || nearMultiple(defender.health16(), damage16.getAsInt())
+                        || nearMultiple(defender.health11(), damage11.getAsInt())) {
+                    continue;
+                }
+                matchups.add(new DailyQuiz.Matchup(attacker.card().id(), attacker.health16(), defender.card().id(),
+                        defender.health16(), damage16.getAsInt(), hits));
+            }
+        }
+        return List.copyOf(matchups);
+    }
+
+    private static boolean canHit(String target, boolean building, boolean flying) {
+        if (target.contains("TID_TARGETS_BUILDINGS")) {
+            return building;
+        }
+        if (target.contains("TID_TARGETS_AIR_AND_GROUND")) {
+            return true;
+        }
+        return target.contains("TID_TARGETS_GROUND") && !flying;
+    }
+
+    private static int ceilDiv(int health, int damage) {
+        return (health + damage - 1) / damage;
+    }
+
+    /** ヒットポイントが1発のダメージのちょうど倍数か、その前後 HITS_MARGIN_PERCENT 以内。 */
+    private static boolean nearMultiple(int health, int damage) {
+        long rest = health % damage;
+        long distance = Math.min(rest, damage - rest);
+        return distance * 100 <= (long) damage * HITS_MARGIN_PERCENT;
+    }
+
+    private static OptionalInt wholeNumber(Optional<String> value) {
+        return value.filter(v -> v.matches("\\d+")).map(v -> OptionalInt.of(Integer.parseInt(v)))
+                .orElse(OptionalInt.empty());
     }
 
     /** 呪文の問題に出す呪文でなければ、またはステータスにダメージが無ければ empty。 */

@@ -2982,6 +2982,49 @@ td.cell-action {
     margin-top: 0;
 }
 
+/* 「何発で倒せる?」の2枚。スマホでも選択肢まで1画面に収まるよう、エリクサーの問題の1枚より小さくする。 */
+.quiz-duel {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.quiz-duel[hidden] {
+    display: none;
+}
+
+.quiz-duel-card {
+    flex: 0 1 9rem;
+    margin: 0;
+    text-align: center;
+}
+
+.quiz-duel-image {
+    width: clamp(72px, 22vw, 104px);
+    height: auto;
+}
+
+.quiz-duel-name {
+    margin-top: 0.3rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.quiz-duel-condition {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.quiz-duel-arrow {
+    align-self: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--color-text-muted);
+}
+
 .quiz-prompt {
     margin: 0.25rem 0 0.75rem;
     text-align: center;
@@ -3048,6 +3091,12 @@ td.cell-action {
     text-shadow:
         1px 0 0 #3d0750, -1px 0 0 #3d0750, 0 1px 0 #3d0750, 0 -1px 0 #3d0750,
         1px 1px 0 #3d0750, -1px 1px 0 #3d0750, 1px -1px 0 #3d0750, -1px -1px 0 #3d0750;
+}
+
+.quiz-choice-hits .quiz-choice-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
 }
 
 /*
@@ -3407,7 +3456,8 @@ td.cell-action {
 }
 
 .quiz-wrong-order .quiz-wrong-detail,
-.quiz-wrong-spell .quiz-wrong-detail {
+.quiz-wrong-spell .quiz-wrong-detail,
+.quiz-wrong-hits .quiz-wrong-detail {
     grid-column: 1 / -1;
     text-align: left;
 }
