@@ -65,6 +65,20 @@
                 <img class="quiz-card-image" width="285" height="420" alt="">
                 <figcaption class="quiz-card-name"></figcaption>
             </figure>
+            <!--/* 「何発で倒せる?」の2枚(攻撃するカード → 倒されるカード)。 */-->
+            <div class="quiz-duel" hidden>
+                <figure class="quiz-duel-card">
+                    <img class="quiz-duel-image" width="285" height="420" alt="">
+                    <figcaption class="quiz-duel-name"></figcaption>
+                    <span class="quiz-duel-condition"></span>
+                </figure>
+                <span class="quiz-duel-arrow" aria-hidden="true">→</span>
+                <figure class="quiz-duel-card">
+                    <img class="quiz-duel-image" width="285" height="420" alt="">
+                    <figcaption class="quiz-duel-name"></figcaption>
+                    <span class="quiz-duel-condition"></span>
+                </figure>
+            </div>
             <p class="quiz-prompt"></p>
             <div class="quiz-choices"></div>
             <!--/* 並べ替え。並び順の番号(1〜4)はCSSのカウンターで振るので、行を動かしても位置の番号のまま。 */-->
@@ -135,7 +149,8 @@
         </section>
 
         <!--/*
-          1問に1つの li。中の span がカード(エリクサーとスキルのコストは1枚、並べ替えは最初に見せる並びの4枚、呪文は候補の4枚)。
+          1問に1つの li。中の span がカード(エリクサーとスキルのコストは1枚、並べ替えは最初に見せる並びの4枚、呪文は候補の4枚、
+          「何発で倒せる?」は攻撃するカードと倒されるカードの2枚で、data-value はそれぞれ1発のダメージとヒットポイント)。
           呪文の問題の呪文は li の data-subject-* に入れる。
         */-->
         <ol id="quiz-questions" hidden>
@@ -383,7 +398,9 @@
                 // 練習は保存しないので、やめると続きから再開できない。
                 screen.querySelector('.quiz-quit').textContent = play.official ? msg.msgQuit : msg.msgQuitPractice;
                 screen.querySelector('.quiz-progress-bar').style.width = (index / play.size * 100) + '%';
-                screen.querySelector('.quiz-card').hidden = ordering;
+                var dueling = q.type === 'hits';
+                screen.querySelector('.quiz-card').hidden = ordering || dueling;
+                screen.querySelector('.quiz-duel').hidden = !dueling;
                 screen.querySelector('.quiz-card').classList.toggle('is-compact', picking);
                 screen.querySelector('.quiz-choices').hidden = ordering || picking;
                 screen.querySelector('.quiz-order').hidden = !ordering;
@@ -431,9 +448,29 @@
                 screen.querySelector('.quiz-card-name').textContent = card.name;
             }
 
+            // 「何発で倒せる?」の2枚(攻撃するカード → 倒されるカード)。
+            function showDuel(cards) {
+                var figures = screens.play.querySelectorAll('.quiz-duel-card');
+                cards.forEach(function (card, i) {
+                    var image = figures[i].querySelector('.quiz-duel-image');
+                    image.hidden = !card.icon;
+                    if (card.icon) {
+                        image.src = card.icon;
+                    }
+                    figures[i].querySelector('.quiz-duel-name').textContent = card.name;
+                    var condition = figures[i].querySelector('.quiz-duel-condition');
+                    condition.textContent = card.condition || '';
+                    condition.hidden = !card.condition;
+                });
+            }
+
             function renderChoices(q) {
                 var screen = screens.play;
-                showFigure(q.cards[0]);
+                if (q.type === 'hits') {
+                    showDuel(q.cards);
+                } else {
+                    showFigure(q.cards[0]);
+                }
                 var choices = screen.querySelector('.quiz-choices');
                 choices.textContent = '';
                 q.choices.forEach(function (label, choice) {
@@ -833,6 +870,15 @@
                     });
                     item.appendChild(tiles);
                     detail.textContent = format(msg.msgWrongSpell, [pickNames(q, q.answer), pickNames(q, String(answer))]);
+                } else if (q.type === 'hits') {
+                    // 攻撃するカード(1発のダメージ)と倒されるカード(ヒットポイント)を並べ、正解とあなたの答えを文で添える。
+                    item.className = 'quiz-wrong-hits';
+                    var pair = document.createElement('div');
+                    pair.className = 'quiz-wrong-cards';
+                    pair.appendChild(cardLink(q.cards[0], format(msg.msgSpellDamage, [q.cards[0].value])));
+                    pair.appendChild(cardLink(q.cards[1], q.cards[1].value));
+                    item.appendChild(pair);
+                    detail.textContent = format(msg.msgWrongItem, [q.choices[Number(q.answer)], q.choices[answer]]);
                 } else {
                     item.className = 'quiz-wrong-choice';
                     // スキルの問題は、カード自体のエリクサーの問題と見分けられるよう、名前の下にスキル名を添える

@@ -53,6 +53,24 @@ class DailyQuizTest {
             .mapToObj(i -> new DailyQuiz.Ability(26_000_000 + i, i >= 18, i == 7 ? 5 : 1 + i % 3))
             .toList();
 
+    /**
+     * 「何発で倒せる?」の組。SPELL_TARGETS の先頭21枚が攻撃する側(1発のダメージは 400 + 番号×40)で、
+     * 60〜99番目のうち2〜6発で倒せるものが倒される側。呪文の問題の「際どい」カードは使わない
+     * (この作りのカードは本物より際どいカードが少なく、使うと呪文の問題が作れない日が出る。本物では出ないことを
+     * 2026-11-26に1年分で確かめた)。
+     */
+    private static final List<DailyQuiz.Matchup> MATCHUPS = IntStream.range(0, 21).boxed()
+            .flatMap(a -> IntStream.range(60, 100).mapToObj(d -> {
+                DailyQuiz.Card attacker = SPELL_TARGETS.get(a);
+                DailyQuiz.Card defender = SPELL_TARGETS.get(d);
+                int damage = 400 + a * 40;
+                int hits = (defender.health() + damage - 1) / damage;
+                return new DailyQuiz.Matchup(attacker.id(), attacker.health(), defender.id(), defender.health(), damage,
+                        hits);
+            }))
+            .filter(m -> m.hits() >= DailyQuiz.HITS_MIN && m.hits() <= DailyQuiz.HITS_MAX)
+            .toList();
+
     /** 空を飛ぶカードの役(IDが5で割り切れるもの)。 */
     private static boolean flying(int id) {
         return id % 5 == 0;
@@ -482,6 +500,73 @@ class DailyQuizTest {
         }
     }
 
+    @Test
+    void 何発の問題は組があれば10問ごとに1問ずつ混ざりそのぶんエリクサーの問題が4問になる() {
+        for (int day = 0; day < 100; day++) {
+            List<QuizQuestion> questions = DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, SPELL_TARGETS,
+                    List.of(), SPELLS, ABILITIES, MATCHUPS).questions();
+
+            assertEquals(DailyQuiz.QUESTIONS_PER_DAY, questions.size());
+            for (int start = 0; start < DailyQuiz.QUESTIONS_PER_DAY; start += 10) {
+                List<QuizQuestion> block = questions.subList(start, start + 10);
+                assertEquals(1, block.stream().filter(QuizQuestion.Hits.class::isInstance).count());
+                assertEquals(1, block.stream().filter(QuizQuestion.AbilityCost.class::isInstance).count());
+                assertEquals(2, block.stream().filter(QuizQuestion.SpellKill.class::isInstance).count());
+                assertEquals(2, block.stream().filter(QuizQuestion.HpOrder.class::isInstance).count());
+                assertEquals(4, block.stream().filter(QuizQuestion.Elixir.class::isInstance).count());
+            }
+        }
+    }
+
+    @Test
+    void 何発の組が無い日は何発の問題を足す前と同じ問題になる() {
+        for (int day = 0; day < 30; day++) {
+            LocalDate date = FIRST_DAY.plusDays(day);
+            assertEquals(DailyQuiz.of(date, FIRST_DAY, SPELL_TARGETS, List.of(), SPELLS, ABILITIES),
+                    DailyQuiz.of(date, FIRST_DAY, SPELL_TARGETS, List.of(), SPELLS, ABILITIES, List.of()));
+        }
+    }
+
+    @Test
+    void 何発の問題の正解は組の何発で選択肢は正解を含む1から9の連続した4つ() {
+        Set<Integer> answers = new HashSet<>();
+        Set<Integer> positions = new HashSet<>();
+        for (int day = 0; day < 200; day++) {
+            for (QuizQuestion question : DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, SPELL_TARGETS, List.of(),
+                    SPELLS, ABILITIES, MATCHUPS).questions()) {
+                if (!(question instanceof QuizQuestion.Hits hits)) {
+                    continue;
+                }
+                DailyQuiz.Matchup matchup = MATCHUPS.stream()
+                        .filter(m -> m.attackerId() == hits.attackerId() && m.defenderId() == hits.defender().id())
+                        .findFirst().orElseThrow();
+                List<Integer> choices = hits.choices();
+
+                assertEquals(matchup.hits(), hits.correctChoice());
+                assertEquals(matchup.damage(), hits.damage());
+                assertEquals(matchup.defenderHealth(), hits.defender().health());
+                assertEquals(4, choices.size());
+                assertTrue(choices.getFirst() >= 1 && choices.getLast() <= 9, () -> "選択肢: " + choices);
+                assertTrue(IntStream.range(1, 4).allMatch(i -> choices.get(i) == choices.get(i - 1) + 1));
+                answers.add(hits.correctChoice());
+                positions.add(hits.answer());
+            }
+        }
+        // 先に何発かを選ぶので、2〜6発のどれも出る
+        assertEquals(Set.of(2, 3, 4, 5, 6), answers);
+        assertEquals(Set.of(0, 1, 2, 3), positions);
+    }
+
+    @Test
+    void 何発の問題を混ぜても一日の中で同じカードは出ない() {
+        for (int day = 0; day < 100; day++) {
+            List<Integer> ids = cardIds(DailyQuiz.of(FIRST_DAY.plusDays(day), FIRST_DAY, SPELL_TARGETS, List.of(),
+                    SPELLS, ABILITIES, MATCHUPS));
+
+            assertEquals(ids.size(), new HashSet<>(ids).size(), () -> "重なり: " + ids);
+        }
+    }
+
     private static List<QuizQuestion.AbilityCost> abilities(DailyQuiz quiz) {
         return quiz.questions().stream()
                 .filter(QuizQuestion.AbilityCost.class::isInstance)
@@ -518,6 +603,7 @@ class DailyQuizTest {
                     case QuizQuestion.HpOrder hpOrder -> hpOrder.cards().stream().map(QuizQuestion.HpCard::id);
                     case QuizQuestion.SpellKill spellKill -> spellKill.cards().stream().map(QuizQuestion.HpCard::id);
                     case QuizQuestion.AbilityCost ability -> Stream.<Integer>empty();
+                    case QuizQuestion.Hits hits -> Stream.of(hits.attackerId(), hits.defender().id());
                 })
                 .toList();
     }

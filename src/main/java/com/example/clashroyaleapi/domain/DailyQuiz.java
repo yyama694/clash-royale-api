@@ -20,6 +20,7 @@ import java.util.stream.IntStream;
  * クラロワクイズの「今日のクイズ」。日付(UTC)から毎回同じ問題を計算で作るので、どこにも保存しない。
  * 10問・20問・30問は、ここで作る30問の先頭から出す(設計_クイズ.md)。
  * 10問ごとに、エリクサーの4択5問・ヒットポイントの並べ替え2問・「呪文一撃で倒せるのはどれ?」2問・
+ * 「何発で倒せる?」1問(出せる組が渡された日だけ。そのぶんエリクサーの問題が4問になる)・
  * ヒーローとチャンピオンのスキルのコスト1問を混ぜる(どの問題数でも割合がそろうように。ほかの種類の問題が作れなかった位置は
  * エリクサーの問題にする)。スキルの問題はスキルについての問題なので、同じカードのエリクサーの問題と同じ日に出ることがある。
  * 1日の中で同じカードは出さない(並べ替えと呪文の問題の候補と、エリクサーの問題のカードも重ならない)。
@@ -50,6 +51,17 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
      */
     static final int ABILITY_LOWEST = 1;
     static final int ABILITY_MIN_HIGHEST = 4;
+
+    /** 10問ごとの「何発で倒せる?」(2026-11-26)。 */
+    static final int HITS_PER_BLOCK = 1;
+
+    /**
+     * 「何発で倒せる?」の答えの範囲。1発は選択肢の端に決まってしまい、7発以上は数えるのが作業になるので出さない。
+     * 選択肢は1〜HITS_HIGHEST_CHOICE の連続した4つ。
+     */
+    public static final int HITS_MIN = 2;
+    public static final int HITS_MAX = 6;
+    static final int HITS_HIGHEST_CHOICE = 9;
 
     static final int HP_ORDER_CARDS = 4;
 
@@ -118,6 +130,13 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
     public record Ability(int id, boolean champion, int cost) {
     }
 
+    /**
+     * 「何発で倒せる?」に出せる組。attackerHealth は攻撃するカードのヒットポイント(同じ日の他の問題と重ねないために使う)、
+     * hits は何発で倒せるか(HITS_MIN〜HITS_MAX)。
+     */
+    public record Matchup(int attackerId, int attackerHealth, int defenderId, int defenderHealth, int damage, int hits) {
+    }
+
     /** 並べ替えと呪文の問題の候補。 */
     private record Candidate(QuizQuestion.HpCard card, boolean flying, boolean building) {
     }
@@ -138,6 +157,12 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
 
     public static DailyQuiz of(LocalDate date, LocalDate firstDay, List<Card> cards, List<Unit> units,
             List<Spell> spells, List<Ability> abilities) {
+        return of(date, firstDay, cards, units, spells, abilities, List.of());
+    }
+
+    /** matchups が空なら「何発で倒せる?」を出さず、出していなかった日と同じ問題になる(乱数の使い方も変えない)。 */
+    public static DailyQuiz of(LocalDate date, LocalDate firstDay, List<Card> cards, List<Unit> units,
+            List<Spell> spells, List<Ability> abilities, List<Matchup> matchups) {
         // 公式APIの並び順が変わっても同じ問題になるよう、IDの順にそろえてから並べ替える。
         List<Card> deck = new ArrayList<>(cards);
         deck.sort(Comparator.comparingInt(Card::id).thenComparing(Card::ground));
@@ -158,7 +183,16 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
         List<Integer> hpOrderSlots = new ArrayList<>();
         List<Integer> spellSlots = new ArrayList<>();
         List<Integer> abilitySlots = new ArrayList<>();
-        chooseSlots(count, random, hpOrderSlots, spellSlots, abilitySlots);
+        List<Integer> hitsSlots = new ArrayList<>();
+        chooseSlots(count, random, matchups.isEmpty() ? 0 : HITS_PER_BLOCK, hpOrderSlots, spellSlots, abilitySlots,
+                hitsSlots);
+        // 何発の問題は2枚しか使わないので先に作る(並べ替えと呪文の問題に候補を使い切られないように)。
+        // 組が無い日は乱数を使わないので、何発の問題を足す前の日の問題は変わらない。
+        List<Matchup> matchupDeck = new ArrayList<>(matchups);
+        matchupDeck.sort(Comparator.comparingInt(Matchup::attackerId).thenComparingInt(Matchup::defenderId));
+        for (int slot : hitsSlots) {
+            hits(matchupDeck, used, random).ifPresent(question -> placed.put(slot, question));
+        }
         List<QuizQuestion.HpCard> hpPool = pool.stream().map(Candidate::card).toList();
         for (int slot : hpOrderSlots) {
             hpOrder(hpPool, used, random).ifPresent(question -> placed.put(slot, question));
@@ -228,22 +262,49 @@ public record DailyQuiz(LocalDate date, int number, List<QuizQuestion> questions
     }
 
     /**
-     * 10問ごとに、並べ替えを出す位置を2つ、呪文の問題を出す位置を2つ、スキルの問題を出す位置を1つ選ぶ。
-     * 何問目に出るかは日ごとに変わる。
+     * 10問ごとに、並べ替えを出す位置を2つ、呪文の問題を出す位置を2つ、スキルの問題を出す位置を1つ、
+     * 「何発で倒せる?」を出す位置を hitsPerBlock 個選ぶ。何問目に出るかは日ごとに変わる。
      */
-    private static void chooseSlots(int count, Random random, List<Integer> hpOrderSlots, List<Integer> spellSlots,
-            List<Integer> abilitySlots) {
+    private static void chooseSlots(int count, Random random, int hitsPerBlock, List<Integer> hpOrderSlots,
+            List<Integer> spellSlots, List<Integer> abilitySlots, List<Integer> hitsSlots) {
         for (int start = 0; start < count; start += BLOCK) {
             List<Integer> block = IntStream.range(start, Math.min(count, start + BLOCK)).boxed()
                     .collect(Collectors.toCollection(ArrayList::new));
             int hpOrders = Math.min(HP_ORDERS_PER_BLOCK, block.size());
             int spells = Math.min(SPELLS_PER_BLOCK, block.size() - hpOrders);
             int abilities = Math.min(ABILITIES_PER_BLOCK, block.size() - hpOrders - spells);
-            shuffle(block, hpOrders + spells + abilities, random);
+            int hits = Math.min(hitsPerBlock, block.size() - hpOrders - spells - abilities);
+            int special = hpOrders + spells + abilities;
+            shuffle(block, special + hits, random);
             hpOrderSlots.addAll(block.subList(0, hpOrders));
             spellSlots.addAll(block.subList(hpOrders, hpOrders + spells));
-            abilitySlots.addAll(block.subList(hpOrders + spells, hpOrders + spells + abilities));
+            abilitySlots.addAll(block.subList(hpOrders + spells, special));
+            hitsSlots.addAll(block.subList(special, special + hits));
         }
+    }
+
+    /**
+     * 「何発で倒せる?」。答えが2発ばかりにならないよう、先に何発かを選んでから、その数の組を選ぶ。
+     * 攻撃するカードも倒されるカードも、同じ日のほかの問題に出ていないものにする。出せる組が無ければ empty。
+     */
+    private static Optional<QuizQuestion> hits(List<Matchup> matchups, Set<QuizQuestion.HpCard> used, Random random) {
+        List<Matchup> available = matchups.stream()
+                .filter(m -> !used.contains(new QuizQuestion.HpCard(m.attackerId(), null, m.attackerHealth())))
+                .filter(m -> !used.contains(new QuizQuestion.HpCard(m.defenderId(), null, m.defenderHealth())))
+                .toList();
+        List<Integer> counts = available.stream().map(Matchup::hits).distinct().sorted().toList();
+        if (counts.isEmpty()) {
+            return Optional.empty();
+        }
+        int hits = counts.get(random.nextInt(counts.size()));
+        List<Matchup> same = available.stream().filter(m -> m.hits() == hits).toList();
+        Matchup m = same.get(random.nextInt(same.size()));
+        QuizQuestion.HpCard defender = new QuizQuestion.HpCard(m.defenderId(), null, m.defenderHealth());
+        used.add(new QuizQuestion.HpCard(m.attackerId(), null, m.attackerHealth()));
+        used.add(defender);
+        List<Integer> choices = window(hits, 1, HITS_HIGHEST_CHOICE, random);
+        return Optional.of(new QuizQuestion.Hits(m.attackerId(), defender, m.damage(), choices,
+                hits - choices.getFirst()));
     }
 
     /** ヒットポイントが十分に離れた4枚が見つからなければ empty(その位置はエリクサーの問題にする)。 */

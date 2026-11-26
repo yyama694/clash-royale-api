@@ -12,7 +12,7 @@ public record QuizView(String date, int number, String roundLabel, List<String> 
 
     /**
      * 1問分。type は見せ方の切り替えに使う(elixir: カード1枚とエリクサーの4択、hp: 4枚をヒットポイントの多い順に並べる、
-     * spell: 呪文1発で倒せる候補をすべて選ぶ)。
+     * spell: 呪文1発で倒せる候補をすべて選ぶ、hits: 2枚のカードと何発かの4択、ability: スキルのコストの4択)。
      * key は保存した回の出題が今日の問題と同じかを確かめるためのもの。
      * answer は正解で、エリクサーは choices での位置、並べ替えは cards での位置を正しい順に並べたもの("2031")、
      * 呪文は倒せる候補の cards での位置を小さい順に並べたもの("13")。

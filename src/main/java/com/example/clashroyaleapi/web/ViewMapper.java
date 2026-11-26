@@ -338,6 +338,7 @@ public class ViewMapper {
                     case QuizQuestion.HpOrder hpOrder -> toHpOrderQuestion(hpOrder, cards, stats, locale);
                     case QuizQuestion.SpellKill spellKill -> toSpellQuestion(spellKill, cards, stats, locale);
                     case QuizQuestion.AbilityCost ability -> toAbilityQuestion(ability, cards.get(ability.cardId()), locale);
+                    case QuizQuestion.Hits hits -> toHitsQuestion(hits, cards, stats, locale);
                 })
                 .toList();
         List<String> leads = quiz.questions().stream()
@@ -440,6 +441,33 @@ public class ViewMapper {
                 prompt != null ? prompt : labels.message("quiz." + type + ".prompt", locale, spellName), note,
                 hpCardViews(question.cards(), cards, stats, locale), List.of(), answer,
                 new QuizView.Card(question.spellId(), spellName, iconUrl, String.valueOf(damage), null));
+    }
+
+    /**
+     * 「何発で倒せる?」。cards は攻撃するカードと倒されるカードの2枚で、value はそれぞれ1発のダメージとヒットポイント
+     * (答えた後に出す)。何体も出るカードが攻撃する側なら「1体の攻撃」と、倒される側には並べ替えと同じ注釈を添える。
+     * 倒される側が建物なら、時間で減る分は数えないと答えた後に断る。
+     */
+    private QuizView.Question toHitsQuestion(QuizQuestion.Hits question, Map<Integer, CardsResponse.Card> cards,
+            CardStats stats, Locale locale) {
+        String type = question.type().code();
+        CardsResponse.Card attacker = cards.get(question.attackerId());
+        String attackerName = attacker == null ? null : attacker.name();
+        String attackerIcon = attacker == null || attacker.iconUrls() == null ? null : attacker.iconUrls().medium();
+        String attackerCondition = attackerName != null && stats.has(attackerName, CardStats.COUNT)
+                ? labels.message("quiz." + type + ".condition.perUnit", locale) : null;
+        QuizView.Card attackerView = new QuizView.Card(question.attackerId(), labels.cardName(attackerName, locale),
+                attackerIcon, String.valueOf(question.damage()), attackerCondition);
+        QuizView.Card defenderView = hpCardViews(List.of(question.defender()), cards, stats, locale).getFirst();
+        CardsResponse.Card defender = cards.get(question.defender().id());
+        boolean building = defender != null && stats.has(defender.name(), CardStats.LIFETIME);
+        String note = labels.message("quiz." + type + (building ? ".note.building" : ".note"), locale,
+                String.valueOf(question.damage()), String.valueOf(question.defender().health()));
+        String key = type + ":" + question.attackerId() + "-" + question.defender().id();
+        return new QuizView.Question(key, type,
+                labels.message("quiz." + type + ".prompt", locale, attackerView.name(), defenderView.name()), note,
+                List.of(attackerView, defenderView), question.choices().stream().map(String::valueOf).toList(),
+                String.valueOf(question.answer()), null);
     }
 
     /** 並べ替えと呪文の問題の候補。カードの名前と画像で出し、どの姿のヒットポイントかを注釈で添える。 */

@@ -154,6 +154,15 @@ public record CardStats(LocalDate asOf, Map<String, List<Row>> byCard) {
                 .findFirst();
     }
 
+    /** 通常の形のその項目のレベル11の値。無ければ(求められない項目も) empty。 */
+    public Optional<String> value11(String card, String labelKey) {
+        return of(card).stream()
+                .filter(row -> row.form() == Form.NORMAL && row.labelKey().equals(labelKey))
+                .map(Row::level11)
+                .filter(value -> value != null && !value.isEmpty())
+                .findFirst();
+    }
+
     /** 通常の形にその項目があるか。 */
     public boolean has(String card, String labelKey) {
         return of(card).stream().anyMatch(row -> row.form() == Form.NORMAL && row.labelKey().equals(labelKey));

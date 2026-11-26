@@ -180,6 +180,7 @@ class QuizServiceTest {
                     case QuizQuestion.HpOrder hpOrder -> hpOrder.cards().stream().map(QuizQuestion.HpCard::id);
                     case QuizQuestion.SpellKill spellKill -> spellKill.cards().stream().map(QuizQuestion.HpCard::id);
                     case QuizQuestion.AbilityCost ability -> Stream.of(ability.cardId());
+                    case QuizQuestion.Hits hits -> Stream.of(hits.attackerId(), hits.defender().id());
                 })
                 .toList();
     }
@@ -261,6 +262,66 @@ class QuizServiceTest {
             }
         }
         assertEquals(Map.of(3, Set.of("false:2"), 12, Set.of("true:1")), seen);
+    }
+
+    @Test
+    void 何発の問題は出し始める日より前には出さず出し始める日からは出す() {
+        // Card1 を地上を攻撃するカードにする(1発300。ヒットポイントが 100 + 番号×150 のカードを2〜6発で倒せる)
+        Map<String, List<CardStats.Row>> rows = new HashMap<>(cardStatsService.stats().byCard());
+        rows.put("Card1", List.of(row(CardStats.HEALTH, "250"), row("stat.TID_SPELL_ATTRIBUTE_DAMAGE", "300"),
+                row("stat.TID_SPELL_ATTRIBUTE_HIT_SPEED", "{s:1}"),
+                row("stat.TID_SPELL_ATTRIBUTE_TARGET", "{t:stat.TID_TARGETS_GROUND}")));
+        CardStatsService withAttacker = new CardStatsService(new CardStats(LocalDate.of(2026, 10, 25), rows));
+        Instant from = QuizService.HITS_FROM.atStartOfDay(ZoneId.of("UTC")).toInstant();
+
+        for (int day = 1; day <= 20; day++) {
+            DailyQuiz before = new QuizService(apiClient, withAttacker,
+                    Clock.fixed(from.minusSeconds(day * 86_400L), ZoneId.of("UTC"))).today();
+            DailyQuiz after = new QuizService(apiClient, withAttacker,
+                    Clock.fixed(from.plusSeconds((day - 1) * 86_400L), ZoneId.of("UTC"))).today();
+
+            assertTrue(before.questions().stream().noneMatch(QuizQuestion.Hits.class::isInstance));
+            List<QuizQuestion.Hits> hits = after.questions().stream()
+                    .filter(QuizQuestion.Hits.class::isInstance).map(QuizQuestion.Hits.class::cast).toList();
+            // 攻撃する側は Card1 だけなので、1日に1問しか作れない(残りの位置はエリクサーの問題になる)
+            assertEquals(1, hits.size());
+            assertEquals(1, hits.getFirst().attackerId());
+            assertEquals(300, hits.getFirst().damage());
+        }
+    }
+
+    @Test
+    void 何発の組は当たる相手だけで割り切れる近くと答えが2から6でない組は入れない() {
+        CardStats stats = new CardStats(LocalDate.of(2026, 10, 25), Map.of(
+                "Knight", List.of(row(CardStats.HEALTH, "1000"), row("stat.TID_SPELL_ATTRIBUTE_DAMAGE", "300"),
+                        row("stat.TID_SPELL_ATTRIBUTE_HIT_SPEED", "{s:1}"),
+                        row("stat.TID_SPELL_ATTRIBUTE_TARGET", "{t:stat.TID_TARGETS_GROUND}")),
+                "Hog Rider", List.of(row(CardStats.HEALTH, "2000"), row("stat.TID_SPELL_ATTRIBUTE_DAMAGE", "500"),
+                        row("stat.TID_SPELL_ATTRIBUTE_HIT_SPEED", "{s:1}"),
+                        row("stat.TID_SPELL_ATTRIBUTE_TARGET", "{t:stat.TID_TARGETS_BUILDINGS}")),
+                "Prince", List.of(row(CardStats.HEALTH, "1100"), row("stat.TID_SPELL_ATTRIBUTE_DAMAGE", "600"),
+                        row("stat.TID_SPELL_ATTRIBUTE_CHARGE_DAMAGE", "1200"),
+                        row("stat.TID_SPELL_ATTRIBUTE_HIT_SPEED", "{s:1}"),
+                        row("stat.TID_SPELL_ATTRIBUTE_TARGET", "{t:stat.TID_TARGETS_GROUND}")),
+                "Minions", List.of(row(CardStats.HEALTH, "700")),
+                "Cannon", List.of(row(CardStats.HEALTH, "1200"), row(CardStats.LIFETIME, "{s:30}")),
+                "Guards", List.of(row(CardStats.HEALTH, "700"), row(CardStats.SHIELD_HEALTH, "400")),
+                "Golem", List.of(row(CardStats.HEALTH, "8000"))));
+        List<CardsResponse.Card> cards = Stream.of("Knight", "Hog Rider", "Prince", "Minions", "Cannon", "Guards", "Golem")
+                .map(name -> new CardsResponse.Card(name.hashCode(), name, 16, null, 3, "common", null))
+                .toList();
+
+        Set<String> pairs = new HashSet<>();
+        for (DailyQuiz.Matchup m : QuizService.matchups(stats, cards)) {
+            String attacker = cards.stream().filter(c -> c.id() == m.attackerId()).findFirst().orElseThrow().name();
+            String defender = cards.stream().filter(c -> c.id() == m.defenderId()).findFirst().orElseThrow().name();
+            pairs.add(attacker + ">" + defender + "=" + m.hits());
+        }
+        // ナイトは地上だけ(ガーゴイルは空)。ホグライダーは建物だけ。プリンスは突進があるので攻撃する側に出さない。
+        // シールドのある盾の戦士は倒される側に出さない。ナイト→プリンス(1100/300=3.67)は出る。
+        // ナイト→ホグライダー(2000/300=6.67)は7発、ナイト→ゴーレムは多すぎ、ホグライダー→大砲(1200/500=2.4)は出る。
+        // ナイト→大砲(1200/300=4.0)はちょうど割り切れるので出さない。
+        assertEquals(Set.of("Knight>Prince=4", "Hog Rider>Cannon=3"), pairs);
     }
 
     private static DailyQuiz.Spell spell(CardStats stats, int id, String name) {

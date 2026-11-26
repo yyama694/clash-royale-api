@@ -11,7 +11,7 @@ public sealed interface QuizQuestion {
 
     /** 並びは、はじめの画面で問題の種類の説明を出す順。 */
     enum Type {
-        ELIXIR("elixir"), HP_ORDER("hp"), SPELL("spell"), ABILITY("ability");
+        ELIXIR("elixir"), HP_ORDER("hp"), SPELL("spell"), HITS("hits"), ABILITY("ability");
 
         private final String code;
 
@@ -94,6 +94,23 @@ public sealed interface QuizQuestion {
                     .filter(i -> cards.get(i).health() <= damages.get(i))
                     .boxed()
                     .toList();
+        }
+    }
+
+    /**
+     * 「同じレベルのとき、〇〇は△△を何発で倒す?」の4択(2026-11-26)。attackerId は攻撃するカード、defender は倒されるカード
+     * (ヒットポイントはレベル16)、damage は攻撃するカードの1発のダメージ(レベル16)。answer は正解の choices での位置。
+     * 何発かはレベル11とレベル16で変わらない組だけを出す(QuizService.matchups)。
+     */
+    record Hits(int attackerId, HpCard defender, int damage, List<Integer> choices, int answer) implements QuizQuestion {
+
+        @Override
+        public Type type() {
+            return Type.HITS;
+        }
+
+        public int correctChoice() {
+            return choices.get(answer);
         }
     }
 
