@@ -2982,12 +2982,18 @@ td.cell-action {
     margin-top: 0;
 }
 
-/* 「何発で倒せる?」の2枚。スマホでも選択肢まで1画面に収まるよう、エリクサーの問題の1枚より小さくする。 */
+/*
+  「何発で倒せる?」の2枚。スマホでも選択肢まで1画面に収まるよう、エリクサーの問題の1枚より小さくする。
+  名前は単語の途中で折り返さないよう、2枚で幅を分け合い、文字を少し小さくする(375px幅のロシア語で「Подозрительный」が
+  単語の途中で切れた)。
+*/
 .quiz-duel {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    gap: 0.5rem;
+    gap: 0.25rem;
+    max-width: 24rem;
+    margin: 0 auto;
 }
 
 .quiz-duel[hidden] {
@@ -2995,7 +3001,8 @@ td.cell-action {
 }
 
 .quiz-duel-card {
-    flex: 0 1 9rem;
+    flex: 1 1 0;
+    min-width: 0;
     margin: 0;
     text-align: center;
 }
@@ -3007,8 +3014,10 @@ td.cell-action {
 
 .quiz-duel-name {
     margin-top: 0.3rem;
+    font-size: 0.95rem;
     font-weight: 800;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 .quiz-duel-condition {
