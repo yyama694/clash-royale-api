@@ -16,6 +16,7 @@ description: 本番VM(princess-tower.duckdns.org、旧clashroyale-api.duckdns.or
    bash "C:\dev\clash-royale-api\.claude\skills\access-check\scripts\check-access.sh"
    ```
    **複数の日付を集計するときも、1本ずつ順番に実行する**(同時に走らせない)。VM側の一時ファイル(`/tmp/access-check-*`)が共通なので、並行すると互いに上書きし、後半の数字が別の日のものになる(2026-10-23に今日分の出力が10/22の中身になった)。
+   **別のセッションも同じスクリプトを流す**(Xの投稿の「来た人」を数えるため)。2026-11-27に途中で重なり、送信元の一覧の`{ }`が全員空になった。`{ }`が全員空なら重なった兆しなので、VMで`pgrep -af "bash -s -- 20[2]6-"`を見て、ほかの実行が終わってから取り直す。
    このスクリプトはVMにSSHし、以下をまとめて行う。
    - UA文字列ベースの簡易ボット除外だけをした件数を出す(本番VMの日次集計`clash-royale-access-stats.sh`と同じ条件。その正本は`scripts/clash-royale-access-stats.sh`で、`BOT_REGEX`を直すときは両方を直す)
    - それに加えて`references/known_noise.md`に載っている「UAは本物のブラウザに見えるが実は人間ではない」IP(既知のスキャナー・ユーザー本人の開発用IP)も除外
