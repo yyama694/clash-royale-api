@@ -45,6 +45,21 @@
             </div>
         </div>
 
+        <!--/* 手で書いた解説(cards/guides)。一部のカードの日本語と英語にだけあり、無い言語では欄ごと出さない */-->
+        <section class="card card-guide" id="guide" th:if="${guide}">
+            <h2 th:text="${guide.heading()}"></h2>
+            <th:block th:each="s : ${guide.sections()}">
+                <h3 th:text="${s.heading()}"></h3>
+                <th:block th:each="b : ${s.blocks()}">
+                    <ul th:if="${b.list()}">
+                        <li th:each="item : ${b.items()}" th:text="${item}"></li>
+                    </ul>
+                    <p th:unless="${b.list()}" th:text="${b.text()}"></p>
+                </th:block>
+            </th:block>
+            <p th:replace="~{fragments/layout :: notice(${guide.note()})}"></p>
+        </section>
+
         <!--/*
           ステータス(ゲーム内のカード情報の画面から読み取ったもの)。レベル16とレベル11をラジオボタンで切り替える。
           JSは使わず、表より前の兄弟に置いたラジオボタンの :checked から CSS で列を出し分ける。

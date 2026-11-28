@@ -1,0 +1,17 @@
+# Elite Barbarians. Written 2026-11-28 from cards/stats.tsv (level 16) and that day's production data (top 1,000 players).
+title: Elite Barbarians counters, tips and usage rate in Clash Royale
+heading: About the Elite Barbarians
+note: Written on November 28, 2026. Hitpoints and other stats come from the in-game card info (level 16); how the card is used and its matchups come from this site's data on ranked battles of the top 1,000 players.
+
+## What it does
+The Elite Barbarians are a 6-Elixir card that deploys two troops. Their speed is Fast, and they attack ground troops and buildings.
+Each has 2,143 hitpoints at level 16 and deals 613 damage every 1.4 seconds. At the same level, Rocket is the only spell that kills one in a single cast (Fireball leaves 1,043 and Lightning leaves 454).
+
+## How to use it
+They are fast and each one is tough, so after defending with them you can send them straight into a counterattack, forcing your opponent to spend a lot of Elixir.
+Among the top 1,000 players, 70% of Elite Barbarians decks also run Zap, and about 40% run Heal Spirit, Giant and Rage. Decks of top players include a version with Giant, Dark Prince and Rage, and a version with Three Musketeers and Elixir Collector.
+
+## How to counter it
+- Defend with troops: only a Rocket kills one with a single spell. At the same level, Mini P.E.K.K.A and P.E.K.K.A need 2 hits and a Knight 7 to kill one.
+- Attack from the air: they only hit ground targets, so they cannot fight back against flying troops such as Mega Minion.
+- In battles between top players, decks with the Elite Barbarians win less often against decks with Inferno Tower, Tombstone, Barbarians or Suspicious Bush (see "weak against" below).
