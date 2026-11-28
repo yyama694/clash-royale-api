@@ -43,8 +43,6 @@
                     <li><span class="label" th:text="#{card.levelRange}"></span><span class="value" th:text="#{card.levelRange.value(${card.minLevel()}, ${card.maxLevel()})}"></span></li>
                 </ul>
             </div>
-
-            <p th:replace="~{fragments/layout :: notice(#{card.notice})}"></p>
         </div>
 
         <!--/*
