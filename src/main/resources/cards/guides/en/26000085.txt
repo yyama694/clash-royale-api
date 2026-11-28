@@ -1,0 +1,18 @@
+# Electro Giant. Written 2026-11-28 from cards/stats.tsv (level 16) and that day's production data (top 1,000 players).
+title: Electro Giant counters, tips and usage rate in Clash Royale
+heading: About the Electro Giant
+note: Written on November 28, 2026. Hitpoints and other stats come from the in-game card info (level 16); how the card is used and its matchups come from this site's data on ranked battles of the top 1,000 players.
+
+## What it does
+The Electro Giant is a 7-Elixir troop that only targets buildings. It has 6,314 hitpoints at level 16 and its speed is Slow.
+Troops that attack it from close range take 306 reflected damage and are stunned for 0.5 seconds. Even a Rocket of the same level leaves it with 3,942 hitpoints.
+
+## How to use it
+It is heavy and slow, so the usual plan is to push together with your other cards.
+Among the top 1,000 players, more than 90% of Electro Giant decks also run Tornado, Lightning and Barbarian Barrel, and more than 80% run Bowler and Baby Dragon. Decks of top players include a 4.4-average-Elixir version that adds Mother Witch and Goblin Hut to those five.
+Tornado pulls enemy troops together, so the reflected damage and the splash from Bowler and Baby Dragon can take them out at once.
+
+## How to counter it
+- Use cards with big hits: at the same level, P.E.K.K.A needs 5 hits and Mini P.E.K.K.A 6 (a Knight would need 20).
+- Pull it with a building: it only targets buildings, so a building buys you time to take it down.
+- In battles between top players, decks with the Electro Giant win less often against decks with Sparky, P.E.K.K.A, Wizard or Dark Prince (see "weak against" below).

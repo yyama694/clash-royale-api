@@ -2,9 +2,11 @@ package com.example.clashroyaleapi.web;
 
 import com.example.clashroyaleapi.client.dto.CardsResponse;
 import com.example.clashroyaleapi.domain.BalanceUpdate;
+import com.example.clashroyaleapi.domain.CardGuide;
 import com.example.clashroyaleapi.domain.CardStats;
 import com.example.clashroyaleapi.domain.CardUsage;
 import com.example.clashroyaleapi.service.BalanceService;
+import com.example.clashroyaleapi.service.CardGuideService;
 import com.example.clashroyaleapi.service.CardService;
 import com.example.clashroyaleapi.service.CardStatsService;
 import com.example.clashroyaleapi.service.CardUsageService;
@@ -43,11 +45,12 @@ public class CardController {
     private final BalanceService balanceService;
     private final TopBattleService topBattleService;
     private final CardStatsService cardStatsService;
+    private final CardGuideService cardGuideService;
 
     public CardController(CardService cardService, CardUsageService cardUsageService,
             TopPlayerDeckService topPlayerDeckService, ViewMapper viewMapper, PageSummaries pageSummaries,
             TimeFormatter timeFormatter, BalanceService balanceService, TopBattleService topBattleService,
-            CardStatsService cardStatsService) {
+            CardStatsService cardStatsService, CardGuideService cardGuideService) {
         this.cardService = cardService;
         this.cardUsageService = cardUsageService;
         this.topPlayerDeckService = topPlayerDeckService;
@@ -57,6 +60,7 @@ public class CardController {
         this.balanceService = balanceService;
         this.topBattleService = topBattleService;
         this.cardStatsService = cardStatsService;
+        this.cardGuideService = cardGuideService;
     }
 
     @GetMapping("/cards")
@@ -92,8 +96,12 @@ public class CardController {
         CardStats stats = cardStatsService.stats();
         CardDetailView card = viewMapper.toCardDetail(cardService.byId(id), stats, locale);
         Map<Integer, CardsResponse.Card> cardsById = cardService.allById();
+        Optional<CardGuide> guide = cardGuideService.guide(id, locale);
         model.addAttribute("card", card);
-        model.addAttribute("pageTitle", pageSummaries.cardTitle(card.name(), locale));
+        guide.ifPresent(g -> model.addAttribute("guide", g));
+        // 解説のあるカードは「対策・使い方」で検索されるので、タイトルも解説に合わせる。
+        model.addAttribute("pageTitle",
+                guide.map(CardGuide::title).orElseGet(() -> pageSummaries.cardTitle(card.name(), locale)));
         model.addAttribute("cardStats", viewMapper.toCardStats(stats,
                 cardStatsService.ability(card.englishName()).orElse(null), card.englishName(), locale));
         // 初回の集計が終わるまで(デプロイ直後の1時間ほど)は、使用率の欄ごと出さない。説明文もサイト共通のものになる。

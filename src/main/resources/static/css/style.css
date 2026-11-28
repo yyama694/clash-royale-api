@@ -361,6 +361,20 @@ a {
     color: var(--color-text-muted);
 }
 
+/* カード詳細の解説は読ませる文章なので、行間を広めにする */
+.card-guide p,
+.card-guide li {
+    line-height: 1.75;
+}
+
+.card-guide ul {
+    padding-left: 1.4em;
+}
+
+.card-guide li + li {
+    margin-top: 0.35em;
+}
+
 .card-action {
     margin-top: 1rem;
 }

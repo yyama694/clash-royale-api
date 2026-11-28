@@ -1,0 +1,19 @@
+# Hog Rider. Written 2026-11-28 from cards/stats.tsv (level 16) and that day's production data (top 1,000 players).
+title: Hog Rider counters, tips and usage rate in Clash Royale
+heading: About the Hog Rider
+note: Written on November 28, 2026. Hitpoints and other stats come from the in-game card info (level 16); how the card is used and its matchups come from this site's data on ranked battles of the top 1,000 players.
+
+## What it does
+The Hog Rider is a 4-Elixir troop that only targets buildings. Its speed is Very Fast and it jumps over the river, so when placed at the bridge it reaches a tower almost at once.
+It has 2,711 hitpoints at level 16, so no single spell of the same level kills it (Fireball leaves 1,611, and even Rocket leaves 339).
+
+## How to use it
+It is the card that damages towers. The usual plan is to fill the rest of the deck with cheap cards, defend the opponent's pushes for less Elixir, and send the Hog Rider again and again.
+Among the top 1,000 players it is often paired with Skeletons, The Log, Ice Spirit and Cannon. Decks of top players include a version with Earthquake and Firecracker, and a 2.6-average-Elixir version with Musketeer, Ice Golem and Fireball.
+Earthquake deals 455 damage per second to buildings (130 to troops), which makes it good for breaking buildings placed in the Hog Rider's way.
+
+## How to counter it
+- Pull it with a building: it only targets buildings, so a Cannon, Tesla or Bomb Tower placed in the middle of your side stops it before it reaches your tower.
+- Kill it quickly: at the same level, Mini P.E.K.K.A needs 3 hits, Valkyrie 7 and Knight 9.
+- Tornado can pull it to the middle, where it attacks your King Tower and wakes it up.
+- In battles between top players, decks with the Hog Rider win less often against decks with Bomb Tower, Goblin Drill or Minion Giant (see "weak against" below).
